@@ -185,8 +185,10 @@ def get_mainframe_logo():
         # 2. Fallbacks in frontend projects
         os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.svg"),
         os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.jpg"),
         os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.svg"),
-        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.png")
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.jpg")
     ]
     
     for logo_path in search_paths:
