@@ -1,0 +1,32 @@
+﻿============================================================
+MAINFRAME ART GALLERY - GITHUB/GIT PUSH INSTRUCTIONS
+============================================================
+Follow these steps to push your local git repository to GitHub:
+
+STEP 1: CREATE A NEW REPOSITORY ON GITHUB
+-----------------------------------------
+1. Go to https://github.com and log in.
+2. Click the "New" button to create a new repository.
+3. Set Repository Name (e.g., "art_gallery").
+4. Keep it Public or Private as per your choice.
+5. !!! IMPORTANT !!! 
+   Do NOT check "Add a README file", "Add .gitignore", or
+   "Choose a license" (since we already created them locally).
+6. Click "Create repository".
+
+STEP 2: LINK & PUSH YOUR LOCAL CODE
+-----------------------------------
+Open Command Prompt/Terminal in "d:\art_gallery" and run
+these commands one-by-one:
+
+1. Link your local project to the GitHub repository:
+   git remote add origin <YOUR_GITHUB_REPOSITORY_URL>
+   
+   (Example: git remote add origin https://github.com/your-username/art_gallery.git)
+
+2. Set default branch name to "main":
+   git branch -M main
+
+3. Push the code to GitHub:
+   git push -u origin main
+============================================================

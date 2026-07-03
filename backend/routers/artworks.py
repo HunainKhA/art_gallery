@@ -172,20 +172,33 @@ def get_global_template():
 @router.get("/logo")
 def get_mainframe_logo():
     """
-    Serves the logo from the assets folder.
+    Serves the logo from the uploads or assets folder.
     """
     from fastapi.responses import HTMLResponse
     import os
-    logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "logo.png")
-    if not os.path.exists(logo_path):
-        logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "logo.jpg")
-    if not os.path.exists(logo_path):
-        logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "new_logo.jpg")
-        
-    if os.path.exists(logo_path):
-        media_type = "image/png" if logo_path.endswith(".png") else "image/jpeg"
-        with open(logo_path, "rb") as f:
-            return Response(content=f.read(), media_type=media_type)
+    
+    # 1. Search in configured UPLOAD_DIR
+    search_paths = [
+        os.path.join(Config.UPLOAD_DIR, "logo.svg"),
+        os.path.join(Config.UPLOAD_DIR, "logo.png"),
+        os.path.join(Config.UPLOAD_DIR, "logo.jpg"),
+        # 2. Fallbacks in frontend projects
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.svg"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.svg"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.png")
+    ]
+    
+    for logo_path in search_paths:
+        if os.path.exists(logo_path):
+            media_type = (
+                "image/svg+xml" if logo_path.endswith(".svg") 
+                else "image/png" if logo_path.endswith(".png") 
+                else "image/jpeg"
+            )
+            with open(logo_path, "rb") as f:
+                return Response(content=f.read(), media_type=media_type)
+                
     return HTMLResponse(content="<h1>Logo not found</h1>", status_code=404)
 
 @router.get("/signature")

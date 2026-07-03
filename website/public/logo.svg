@@ -1,0 +1,18 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C5A880" />
+      <stop offset="50%" stop-color="#E5C79E" />
+      <stop offset="100%" stop-color="#A27B5C" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(10, 10)">
+    <rect x="0" y="0" width="80" height="80" rx="8" fill="none" stroke="url(#gold-grad)" stroke-width="3" />
+    <rect x="8" y="8" width="64" height="64" rx="4" fill="none" stroke="url(#gold-grad)" stroke-width="1" opacity="0.6" />
+    <path d="M 24 60 L 24 25 L 40 46 L 56 25 L 56 60" fill="none" stroke="url(#gold-grad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <g transform="translate(110, 0)">
+    <text x="0" y="52" font-family="'Times New Roman', Georgia, serif" font-size="34" font-weight="bold" fill="url(#gold-grad)" letter-spacing="2">MAINFRAME</text>
+    <text x="3" y="76" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#E2E8F0" letter-spacing="7">THE GALLERY</text>
+  </g>
+</svg>
