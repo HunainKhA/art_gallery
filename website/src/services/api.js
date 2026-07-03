@@ -1,0 +1,103 @@
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+export const getApiUrl = (path) => {
+  return `${API_BASE}${path}`;
+};
+
+export const fetchCategories = async () => {
+  const res = await fetch(`${API_BASE}/api/artworks/categories`);
+  if (!res.ok) throw new Error("Could not load categories database records.");
+  return res.json();
+};
+
+export const fetchArtists = async () => {
+  const res = await fetch(`${API_BASE}/api/artists`);
+  if (!res.ok) throw new Error("Could not load artists profiles.");
+  return res.json();
+};
+
+export const fetchArtworks = async (params = {}) => {
+  let url = `${API_BASE}/api/artworks?limit=10000`;
+  if (params.search) {
+    url += `&search=${encodeURIComponent(params.search)}`;
+  } else if (params.category) {
+    url += `&category=${encodeURIComponent(params.category)}`;
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Could not fetch artworks inventory list.");
+  return res.json();
+};
+
+export const fetchArtistDetail = async (artistId) => {
+  const res = await fetch(`${API_BASE}/api/artists/${artistId}`);
+  if (!res.ok) throw new Error("Could not fetch artist portfolio detail.");
+  return res.json();
+};
+
+export const getArtworkImageUrl = (id) => {
+  return `${API_BASE}/api/artworks/image/${id}`;
+};
+
+export const getArtistImageUrl = (filename) => {
+  if (!filename) return '';
+  if (filename.startsWith('http')) return filename;
+  return `${API_BASE}/api/artists/image/${filename}`;
+};
+
+export const getLogoUrl = () => {
+  return `${API_BASE}/api/artworks/logo`;
+};
+
+export const fetchFlashImages = async () => {
+  const res = await fetch(`${API_BASE}/api/crm/flashimages`);
+  if (!res.ok) throw new Error("Could not load homepage flash images.");
+  return res.json();
+};
+
+export const fetchCollectionTypes = async () => {
+  const res = await fetch(`${API_BASE}/api/collection-types`);
+  if (!res.ok) throw new Error("Could not load categories list.");
+  return res.json();
+};
+
+export const fetchMediums = async () => {
+  const res = await fetch(`${API_BASE}/api/mediums`);
+  if (!res.ok) throw new Error("Could not load mediums list.");
+  return res.json();
+};
+
+export const fetchBannerConfig = async () => {
+  const res = await fetch(`${API_BASE}/api/crm/exhibitions/banner`);
+  if (!res.ok) throw new Error("Could not load exhibitions banner configuration.");
+  return res.json();
+};
+
+export const saveBannerConfig = async (config) => {
+  const res = await fetch(`${API_BASE}/api/crm/exhibitions/banner`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config)
+  });
+  if (!res.ok) throw new Error("Could not save exhibitions banner configuration.");
+  return res.json();
+};
+
+export const uploadBannerImage = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE}/api/crm/exhibitions/banner/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) throw new Error("Could not upload banner image asset.");
+  return res.json();
+};
+
+export const getBannerImageUrl = (filename) => {
+  if (!filename) return '';
+  return `${API_BASE}/api/crm/exhibitions/banner/image/${filename}`;
+};
+
+
+
+

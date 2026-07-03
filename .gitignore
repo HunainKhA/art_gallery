@@ -1,0 +1,20 @@
+﻿# Ignore local environment variables files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore Python virtual environments
+backend/venv/
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Ignore React node_modules and builds
+**/node_modules/
+**/dist/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

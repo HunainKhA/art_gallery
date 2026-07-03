@@ -1,0 +1,42 @@
+﻿============================================================
+MAINFRAME ART GALLERY - SAFE DATABASE MIGRATION STEPS
+============================================================
+Follow these steps to migrate your local MySQL database to
+the Hostinger VPS production server safely without losing
+any existing artworks or contact records:
+
+STEP 1: BACKUP YOUR LOCAL DATABASE (EXPORT)
+-------------------------------------------
+Open Command Prompt/Terminal on your local machine and run:
+mysqldump -u root -p mf_db > db_backup.sql
+
+* Note: This will create a file named "db_backup.sql" in
+  your current folder containing all old artworks, categories,
+  artists, and contact records safely.
+
+STEP 2: CREATE & IMPORT DATABASE ON VPS
+---------------------------------------
+1. Create a database named "mf_db" (or your preferred name)
+   on your Hostinger VPS.
+2. Upload "db_backup.sql" to your VPS.
+3. Import the backup data by running:
+   mysql -u root -p mf_db < db_backup.sql
+
+STEP 3: RUN THE UPGRADE ADDITION SCRIPTS
+----------------------------------------
+To add the new frame calculator and orders tracker tables,
+run the following SQL files on your VPS database in this
+exact order:
+
+1. database/create_sheet_sizes_table.sql
+2. database/create_additional_tables.sql
+
+!!! CRITICAL CAUTION !!!
+The file "create_additional_tables.sql" contains commands
+to drop order tables if they already exist (DROP TABLE IF EXISTS).
+This is perfectly safe when running the migration for the
+first time on a fresh setup.
+HOWEVER, NEVER RUN THIS SCRIPT AGAIN after your platform is
+live and starts receiving real orders, or it will clear all
+production customer orders!
+============================================================

@@ -1,0 +1,1769 @@
+import uuid
+import os
+import shutil
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Form
+from pydantic import BaseModel
+from database import execute_query, get_db_connection
+from config import Config
+
+router = APIRouter(prefix="/api/artworks", tags=["Artworks"])
+
+class ArtworkRequest(BaseModel):
+    title: str
+    description: str = ""
+    status: str = "Available"
+    price: float = 0.0
+    length: float = 0.0
+    width: float = 0.0
+    with_frame: str = "0"
+    frame_charges: float = 0.0
+    code: str = ""
+    artist_id: str = None
+    category_id: str = None
+    medium_id: str = None
+    image: str = ""
+    authenticity_letter: str = ""
+    deal_type: str = "Sale_Basis"
+    purchase_price: float = 0.0
+
+class ArtworkImportList(BaseModel):
+    artworks: list[ArtworkRequest]
+
+@router.get("/categories")
+def get_artwork_categories():
+    """
+    Fetches all unique categories and their artwork counts dynamically.
+    """
+    query = """
+        SELECT 
+            t.name AS name,
+            COUNT(c.id) AS count,
+            MIN(c.id) AS image_id
+        FROM art_collections c
+        LEFT JOIN art_collectionstype_art_collections_c type_rel
+            ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
+        LEFT JOIN art_collectionstype t
+            ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+        WHERE c.deleted = 0 AND t.name IS NOT NULL AND t.deleted = 0
+        GROUP BY t.name
+        ORDER BY t.name ASC;
+    """
+    try:
+        categories = execute_query(query)
+        return categories
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("")
+def get_all_artworks(category: str = None, artist_id: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 24):
+    """
+    Fetches artworks from the database with pagination, filtering by category, artist, code, or search term.
+    """
+    where_clauses = ["c.deleted = 0"]
+    params = []
+    
+    if category:
+        where_clauses.append("t.name = %s")
+        params.append(category)
+        
+    if artist_id:
+        where_clauses.append("a.id = %s")
+        params.append(artist_id)
+        
+    if code:
+        where_clauses.append("cstm.code_c = %s")
+        params.append(code)
+        
+    if search:
+        where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param, search_param, search_param])
+        
+    where_str = " AND ".join(where_clauses)
+    offset = (page - 1) * limit
+    
+    query = f"""
+        SELECT 
+            c.id AS id,
+            c.document_name AS title,
+            c.filename AS image,
+            c.description AS description,
+            c.collection_status AS status,
+            cstm.sale_gallery_price_c AS price,
+            cstm.collection_size_length_c AS length,
+            cstm.collection_size_width_c AS width,
+            cstm.with_frame_c AS with_frame,
+            cstm.frame_charges_c AS frame_charges,
+            cstm.code_c AS code,
+            cstm.authenticity_letter_field_c AS authenticity_letter,
+            cstm.sale_c AS deal_type,
+            cstm.purchase_price_c AS purchase_price,
+            a.id AS artist_id,
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+            t.id AS category_id,
+            t.name AS category_name,
+            m.id AS medium_id,
+            m.name AS medium_name
+        FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        LEFT JOIN art_artists_art_collections_c rel 
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists a 
+            ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_collectionstype_art_collections_c type_rel
+            ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
+        LEFT JOIN art_collectionstype t
+            ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel
+            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m
+            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+        WHERE {where_str}
+        ORDER BY c.date_entered DESC
+        LIMIT %s OFFSET %s;
+    """
+    params.extend([limit, offset])
+    
+    try:
+        artworks = execute_query(query, tuple(params))
+        for art in artworks:
+            try:
+                art["price"] = float(art["price"]) if art["price"] else 0.0
+            except ValueError:
+                art["price"] = 0.0
+            
+            try:
+                art["purchase_price"] = float(art["purchase_price"]) if art["purchase_price"] else 0.0
+            except ValueError:
+                art["purchase_price"] = 0.0
+                
+            art["deal_type"] = art["deal_type"] if art["deal_type"] else "Sale_Basis"
+            
+            try:
+                art["length"] = float(art["length"]) if art["length"] else 0.0
+                art["width"] = float(art["width"]) if art["width"] else 0.0
+            except ValueError:
+                art["length"] = 0.0
+                art["width"] = 0.0
+                
+        return artworks
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/global-template")
+def get_global_template():
+    """
+    Serves the global template image.
+    """
+    from fastapi.responses import RedirectResponse
+    upload_dir = Config.UPLOAD_DIR
+    
+    for ext in [".png", ".jpg", ".jpeg", ".webp"]:
+        file_path = os.path.join(upload_dir, f"global_authenticity_template{ext}")
+        if os.path.exists(file_path):
+            media_type = "image/png" if ext == ".png" else "image/webp" if ext == ".webp" else "image/jpeg"
+            with open(file_path, "rb") as f:
+                return Response(content=f.read(), media_type=media_type)
+            
+    # Return transparent 1x1 image fallback if not configured
+    return RedirectResponse(url="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+
+@router.get("/logo")
+def get_mainframe_logo():
+    """
+    Serves the logo from the assets folder.
+    """
+    from fastapi.responses import HTMLResponse
+    import os
+    logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "logo.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "logo.jpg")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "new_logo.jpg")
+        
+    if os.path.exists(logo_path):
+        media_type = "image/png" if logo_path.endswith(".png") else "image/jpeg"
+        with open(logo_path, "rb") as f:
+            return Response(content=f.read(), media_type=media_type)
+    return HTMLResponse(content="<h1>Logo not found</h1>", status_code=404)
+
+@router.get("/signature")
+def get_mainframe_signature():
+    """
+    Serves the owner's signature image from the assets folder.
+    """
+    from fastapi.responses import HTMLResponse
+    import os
+    sig_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "signature.jpg")
+    if os.path.exists(sig_path):
+        with open(sig_path, "rb") as f:
+            return Response(content=f.read(), media_type="image/jpeg")
+    return HTMLResponse(content="<h1>Signature not found</h1>", status_code=404)
+
+@router.get("/{artwork_id}")
+def get_artwork_by_id(artwork_id: str):
+    """
+    Fetches the details of a single artwork.
+    """
+
+    query = """
+        SELECT 
+            c.id AS id,
+            c.document_name AS title,
+            c.filename AS image,
+            c.description AS description,
+            c.collection_status AS status,
+            cstm.sale_gallery_price_c AS price,
+            cstm.collection_size_length_c AS length,
+            cstm.collection_size_width_c AS width,
+            cstm.with_frame_c AS with_frame,
+            cstm.frame_charges_c AS frame_charges,
+            cstm.code_c AS code,
+            cstm.authenticity_letter_field_c AS authenticity_letter,
+            cstm.sale_c AS deal_type,
+            cstm.purchase_price_c AS purchase_price,
+            a.id AS artist_id,
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+            a.description AS artist_bio,
+            t.id AS category_id,
+            t.name AS category_name,
+            m.id AS medium_id,
+            m.name AS medium_name
+        FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        LEFT JOIN art_artists_art_collections_c rel 
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists a 
+            ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_collectionstype_art_collections_c type_rel
+            ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
+        LEFT JOIN art_collectionstype t
+            ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel
+            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m
+            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+        WHERE c.id = %s AND c.deleted = 0;
+    """
+    try:
+        artwork = execute_query(query, (artwork_id,), fetch="one")
+        if not artwork:
+            raise HTTPException(status_code=404, detail="Artwork not found")
+            
+        try:
+            artwork["price"] = float(artwork["price"]) if artwork["price"] else 0.0
+        except ValueError:
+            artwork["price"] = 0.0
+            
+        try:
+            artwork["purchase_price"] = float(artwork["purchase_price"]) if artwork["purchase_price"] else 0.0
+        except ValueError:
+            artwork["purchase_price"] = 0.0
+            
+        artwork["deal_type"] = artwork["deal_type"] if artwork["deal_type"] else "Sale_Basis"
+            
+        try:
+            artwork["length"] = float(artwork["length"]) if artwork["length"] else 0.0
+            artwork["width"] = float(artwork["width"]) if artwork["width"] else 0.0
+        except ValueError:
+            artwork["length"] = 0.0
+            artwork["width"] = 0.0
+            
+        return artwork
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/image/{artwork_id}")
+def get_artwork_image(artwork_id: str):
+    """
+    Serves the actual image file from SugarCRM's upload directory.
+    """
+    import os
+    from fastapi.responses import RedirectResponse
+    
+    upload_dir = Config.UPLOAD_DIR
+    file_path = os.path.join(upload_dir, artwork_id)
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            return Response(content=f.read(), media_type="image/jpeg")
+        
+    try:
+        query = "SELECT filename FROM art_collections WHERE id = %s AND deleted = 0;"
+        res = execute_query(query, (artwork_id,), fetch="one")
+        if res and res["filename"]:
+            orig_filename = res["filename"]
+            alt_path = os.path.join(upload_dir, orig_filename)
+            if os.path.exists(alt_path):
+                with open(alt_path, "rb") as f:
+                    return Response(content=f.read(), media_type="image/jpeg")
+    except Exception as e:
+        print(f"Database query failed in get_artwork_image: {e}")
+        
+    return RedirectResponse(url="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500")
+
+@router.post("")
+def create_artwork(data: ArtworkRequest):
+    """
+    Creates a new artwork in the SugarCRM tables.
+    """
+    artwork_id = str(uuid.uuid4())
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    insert_art = """
+        INSERT INTO art_collections (
+            id, date_entered, date_modified, modified_user_id, created_by, 
+            description, deleted, document_name, filename, collection_status
+        ) VALUES (%s, %s, %s, '1', '1', %s, 0, %s, %s, %s);
+    """
+    insert_cstm = """
+        INSERT INTO art_collections_cstm (
+            id_c, collection_size_length_c, collection_size_width_c, with_frame_c, 
+            frame_charges_c, sale_gallery_price_c, code_c, authenticity_letter_field_c,
+            sale_c, purchase_price_c
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+    """
+    
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Main table
+            cursor.execute(insert_art, (artwork_id, now, now, data.description, data.title, data.image, data.status))
+            # 2. Custom fields table
+            cursor.execute(insert_cstm, (
+                artwork_id, str(data.length), str(data.width), data.with_frame,
+                str(data.frame_charges), str(data.price), data.code, data.authenticity_letter,
+                data.deal_type, str(data.purchase_price)
+            ))
+            # 3. Relation with artist
+            if data.artist_id:
+                cursor.execute("""
+                    INSERT INTO art_artists_art_collections_c (id, date_modified, deleted, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.artist_id, artwork_id))
+            # 4. Relation with category
+            if data.category_id:
+                cursor.execute("""
+                    INSERT INTO art_collectionstype_art_collections_c (id, date_modified, deleted, art_collectionstype_art_collectionsart_collectionstype_ida, art_collectionstype_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.category_id, artwork_id))
+            # 5. Relation with medium
+            if data.medium_id:
+                cursor.execute("""
+                    INSERT INTO art_medium_art_collections_c (id, date_modified, deleted, art_medium_art_collectionsart_medium_ida, art_medium_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.medium_id, artwork_id))
+                
+            connection.commit()
+            return {"success": True, "id": artwork_id, "message": "Artwork successfully created."}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create artwork: {str(e)}")
+    finally:
+        connection.close()
+
+@router.put("/{artwork_id}")
+def update_artwork(artwork_id: str, data: ArtworkRequest):
+    """
+    Updates an existing artwork and its relationships.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    update_art = """
+        UPDATE art_collections
+        SET date_modified = %s, description = %s, document_name = %s, filename = %s, collection_status = %s
+        WHERE id = %s AND deleted = 0;
+    """
+    update_cstm = """
+        UPDATE art_collections_cstm
+        SET collection_size_length_c = %s, collection_size_width_c = %s, with_frame_c = %s, frame_charges_c = %s, sale_gallery_price_c = %s, code_c = %s, authenticity_letter_field_c = %s, sale_c = %s, purchase_price_c = %s
+        WHERE id_c = %s;
+    """
+    
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Update tables
+            cursor.execute(update_art, (now, data.description, data.title, data.image, data.status, artwork_id))
+            cursor.execute(update_cstm, (str(data.length), str(data.width), data.with_frame, str(data.frame_charges), str(data.price), data.code, data.authenticity_letter, data.deal_type, str(data.purchase_price), artwork_id))
+            
+            # 2. Clear old relationships
+            cursor.execute("UPDATE art_artists_art_collections_c SET deleted = 1, date_modified = %s WHERE art_artists_art_collectionsart_collections_idb = %s", (now, artwork_id))
+            cursor.execute("UPDATE art_collectionstype_art_collections_c SET deleted = 1, date_modified = %s WHERE art_collectionstype_art_collectionsart_collections_idb = %s", (now, artwork_id))
+            cursor.execute("UPDATE art_medium_art_collections_c SET deleted = 1, date_modified = %s WHERE art_medium_art_collectionsart_collections_idb = %s", (now, artwork_id))
+            
+            # 3. Insert new relations
+            if data.artist_id:
+                cursor.execute("""
+                    INSERT INTO art_artists_art_collections_c (id, date_modified, deleted, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.artist_id, artwork_id))
+            if data.category_id:
+                cursor.execute("""
+                    INSERT INTO art_collectionstype_art_collections_c (id, date_modified, deleted, art_collectionstype_art_collectionsart_collectionstype_ida, art_collectionstype_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.category_id, artwork_id))
+            if data.medium_id:
+                cursor.execute("""
+                    INSERT INTO art_medium_art_collections_c (id, date_modified, deleted, art_medium_art_collectionsart_medium_ida, art_medium_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.medium_id, artwork_id))
+                
+            connection.commit()
+            return {"success": True, "message": "Artwork successfully updated."}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update artwork: {str(e)}")
+    finally:
+        connection.close()
+
+@router.delete("/{artwork_id}")
+def delete_artwork(artwork_id: str):
+    """
+    Soft-deletes an artwork.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    query = "UPDATE art_collections SET deleted = 1, date_modified = %s WHERE id = %s;"
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (now, artwork_id))
+            connection.commit()
+            return {"success": True, "message": "Artwork deleted successfully."}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete artwork: {str(e)}")
+    finally:
+        connection.close()
+
+@router.post("/import")
+def import_artworks(data: ArtworkImportList):
+    """
+    Batch imports multiple artworks.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    connection = get_db_connection()
+    success_count = 0
+    try:
+        with connection.cursor() as cursor:
+            for art in data.artworks:
+                artwork_id = str(uuid.uuid4())
+                cursor.execute("""
+                    INSERT INTO art_collections (
+                        id, date_entered, date_modified, modified_user_id, created_by, 
+                        description, deleted, document_name, filename, collection_status
+                    ) VALUES (%s, %s, %s, '1', '1', %s, 0, %s, %s, %s);
+                """, (artwork_id, now, now, art.description, art.title, art.image, art.status))
+                
+                cursor.execute("""
+                    INSERT INTO art_collections_cstm (
+                        id_c, collection_size_length_c, collection_size_width_c, with_frame_c, 
+                        frame_charges_c, sale_gallery_price_c, code_c, authenticity_letter_field_c,
+                        sale_c, purchase_price_c
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                """, (artwork_id, str(art.length), str(art.width), art.with_frame, str(art.frame_charges), str(art.price), art.code, art.authenticity_letter, art.deal_type, str(art.purchase_price)))
+                
+                if art.artist_id:
+                    cursor.execute("""
+                        INSERT INTO art_artists_art_collections_c (id, date_modified, deleted, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb)
+                        VALUES (%s, %s, 0, %s, %s);
+                    """, (str(uuid.uuid4()), now, art.artist_id, artwork_id))
+                if art.category_id:
+                    cursor.execute("""
+                        INSERT INTO art_collectionstype_art_collections_c (id, date_modified, deleted, art_collectionstype_art_collectionsart_collectionstype_ida, art_collectionstype_art_collectionsart_collections_idb)
+                        VALUES (%s, %s, 0, %s, %s);
+                    """, (str(uuid.uuid4()), now, art.category_id, artwork_id))
+                if art.medium_id:
+                    cursor.execute("""
+                        INSERT INTO art_medium_art_collections_c (id, date_modified, deleted, art_medium_art_collectionsart_medium_ida, art_medium_art_collectionsart_collections_idb)
+                        VALUES (%s, %s, 0, %s, %s);
+                    """, (str(uuid.uuid4()), now, art.medium_id, artwork_id))
+                success_count += 1
+            connection.commit()
+            return {"success": True, "message": f"Successfully imported {success_count} artworks."}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Batch import failed: {str(e)}")
+    finally:
+        connection.close()
+
+
+class ImportedArtworkDetail(BaseModel):
+    temp_image_id: str
+    title: str
+    code: str
+    price: float = 0.0
+    length: float = 0.0
+    width: float = 0.0
+    deal_type: str = "Sale_Basis"
+    purchase_price: float = 0.0
+
+class CommitImportRequest(BaseModel):
+    artist_id: str
+    category_id: str | None = None
+    medium_id: str | None = None
+    artworks: list[ImportedArtworkDetail]
+
+
+@router.post("/preview-pdf")
+async def preview_pdf_catalog(
+    file: UploadFile = File(...),
+    artist_id: str = Form(...)
+):
+    """
+    Splits the uploaded PDF catalog into pages, saves them temporarily, 
+    and returns a list of preview artwork details with suggested names/codes.
+    """
+    import fitz
+    import re
+    from collections import Counter
+
+    try:
+        file_bytes = await file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read uploaded PDF: {str(e)}")
+
+    # 1. Open PDF
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid PDF catalog format: {str(e)}")
+
+    total_pages = len(doc)
+    if total_pages == 0:
+        raise HTTPException(status_code=400, detail="The uploaded PDF file has 0 pages.")
+
+    # 2. Get code prefix and number from database
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # Get artist name
+            cursor.execute("SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0", (artist_id,))
+            artist = cursor.fetchone()
+            if not artist:
+                raise HTTPException(status_code=404, detail="Artist not found")
+                
+            first_name = artist.get("first_name") or ""
+            last_name = artist.get("last_name") or ""
+            full_name = f"{first_name} {last_name}".strip()
+            
+            # Fetch existing artwork titles
+            cursor.execute("""
+                SELECT c.document_name 
+                FROM art_collections c
+                JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
+                WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
+                  AND c.deleted = 0 
+                  AND c.document_name LIKE '%%-%%'
+            """, (artist_id,))
+            
+            titles = [row["document_name"] for row in cursor.fetchall()]
+            
+            prefix_numbers = []
+            for t in titles:
+                match = re.match(r"^(.+?)-(\d+)$", t.strip())
+                if match:
+                    prefix = match.group(1)
+                    num = int(match.group(2))
+                    prefix_numbers.append((prefix, num))
+            
+            if prefix_numbers:
+                prefixes = [p[0] for p in prefix_numbers]
+                best_prefix = Counter(prefixes).most_common(1)[0][0]
+                max_num = max(num for p, num in prefix_numbers if p == best_prefix)
+                next_num = max_num + 1
+                code_prefix = best_prefix
+            else:
+                cleaned_name = re.sub(r'[^a-zA-Z\s]', '', full_name)
+                parts = [p.strip() for p in cleaned_name.split() if p.strip()]
+                if len(parts) >= 2:
+                    code_prefix = ".".join([p[0].upper() for p in parts[:3]])
+                elif len(parts) == 1:
+                    code_prefix = parts[0][:3].upper()
+                else:
+                    code_prefix = "ART"
+                next_num = 101
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database lookup failed: {str(e)}")
+    finally:
+        connection.close()
+
+    # 3. Save images to temp folder
+    temp_dir = os.path.join(Config.UPLOAD_DIR, "temp_import")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    preview_items = []
+    
+    for page_num in range(total_pages):
+        temp_image_id = str(uuid.uuid4())
+        current_num = next_num + page_num
+        suggested_code = f"{code_prefix}-{current_num}"
+        suggested_title = f"{code_prefix}-{current_num}"
+        
+        # Render page
+        page = doc.load_page(page_num)
+        zoom = 150 / 72
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img_bytes = pix.tobytes("jpeg")
+        
+        # Save temp file
+        temp_file_path = os.path.join(temp_dir, temp_image_id)
+        with open(temp_file_path, "wb") as f:
+            f.write(img_bytes)
+            
+        preview_items.append({
+            "temp_image_id": temp_image_id,
+            "page": page_num + 1,
+            "title": suggested_title,
+            "code": suggested_code,
+            "price": 0.0,
+            "length": 0.0,
+            "width": 0.0,
+            "deal_type": "Sale_Basis",
+            "purchase_price": 0.0
+        })
+
+    return {
+        "success": True,
+        "artworks": preview_items
+    }
+
+
+@router.get("/temp-image/{temp_id}")
+def get_temp_artwork_image(temp_id: str):
+    """
+    Serves a temporary artwork image from the temp import directory.
+    """
+    temp_dir = os.path.join(Config.UPLOAD_DIR, "temp_import")
+    file_path = os.path.join(temp_dir, temp_id)
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            return Response(content=f.read(), media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Temporary image not found")
+
+
+@router.post("/commit-import")
+def commit_imported_artworks(data: CommitImportRequest):
+    """
+    Commits the reviewed artwork items to the database and transfers files.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    upload_dir = Config.UPLOAD_DIR
+    temp_dir = os.path.join(upload_dir, "temp_import")
+    
+    connection = get_db_connection()
+    success_count = 0
+    imported_list = []
+    
+    try:
+        with connection.cursor() as cursor:
+            for art in data.artworks:
+                artwork_id = str(uuid.uuid4())
+                
+                # Check temp file
+                temp_file = os.path.join(temp_dir, art.temp_image_id)
+                if not os.path.exists(temp_file):
+                    continue
+                    
+                # Move to final location
+                final_file = os.path.join(upload_dir, artwork_id)
+                shutil.move(temp_file, final_file)
+                
+                nice_filename = f"{art.code}.jpg"
+                
+                # 1. Main collections table
+                cursor.execute("""
+                    INSERT INTO art_collections (
+                        id, date_entered, date_modified, modified_user_id, created_by, 
+                        description, deleted, document_name, filename, collection_status
+                    ) VALUES (%s, %s, %s, '1', '1', %s, 0, %s, %s, 'Available');
+                """, (artwork_id, now, now, f"Imported sequentially from PDF Catalog", art.title, nice_filename))
+                
+                # 2. Custom fields table
+                cursor.execute("""
+                    INSERT INTO art_collections_cstm (
+                        id_c, collection_size_length_c, collection_size_width_c, with_frame_c, 
+                        frame_charges_c, sale_gallery_price_c, code_c, authenticity_letter_field_c,
+                        sale_c, purchase_price_c
+                    ) VALUES (%s, %s, %s, '0', '0.0', %s, %s, 'auto', %s, %s);
+                """, (artwork_id, str(art.length), str(art.width), str(art.price), art.code, art.deal_type, str(art.purchase_price)))
+                
+                # 3. Artist relationship
+                cursor.execute("""
+                    INSERT INTO art_artists_art_collections_c (id, date_modified, deleted, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb)
+                    VALUES (%s, %s, 0, %s, %s);
+                """, (str(uuid.uuid4()), now, data.artist_id, artwork_id))
+                
+                # 4. Category relationship
+                if data.category_id:
+                    cursor.execute("""
+                        INSERT INTO art_collectionstype_art_collections_c (id, date_modified, deleted, art_collectionstype_art_collectionsart_collectionstype_ida, art_collectionstype_art_collectionsart_collections_idb)
+                        VALUES (%s, %s, 0, %s, %s);
+                    """, (str(uuid.uuid4()), now, data.category_id, artwork_id))
+                    
+                # 5. Medium relationship
+                if data.medium_id:
+                    cursor.execute("""
+                        INSERT INTO art_medium_art_collections_c (id, date_modified, deleted, art_medium_art_collectionsart_medium_ida, art_medium_art_collectionsart_collections_idb)
+                        VALUES (%s, %s, 0, %s, %s);
+                    """, (str(uuid.uuid4()), now, data.medium_id, artwork_id))
+                    
+                imported_list.append({
+                    "id": artwork_id,
+                    "title": art.title,
+                    "code": art.code
+                })
+                success_count += 1
+                
+            connection.commit()
+            
+            # Clean up temp folder if empty
+            try:
+                if os.path.exists(temp_dir) and not os.listdir(temp_dir):
+                    os.rmdir(temp_dir)
+            except:
+                pass
+                
+            return {
+                "success": True, 
+                "message": f"Successfully imported {success_count} artworks to database.",
+                "artworks": imported_list
+            }
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to commit batch artworks: {str(e)}")
+    finally:
+        connection.close()
+
+
+@router.post("/upload-image")
+def upload_artwork_image(file: UploadFile = File(...)):
+    """
+    Uploads an artwork image to the SugarCRM upload directory.
+    """
+    upload_dir = Config.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".pdf"]:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, PNG, WEBP, and PDF files are allowed.")
+        
+    unique_filename = f"art_{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"success": True, "filename": unique_filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save uploaded image: {str(e)}")
+
+
+@router.post("/upload-letter")
+def upload_authenticity_letter(file: UploadFile = File(...)):
+    """
+    Uploads a custom authenticity letter file (image or PDF).
+    """
+    upload_dir = Config.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".pdf"]:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, PNG, WEBP, and PDF files are allowed.")
+        
+    unique_filename = f"auth_{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"success": True, "filename": unique_filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save uploaded letter: {str(e)}")
+
+
+@router.post("/upload-global-template")
+def upload_global_template(file: UploadFile = File(...)):
+    """
+    Uploads or updates the global letter template background image.
+    """
+    upload_dir = Config.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, PNG, and WEBP template images are allowed.")
+        
+    # We save as a fixed filename to overwrite
+    filename = f"global_authenticity_template{ext}"
+    
+    # Remove existing global template files to prevent conflicting extensions
+    for item in os.listdir(upload_dir):
+        if item.startswith("global_authenticity_template."):
+            try:
+                os.remove(os.path.join(upload_dir, item))
+            except:
+                pass
+                
+    file_path = os.path.join(upload_dir, filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"success": True, "filename": filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save global template: {str(e)}")
+
+
+
+
+@router.put("/{artwork_id}/toggle-letter")
+def toggle_authenticity_letter(artwork_id: str):
+    """
+    Toggles the authenticity letter issuance for a specific artwork.
+    """
+    # Fetch current value
+    check_query = "SELECT authenticity_letter_field_c FROM art_collections_cstm WHERE id_c = %s;"
+    update_query = "UPDATE art_collections_cstm SET authenticity_letter_field_c = %s WHERE id_c = %s;"
+    
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(check_query, (artwork_id,))
+            res = cursor.fetchone()
+            current = res["authenticity_letter_field_c"] if res else ""
+            
+            # Toggle logic
+            new_value = "" if current and current != "NULL" else "auto"
+            cursor.execute(update_query, (new_value, artwork_id))
+            connection.commit()
+            return {"success": True, "issued": new_value == "auto"}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to toggle letter status: {str(e)}")
+    finally:
+        connection.close()
+
+
+@router.get("/{artwork_id}/authenticity-letter")
+def get_artwork_authenticity_letter(artwork_id: str):
+    """
+    Serves the print-ready portrait authenticity letter/certificate for the artwork.
+    """
+    from fastapi.responses import HTMLResponse
+    import os
+    
+    query = """
+        SELECT 
+            c.id AS id,
+            c.document_name AS title,
+            c.filename AS image,
+            c.date_entered AS date_added,
+            cstm.collection_size_length_c AS length,
+            cstm.collection_size_width_c AS width,
+            cstm.code_c AS code,
+            cstm.authenticity_letter_field_c AS letter,
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+            m.name AS medium_name
+        FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+        WHERE c.id = %s AND c.deleted = 0;
+    """
+    
+    try:
+        artwork = execute_query(query, (artwork_id,), fetch="one")
+        if not artwork or not artwork["letter"]:
+            return HTMLResponse("<h3>Authenticity letter not found or not issued for this artwork.</h3>", status_code=404)
+            
+        letter_val = artwork["letter"]
+        
+        # If it is an uploaded file name, serve it directly if it exists
+        upload_dir = Config.UPLOAD_DIR
+        if letter_val != "auto" and letter_val != "NULL" and letter_val != "":
+            file_path = os.path.join(upload_dir, letter_val)
+            if os.path.exists(file_path):
+                ext = os.path.splitext(letter_val)[1].lower()
+                media_type = "application/pdf" if ext == ".pdf" else "image/jpeg"
+                with open(file_path, "rb") as f:
+                    return Response(content=f.read(), media_type=media_type)
+        
+        # Parse dynamic info
+        title = artwork["title"] or "Untitled"
+        artist = (artwork["artist_name"] or "Unknown Artist").strip()
+        medium = artwork["medium_name"] or "Original Medium"
+        code = artwork["code"] or "N/A"
+        date_str = datetime.strptime(str(artwork["date_added"]), "%Y-%m-%d %H:%M:%S").strftime("%B %d, %Y") if artwork["date_added"] else datetime.now().strftime("%B %d, %Y")
+        
+        # Parse and calculate dimensions in cm
+        try:
+            length_inch = float(artwork["length"]) if artwork["length"] else 0.0
+            width_inch = float(artwork["width"]) if artwork["width"] else 0.0
+        except:
+            length_inch = 0.0
+            width_inch = 0.0
+            
+        length_cm = int(round(length_inch * 2.54))
+        width_cm = int(round(width_inch * 2.54))
+        
+        # Format inches part nicely (remove decimals if integers)
+        len_str = str(int(length_inch)) if length_inch.is_integer() else str(length_inch)
+        wid_str = str(int(width_inch)) if width_inch.is_integer() else str(width_inch)
+        
+        dimensions_inch = f'{len_str}" x {wid_str}"' if (length_inch > 0 or width_inch > 0) else 'N/A'
+        dimensions_cm = f'{length_cm} x {width_cm} cm' if (length_cm > 0 or width_cm > 0) else 'N/A'
+        
+        if dimensions_inch != 'N/A' and dimensions_cm != 'N/A':
+            dimensions = f"{dimensions_inch} | {dimensions_cm}"
+        else:
+            dimensions = "N/A"
+            
+        # HTML template
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Certificate of Authenticity - {title}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                    font-family: 'Montserrat', sans-serif;
+                }}
+                
+                .print-controls {{
+                    max-width: 8.5in;
+                    margin: 15px auto;
+                    padding: 12px 20px;
+                    background: rgba(255, 255, 255, 0.85);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 12px;
+                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-sizing: border-box;
+                }}
+                
+                .checkbox-container {{
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #333;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    cursor: pointer;
+                }}
+                
+                .btn {{
+                    padding: 10px 20px;
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: 600;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }}
+                
+                .btn-print {{
+                    background-color: #bda04c;
+                    color: #fff;
+                    box-shadow: 0 2px 8px rgba(189, 160, 76, 0.3);
+                }}
+                
+                .btn-print:hover {{
+                    background-color: #a48539;
+                    transform: translateY(-1px);
+                }}
+                
+                .certificate-container {{
+                    width: 210mm;
+                    height: 297mm;
+                    margin: 20px auto;
+                    background-color: #fff;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    position: relative;
+                    box-sizing: border-box;
+                    padding: 0.6in 0.8in 0.6in 0.8in;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }}
+                
+                .certificate-header {{
+                    position: relative;
+                    text-align: center;
+                    width: 100%;
+                    margin-bottom: 0.15in;
+                    padding-top: 0.1in;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 60px;
+                }}
+                
+                .logo {{
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    height: 60px;
+                    width: 60px;
+                    object-fit: contain;
+                }}
+                
+                .certificate-title {{
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 32px;
+                    font-weight: 400;
+                    color: #000;
+                    letter-spacing: 0.5px;
+                    text-align: center;
+                }}
+                
+                .cert-table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    border: 2px solid #000;
+                    font-family: 'Montserrat', sans-serif;
+                    margin-bottom: 0.15in;
+                }}
+                
+                .cert-table td {{
+                    border: 1px solid #000;
+                    padding: 10px 15px;
+                    vertical-align: middle;
+                    color: #000;
+                }}
+                
+                .cell-label {{
+                    width: 25%;
+                    font-weight: 700;
+                    text-align: left;
+                    font-size: 14px;
+                    border-right: 2px solid #000;
+                }}
+                
+                .cell-val {{
+                    width: 75%;
+                    text-align: center;
+                    font-size: 15px;
+                }}
+                
+                .text-left {{
+                    text-align: left !important;
+                }}
+                
+                .text-bold {{
+                    font-weight: 700;
+                }}
+                
+                .label-image {{
+                    text-align: left;
+                    font-weight: 700;
+                }}
+                
+                .cell-img-val {{
+                    padding: 15px !important;
+                    text-align: center;
+                }}
+                
+                .painting-image {{
+                    max-width: 100%;
+                    max-height: 3.5in;
+                    object-fit: contain;
+                    display: block;
+                    margin: 0 auto;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                }}
+                
+                .statement-container {{
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 13px;
+                    color: #000;
+                    line-height: 1.6;
+                    margin-top: 0.1in;
+                    margin-bottom: 0.25in;
+                }}
+                
+                .signature-section {{
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: flex-end;
+                    margin-top: 0.1in;
+                    margin-bottom: 0.25in;
+                }}
+                
+                .sig-line-container {{
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 8px;
+                }}
+                
+                .sig-label {{
+                    font-weight: 700;
+                    font-size: 14px;
+                    color: #000;
+                    padding-bottom: 4px;
+                }}
+                
+                .sig-line {{
+                    position: relative;
+                    border-bottom: 1.5px solid #000;
+                    width: 280px;
+                    height: 40px;
+                }}
+                
+                #sig-img {{
+                    position: absolute;
+                    bottom: 2px;
+                    left: 20px;
+                    height: 55px;
+                    object-fit: contain;
+                    display: block;
+                }}
+                
+                .footer-container {{
+                    text-align: center;
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 10px;
+                    color: #333;
+                    line-height: 1.6;
+                    padding-top: 0.1in;
+                }}
+                
+                .footer-address {{
+                    font-weight: 500;
+                    margin-bottom: 4px;
+                    letter-spacing: 0.2px;
+                }}
+                
+                .footer-links {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
+                }}
+                
+                .footer-link-item {{
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }}
+                
+                .footer-icon-inline {{
+                    width: 12px;
+                    height: 12px;
+                    stroke-width: 2px;
+                }}
+                
+                @media print {{
+                    body {{
+                        background-color: #fff;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    
+                    .print-controls {{
+                        display: none;
+                    }}
+                    
+                    .certificate-container {{
+                        margin: 0;
+                        box-shadow: none;
+                        width: 210mm;
+                        height: 297mm;
+                        page-break-after: avoid;
+                        page-break-before: avoid;
+                    }}
+                    
+                    @page {{
+                        size: A4 portrait;
+                        margin: 0;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="print-controls">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="sig-toggle" checked onchange="toggleSignature(this.checked)">
+                    Include Owner Signature
+                </label>
+                <button class="btn btn-print" onclick="window.print()">Print Certificate</button>
+            </div>
+            
+            <div class="certificate-container">
+                <div class="certificate-header">
+                    <div class="certificate-title">Certificate of Authenticity</div>
+                    <img class="logo" src="/api/artworks/logo" alt="Mainframe Logo">
+                </div>
+                
+                <table class="cert-table">
+                    <tr>
+                        <td class="cell-label">Painting by:</td>
+                        <td class="cell-val text-bold">{artist}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Size:</td>
+                        <td class="cell-val">{dimensions}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Medium:</td>
+                        <td class="cell-val">{medium}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label label-image">Image:</td>
+                        <td class="cell-img-val">
+                            <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Painting display</td>
+                        <td class="cell-val text-left">MainFrame The Gallery</td>
+                    </tr>
+                </table>
+                
+                <div class="statement-container">
+                    The MainFrame The Gallery assumes full responsibility for this Artwork being a genuine and authentic Painting by <strong>{artist}</strong>.
+                </div>
+                
+                <div class="signature-section">
+                    <div class="sig-line-container">
+                        <span class="sig-label">Signature:</span>
+                        <div class="sig-line">
+                            <img id="sig-img" src="/api/artworks/signature" alt="Signature">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer-container">
+                    <div class="footer-address">
+                        F-73/9, Block-4, Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4155 &nbsp;&nbsp;|&nbsp;&nbsp; +92 300 829 5500
+                    </div>
+                    <div class="footer-links">
+                        <div class="footer-link-item">
+                            <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            mainframethegallery@gmail.com
+                        </div>
+                        <div class="footer-link-item">
+                            <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            www.mainframethegallery.com
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                function toggleSignature(show) {{
+                    const sigImg = document.getElementById('sig-img');
+                    if (sigImg) {{
+                        sigImg.style.display = show ? 'block' : 'none';
+                    }}
+                }}
+            </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database or rendering error: {str(e)}")
+
+@router.get("/{artwork_id}/tag")
+def get_artwork_tag(artwork_id: str):
+    """
+    Serves the print-ready landscape tag/card for the artwork.
+    """
+    from fastapi.responses import HTMLResponse
+    import os
+    
+    query = """
+        SELECT 
+            c.id AS id,
+            c.document_name AS title,
+            c.filename AS image,
+            c.date_entered AS date_added,
+            cstm.collection_size_length_c AS length,
+            cstm.collection_size_width_c AS width,
+            cstm.code_c AS code,
+            cstm.sale_gallery_price_c AS price,
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+            m.name AS medium_name
+        FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+        WHERE c.id = %s AND c.deleted = 0;
+    """
+    
+    try:
+        artwork = execute_query(query, (artwork_id,), fetch="one")
+        if not artwork:
+            return HTMLResponse("<h3>Artwork not found.</h3>", status_code=404)
+            
+        title = artwork["title"] or "Untitled"
+        artist = (artwork["artist_name"] or "Unknown Artist").strip()
+        medium = artwork["medium_name"] or "Original Medium"
+        
+        # Parse and calculate dimensions in cm
+        try:
+            length_inch = float(artwork["length"]) if artwork["length"] else 0.0
+            width_inch = float(artwork["width"]) if artwork["width"] else 0.0
+        except:
+            length_inch = 0.0
+            width_inch = 0.0
+            
+        length_cm = int(round(length_inch * 2.54))
+        width_cm = int(round(width_inch * 2.54))
+        
+        # Format inches part nicely (remove decimals if integers)
+        len_str = str(int(length_inch)) if length_inch.is_integer() else str(length_inch)
+        wid_str = str(int(width_inch)) if width_inch.is_integer() else str(width_inch)
+        
+        dimensions_inch = f'{wid_str}"x{len_str}"' if (length_inch > 0 or width_inch > 0) else 'N/A'
+        dimensions_cm = f'{width_cm}x{length_cm} cm' if (length_cm > 0 or width_cm > 0) else 'N/A'
+        
+        if dimensions_inch != 'N/A' and dimensions_cm != 'N/A':
+            dimensions = f"{dimensions_inch} | {dimensions_cm}"
+        else:
+            dimensions = "N/A"
+            
+        # Parse price and code
+        price_val = artwork["price"]
+        if price_val:
+            try:
+                price_float = float(price_val)
+                price_formatted = f"{int(price_float):,}" if price_float.is_integer() else f"{price_float:,}"
+            except:
+                price_formatted = str(price_val)
+        else:
+            price_formatted = ""
+            
+        code_val = artwork["code"] or ""
+        if code_val and price_formatted:
+            code_price = f"{code_val}-{price_formatted}"
+        elif code_val:
+            code_price = code_val
+        elif price_formatted:
+            code_price = price_formatted
+        else:
+            code_price = "N/A"
+
+        # HTML template
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Artwork Tag - {title}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f5f5f5;
+                    font-family: 'Montserrat', sans-serif;
+                }}
+                
+                .print-controls {{
+                    max-width: 297mm;
+                    margin: 15px auto;
+                    padding: 12px 20px;
+                    background: rgba(255, 255, 255, 0.85);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 12px;
+                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                    display: flex;
+                    justify-content: flex-end;
+                    box-sizing: border-box;
+                }}
+                
+                .btn {{
+                    padding: 10px 20px;
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: 600;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }}
+                
+                .btn-print {{
+                    background-color: #111;
+                    color: #fff;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                }}
+                
+                .btn-print:hover {{
+                    background-color: #333;
+                    transform: translateY(-1px);
+                }}
+                
+                .certificate-container {{
+                    width: 297mm;
+                    height: 210mm;
+                    margin: 20px auto;
+                    background-color: #fff;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    box-sizing: border-box;
+                    padding: 0.75in 0.85in;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: stretch;
+                }}
+                
+                .left-col {{
+                    width: 50%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }}
+                
+                .painting-image {{
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                    box-shadow: 15px 15px 30px rgba(0,0,0,0.15);
+                    border-radius: 2px;
+                }}
+                
+                .right-col {{
+                    width: 45%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    box-sizing: border-box;
+                    padding-left: 0.2in;
+                }}
+                
+                .logo-container {{
+                    width: 100%;
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: flex-start;
+                    height: 1.2in;
+                }}
+                
+                .logo {{
+                    height: 90px;
+                    object-fit: contain;
+                }}
+                
+                .details-container {{
+                    width: 100%;
+                    text-align: left;
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 17px;
+                    color: #000;
+                    line-height: 2.0;
+                    margin-bottom: 0.2in;
+                }}
+                
+                .detail-line {{
+                    margin-bottom: 12px;
+                }}
+                
+                .detail-label {{
+                    font-weight: 400;
+                    color: #555;
+                }}
+                
+                .detail-value {{
+                    font-weight: 600;
+                    color: #000;
+                }}
+                
+                @media print {{
+                    body {{
+                        background-color: #fff;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    
+                    .print-controls {{
+                        display: none;
+                    }}
+                    
+                    .certificate-container {{
+                        margin: 0;
+                        box-shadow: none;
+                        width: 297mm;
+                        height: 210mm;
+                        page-break-after: avoid;
+                        page-break-before: avoid;
+                    }}
+                    
+                    @page {{
+                        size: A4 landscape;
+                        margin: 0;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="print-controls">
+                <button class="btn btn-print" onclick="window.print()">Print Tag</button>
+            </div>
+            
+            <div class="certificate-container">
+                <div class="left-col">
+                    <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
+                </div>
+                
+                <div class="right-col">
+                    <div class="logo-container">
+                        <img class="logo" src="/api/artworks/logo" alt="Mainframe Logo">
+                    </div>
+                    
+                    <div class="details-container">
+                        <div class="detail-line"><span class="detail-label">Artist Name:</span> <span class="detail-value">{artist}</span></div>
+                        <div class="detail-line"><span class="detail-label">Medium:</span> <span class="detail-value">{medium}</span></div>
+                        <div class="detail-line"><span class="detail-label">Size:</span> <span class="detail-value">{dimensions}</span></div>
+                        <div class="detail-line"><span class="detail-label">Code:</span> <span class="detail-value">{code_price}</span></div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database or rendering error: {str(e)}")
+
+@router.get("/next-code/{artist_id}")
+def get_next_artwork_code(artist_id: str):
+    """
+    Calculates and returns the next sequential code for an artist.
+    """
+    import re
+    from collections import Counter
+    
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Fetch artist details
+            cursor.execute("SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0", (artist_id,))
+            artist = cursor.fetchone()
+            if not artist:
+                raise HTTPException(status_code=404, detail="Artist not found")
+                
+            first_name = artist.get("first_name") or ""
+            last_name = artist.get("last_name") or ""
+            full_name = f"{first_name} {last_name}".strip()
+            
+            # 2. Fetch existing artwork titles
+            cursor.execute("""
+                SELECT c.document_name 
+                FROM art_collections c
+                JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
+                WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
+                  AND c.deleted = 0 
+                  AND c.document_name LIKE '%%-%%'
+            """, (artist_id,))
+            
+            titles = [row["document_name"] for row in cursor.fetchall()]
+            
+            # 3. Parse existing titles
+            prefix_numbers = []
+            for t in titles:
+                match = re.match(r"^(.+?)-(\d+)$", t.strip())
+                if match:
+                    prefix = match.group(1)
+                    num = int(match.group(2))
+                    prefix_numbers.append((prefix, num))
+            
+            if prefix_numbers:
+                prefixes = [p[0] for p in prefix_numbers]
+                best_prefix = Counter(prefixes).most_common(1)[0][0]
+                max_num = max(num for p, num in prefix_numbers if p == best_prefix)
+                next_num = max_num + 1
+                next_code = f"{best_prefix}-{next_num}"
+                return {"next_code": next_code, "numeric_part": str(next_num)}
+                
+            # 4. Generate new prefix from name
+            cleaned_name = re.sub(r'[^a-zA-Z\s]', '', full_name)
+            parts = [p.strip() for p in cleaned_name.split() if p.strip()]
+            if len(parts) >= 2:
+                prefix = ".".join([p[0].upper() for p in parts[:3]])
+            elif len(parts) == 1:
+                prefix = parts[0][:3].upper()
+            else:
+                prefix = "ART"
+                
+            return {"next_code": f"{prefix}-101", "numeric_part": "101"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        connection.close()
+
+
+class InquiryCreate(BaseModel):
+    artwork_id: str
+    name: str
+    email: str
+    phone: str = ""
+    mobile: str
+    city: str = ""
+    country: str = ""
+    address: str = ""
+    message: str = ""
+
+
+@router.post("/inquiry")
+def submit_artwork_inquiry(data: InquiryCreate):
+    """
+    Submits a new inquiry for an artwork, saves it to the database,
+    and tries to send an email notification to mainframethegallery@gmail.com.
+    """
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.header import Header
+
+    # 1. Fetch artwork details first to include in the email
+    art_query = """
+        SELECT 
+            c.id AS id,
+            c.document_name AS title,
+            cstm.code_c AS code,
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+        FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        LEFT JOIN art_artists_art_collections_c rel 
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists a 
+            ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        WHERE c.id = %s AND c.deleted = 0;
+    """
+    artwork = execute_query(art_query, (data.artwork_id,), fetch="one")
+    if not artwork:
+        raise HTTPException(status_code=404, detail="Artwork not found")
+
+    inquiry_id = str(uuid.uuid4())
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Split name into first and last name
+    name_parts = data.name.strip().split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # 2. Insert into art_collectioninquiry
+            insert_inquiry = """
+                INSERT INTO art_collectioninquiry (
+                    id, date_entered, date_modified, modified_user_id, created_by,
+                    first_name, last_name, phone_home, phone_mobile, 
+                    primary_address_street, primary_address_city, primary_address_country,
+                    description, deleted
+                ) VALUES (%s, %s, %s, '1', '1', %s, %s, %s, %s, %s, %s, %s, %s, 0);
+            """
+            cursor.execute(insert_inquiry, (
+                inquiry_id, now, now, first_name, last_name, data.phone or "", data.mobile,
+                data.address or "", data.city or "", data.country or "", data.message or ""
+            ))
+
+            # 3. Handle email address in CRM
+            email_caps = data.email.strip().upper()
+            cursor.execute("SELECT id FROM email_addresses WHERE email_address_caps = %s AND deleted = 0 LIMIT 1;", (email_caps,))
+            email_row = cursor.fetchone()
+            
+            if email_row:
+                email_id = email_row["id"]
+            else:
+                email_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO email_addresses (id, email_address, email_address_caps, date_created, date_modified, deleted) VALUES (%s, %s, %s, %s, %s, 0);",
+                    (email_id, data.email.strip(), email_caps, now, now)
+                )
+
+            # Link email address to inquiry record
+            rel_id = str(uuid.uuid4())
+            cursor.execute("""
+                INSERT INTO email_addr_bean_rel (
+                    id, email_address_id, bean_id, bean_module, primary_address, reply_to_address, date_created, date_modified, deleted
+                ) VALUES (%s, %s, %s, 'art_CollectionInquiry', 1, 0, %s, %s, 0);
+            """, (rel_id, email_id, inquiry_id, now, now))
+
+            # 4. Insert into art_collectioninquiry_cstm to link it to the artwork
+            cursor.execute(
+                "INSERT INTO art_collectioninquiry_cstm (id_c, art_collections_id_c) VALUES (%s, %s);",
+                (inquiry_id, data.artwork_id)
+            )
+
+            connection.commit()
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Database failed to store inquiry: {str(e)}")
+    finally:
+        connection.close()
+
+    # 5. Send SMTP email notification (try-except block so frontend always gets success if DB store works)
+    # Construct email body
+    email_body = f"""New Inquiry Received from Gallery Website:
+
+Artwork Details:
+----------------
+Title: {artwork['title']}
+Code: {artwork['code'] or 'N/A'}
+Artist: {artwork['artist_name'] or 'N/A'}
+Image Link: http://localhost:8000/api/artworks/image/{artwork['id']}
+
+Customer Details:
+-----------------
+Name: {data.name}
+Email: {data.email}
+Phone (Landline): {data.phone or 'N/A'}
+Mobile: {data.mobile}
+City: {data.city or 'N/A'}
+Country: {data.country or 'N/A'}
+Address: {data.address or 'N/A'}
+
+Customer Message:
+-----------------
+{data.message}
+"""
+    
+    to_email = "mainframethegallery@gmail.com"
+    subject = f"Website Inquiry: {artwork['title']} (Code: {artwork['code'] or 'N/A'})"
+    
+    msg = MIMEText(email_body, 'plain', 'utf-8')
+    msg['Subject'] = Header(subject, 'utf-8')
+    msg['From'] = "info@mainframethegallery.com"
+    msg['To'] = to_email
+    
+    email_sent = False
+    try:
+        # Try local SMTP relay
+        with smtplib.SMTP('localhost', 25, timeout=5) as server:
+            server.sendmail(msg['From'], [to_email], msg.as_string())
+            email_sent = True
+    except Exception as e:
+        print(f"SMTP send failed: {str(e)}")
+
+    return {
+        "success": True, 
+        "inquiry_id": inquiry_id, 
+        "email_sent": email_sent,
+        "message": "Inquiry submitted successfully and recorded in CRM."
+    }
