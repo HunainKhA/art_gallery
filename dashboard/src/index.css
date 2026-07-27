@@ -660,5 +660,12 @@ body.light-theme .currency-select option {
   font-size: 0.7rem;
 }
 
+/* Hide leading menu icons in dashboard sidebar menu */
+.nav-btn > svg:first-child,
+.nav-btn span > svg:first-child {
+  display: none !important;
+}
+
+
 
 

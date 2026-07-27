@@ -377,12 +377,12 @@ export default function StaffPortal({ theme, toggleTheme }) {
         top: 0,
         left: 0,
         bottom: 0,
-        width: isSidebarCollapsed ? '80px' : '280px',
+        width: '230px',
         background: 'var(--bg-sidebar)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderRight: '1px solid var(--border-color)',
-        padding: isSidebarCollapsed ? '1.5rem 0.5rem' : '2rem 1.25rem',
+        padding: '2rem 1.25rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem',
@@ -396,83 +396,38 @@ export default function StaffPortal({ theme, toggleTheme }) {
           paddingBottom: '1rem', 
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
-          flexDirection: isSidebarCollapsed ? 'column' : 'row',
-          justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+          flexDirection: 'row',
+          justifyContent: 'center',
           alignItems: 'center',
           gap: '12px'
         }}>
-          {isSidebarCollapsed ? (
-            <button
-              onClick={() => setIsSidebarCollapsed(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer'
-              }}
-              title="Expand Sidebar"
-            >
-              <img 
-                src={getLogoUrl()} 
-                alt="Logo" 
-                style={{ 
-                  height: '36px', 
-                  width: '36px', 
-                  objectFit: 'contain',
-                  borderRadius: '6px'
-                }} 
-              />
-            </button>
-          ) : (
-            <>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  flex: 1,
-                  cursor: 'pointer'
-                }}
-                onClick={() => setCurrentSection('overview')}
-                title="Go to Dashboard Overview"
-              >
-                <img 
-                  src={getLogoUrl()} 
-                  alt="Logo" 
-                  style={{ 
-                    width: '80px',
-                    height: '80px',
-                    objectFit: 'contain',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)'
-                  }} 
-                />
-                <span style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  CONTROL PANEL
-                </span>
-              </div>
-              <button 
-                onClick={() => setIsSidebarCollapsed(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.5rem',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s ease',
-                  alignSelf: 'flex-start'
-                }}
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            </>
-          )}
+          <div 
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: '8px', 
+              flex: 1,
+              cursor: 'pointer'
+            }}
+            onClick={() => setCurrentSection('overview')}
+            title="Go to Dashboard Overview"
+          >
+            <img 
+              src={getLogoUrl()} 
+              alt="Logo" 
+              style={{ 
+                width: '80px',
+                height: '80px',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.05)'
+              }} 
+            />
+            <span style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              CONTROL PANEL
+            </span>
+          </div>
         </div>
 
         {/* Dashboard Overview */}
@@ -959,7 +914,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
 
       {/* 🖼️ DYNAMIC MAIN CONTENT PANEL */}
       <main style={{
-        marginLeft: isSidebarCollapsed ? '80px' : '280px',
+        marginLeft: '230px',
         flex: 1,
         minHeight: '100vh',
         padding: '3rem 5%',
