@@ -271,13 +271,10 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     setPanPosition({ x: 0, y: 0 });
                   }
                 }}
+                className="zoom-slider"
                 style={{ 
                   flexGrow: 1, 
-                  accentColor: 'var(--accent-gold)', 
-                  cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.1)',
-                  height: '6px',
-                  borderRadius: '3px'
+                  cursor: 'pointer'
                 }}
               />
             </div>
@@ -320,18 +317,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     <select 
                       value={currency} 
                       onChange={(e) => setCurrency(e.target.value)} 
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        background: 'var(--bg-input)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        fontWeight: 600,
-                        backgroundColor: '#1a1a1a',
-                      }}
+                      className="artwork-currency-select"
                     >
                       <option value="PKR">🇵🇰 PKR</option>
                       <option value="USD">🇺🇸 USD</option>

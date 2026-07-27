@@ -1,4 +1,4 @@
-﻿# Ignore local environment variables files
+# Ignore local environment variables files
 .env
 .env.local
 .env.development.local
@@ -18,3 +18,13 @@ backend/.venv/
 # Ignore OS files
 .DS_Store
 Thumbs.db
+
+# Ignore local development cache
+.vite/
+.idea/
+.vscode/
+
+# Ignore user media uploads
+uploads/
+**/uploads/
+

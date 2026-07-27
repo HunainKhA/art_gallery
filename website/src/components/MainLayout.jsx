@@ -61,8 +61,9 @@ export default function MainLayout({ children, state }) {
             style={{ 
               cursor: 'pointer',
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               alignItems: 'center',
+              paddingLeft: '1rem',
               marginBottom: '2.25rem'
             }} 
             onClick={() => { 

@@ -15,6 +15,7 @@ export default function ArtistsSection({
 }) {
   const [selectedLetter, setSelectedLetter] = useState('ALL');
   const [showBioModal, setShowBioModal] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const alphabets = ['ALL', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 
   const filteredArtists = selectedLetter === 'ALL'
@@ -26,6 +27,31 @@ export default function ArtistsSection({
         return cleanName.startsWith(selectedLetter);
       });
 
+  React.useEffect(() => {
+    let interval;
+    if (showBioModal && selectedArtist && selectedArtist.artworks && selectedArtist.artworks.length > 0) {
+      setCurrentSlideIndex(0);
+      interval = setInterval(() => {
+        setCurrentSlideIndex(prev => (prev + 1) % selectedArtist.artworks.length);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [showBioModal, selectedArtist]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowBioModal(false);
+      }
+    };
+    if (showBioModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showBioModal]);
+
   const formatBioHtml = (bioHtml) => {
     if (!bioHtml) return '';
     let formatted = bioHtml;
@@ -36,6 +62,9 @@ export default function ArtistsSection({
     formatted = formatted.replace(/color:\s*#666/gi, 'color: var(--text-secondary)');
     formatted = formatted.replace(/color:\s*#888888/gi, 'color: var(--text-secondary)');
     formatted = formatted.replace(/color:\s*#888/gi, 'color: var(--text-secondary)');
+    
+    // Replace orange, gold, yellow, and red highlights with var(--bio-highlight)
+    formatted = formatted.replace(/color:\s*(#d4af37|#ff9900|#ffa500|#ffa600|orange|gold|rgb\(\s*255\s*,\s*165\s*,\s*0\s*\))/gi, 'color: var(--bio-highlight)');
     
     // Replace hardcoded white backgrounds with transparent
     formatted = formatted.replace(/background-color:\s*#ffffff/gi, 'background-color: transparent');
@@ -220,6 +249,121 @@ export default function ArtistsSection({
           color: var(--text-primary) !important;
           font-weight: 600 !important;
         }
+        
+        /* Biography Modal Layout */
+        .bio-modal-layout {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+          gap: 2.5rem;
+          align-items: start;
+        }
+        
+        .bio-slides-column {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          position: sticky;
+          top: 0;
+        }
+        
+        .bio-artist-profile {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          padding: 1rem;
+        }
+        
+        body.light-theme .bio-artist-profile {
+          background: rgba(0, 0, 0, 0.02);
+        }
+        
+        .bio-artist-img {
+          width: 80px;
+          height: 80px;
+          object-fit: cover;
+          border: 1px solid var(--border-color);
+        }
+        
+        .bio-slideshow-title {
+          font-size: 0.8rem;
+          color: var(--bio-highlight);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.5rem;
+        }
+        
+        .bio-slideshow-frame {
+          position: relative;
+          width: 100%;
+          height: 250px;
+          background: #111;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border-color);
+          overflow: hidden;
+        }
+        
+        @keyframes bioSlideIn {
+          0% {
+            transform: translateX(50px);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .bio-slideshow-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          animation: bioSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        .bio-slideshow-info {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(4px);
+          padding: 0.5rem 1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .bio-slideshow-info span:first-child {
+          font-size: 0.8rem;
+          color: #ffffff;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 70%;
+        }
+        
+        .bio-slideshow-info span:last-child {
+          font-size: 0.8rem;
+          color: var(--accent-gold);
+          font-weight: 700;
+        }
+        
+        @media (max-width: 768px) {
+          .bio-modal-layout {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+          .bio-slides-column {
+            position: static;
+          }
+        }
       `}</style>
       {loadingArtistDetail ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh', color: 'var(--accent-gold)', fontSize: '1.25rem', fontWeight: 600 }}>
@@ -384,7 +528,7 @@ export default function ArtistsSection({
             className="glass-card"
             style={{
               width: '100%',
-              maxWidth: '800px',
+              maxWidth: '1100px',
               maxHeight: '85vh',
               display: 'flex',
               flexDirection: 'column',
@@ -396,10 +540,22 @@ export default function ArtistsSection({
             }}
           >
             {/* Header */}
-            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Biography</span>
-                <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.5rem', color: 'var(--text-primary)', fontWeight: 700 }}>{selectedArtist.name}</h3>
+            <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <img 
+                  src={getArtistImageUrl(selectedArtist.profile_image) || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'} 
+                  alt={selectedArtist.name} 
+                  style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    objectFit: 'cover', 
+                    border: '1px solid var(--border-color)' 
+                  }} 
+                />
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--bio-highlight)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Biography</span>
+                  <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.5rem', color: 'var(--text-primary)', fontWeight: 700 }}>{selectedArtist.name}</h3>
+                </div>
               </div>
               <button 
                 onClick={() => setShowBioModal(false)}
@@ -444,10 +600,39 @@ export default function ArtistsSection({
               }}
               className="custom-scrollbar"
             >
-              <div 
-                dangerouslySetInnerHTML={{ __html: formatBioHtml(selectedArtist.bio) }} 
-                className="artist-bio-rendered"
-              />
+              <div className="bio-modal-layout">
+                {/* Left Side: Biography text */}
+                <div 
+                  dangerouslySetInnerHTML={{ __html: formatBioHtml(selectedArtist.bio) }} 
+                  className="artist-bio-rendered"
+                />
+
+                {/* Right Side: Work Slideshow */}
+                <div className="bio-slides-column">
+                  {/* Artworks Slideshow */}
+                  {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
+                    <div>
+                      <h4 className="bio-slideshow-title" style={{ marginTop: 0 }}>Artist's Work Gallery</h4>
+                      <div className="bio-slideshow-frame">
+                        <img 
+                          src={getArtworkImageUrl(selectedArtist.artworks[currentSlideIndex].id)} 
+                          alt={selectedArtist.artworks[currentSlideIndex].title} 
+                          className="bio-slideshow-img"
+                          key={currentSlideIndex}
+                        />
+                        <div className="bio-slideshow-info">
+                          <span>{selectedArtist.artworks[currentSlideIndex].title}</span>
+                          <span>{formatPrice(selectedArtist.artworks[currentSlideIndex].price, currency, exchangeRates)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      No artworks uploaded yet.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Footer */}

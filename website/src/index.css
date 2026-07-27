@@ -34,6 +34,7 @@
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --font-title: 'Montserrat', sans-serif;
   --font-body: 'Montserrat', sans-serif;
+  --bio-highlight: #d4af37;
 }
 
 /* Premium Light Theme Override */
@@ -51,6 +52,7 @@ body.light-theme {
   --text-logo: #000000;
   --text-hover: #000000;
   --bg-hover: rgba(15, 23, 42, 0.04);
+  --bio-highlight: #374151;
   
   /* Layout Borders & Shadows */
   --border-color: rgba(15, 23, 42, 0.08); /* Darker borders for light mode */
@@ -67,12 +69,24 @@ body.light-theme ::-webkit-scrollbar-thumb {
   background: rgba(15, 23, 42, 0.15);
 }
 
-/* Global Reset */
+/* Global Reset & Font-Weight Override */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: var(--font-body);
+  font-weight: 200 !important; /* Force thin weight globally */
+}
+
+/* Elegant Typographic Hierarchy with Thin Weights */
+h1, h2, h3, h4, h5, h6,
+.gradient-title,
+.logo, .logo h1, .logo span,
+.sidebar-logo, .sidebar-logo h1, .sidebar-logo h1 span,
+button, .nav-btn, .sidebar-nav-btn, .btn-primary, .btn-secondary,
+.cart-icon-btn, .shop-btn-floating, .currency-select,
+strong, b, th, .bold, .cart-count, .sidebar-search-input {
+  font-weight: 300 !important; /* Slightly more defined but still thin (weight 300) */
 }
 
 body {
@@ -346,12 +360,12 @@ body.light-theme .gradient-title {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 280px;
+  width: 230px;
   background: var(--bg-sidebar);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-color);
-  padding: 2.25rem 1.5rem;
+  padding: 2.25rem 1.25rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -360,7 +374,7 @@ body.light-theme .gradient-title {
 }
 
 .main-content {
-  margin-left: 280px;
+  margin-left: 230px;
   flex: 1;
   min-height: 100vh;
   padding: 0; /* content padding managed by pages */
@@ -658,6 +672,105 @@ body.light-theme .currency-select option {
   width: 16px;
   height: 16px;
   font-size: 0.7rem;
+}
+
+/* ====================================================
+   Theme-Aware Form & Interactive Elements (Light/Dark)
+   ==================================================== */
+
+/* Premium Price Converter Select Box */
+.artwork-currency-select {
+  padding: 0.4rem 0.8rem;
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px;
+  color: var(--text-primary) !important;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.artwork-currency-select option {
+  background: #121418;
+  color: #ffffff;
+}
+
+body.light-theme .artwork-currency-select option {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Premium Zoom Slider Custom Styling */
+.zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15) !important;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+body.light-theme .zoom-slider {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Chrome/Safari/Edge Slider Thumb */
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-gold) !important;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zoom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Firefox Slider Thumb */
+.zoom-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-gold) !important;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zoom-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* ====================================================
+   Sharp Edges for All Website Elements (No Rounding)
+   ==================================================== */
+* {
+  border-radius: 0 !important;
+}
+
+/* Except the zoom slider thumb (which is a circular drag knob) */
+.zoom-slider::-webkit-slider-thumb {
+  border-radius: 50% !important;
+}
+.zoom-slider::-moz-range-thumb {
+  border-radius: 50% !important;
+}
+
+/* ====================================================
+   Sidebar Navigation Layout Refinements
+   ==================================================== */
+/* Remove icons from the left sidebar navigation buttons */
+.sidebar-nav-btn svg {
+  display: none !important;
 }
 
 
