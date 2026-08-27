@@ -55,19 +55,10 @@ export default function ExhibitionsSection({
   const formatBioHtml = (bioHtml) => {
     if (!bioHtml) return '';
     let formatted = bioHtml;
-    // Replace dark text colors with CSS theme variable
-    formatted = formatted.replace(/color:\s*#333333/gi, 'color: var(--text-secondary)');
-    formatted = formatted.replace(/color:\s*#333/gi, 'color: var(--text-secondary)');
-    formatted = formatted.replace(/color:\s*#666666/gi, 'color: var(--text-secondary)');
-    formatted = formatted.replace(/color:\s*#666/gi, 'color: var(--text-secondary)');
-    formatted = formatted.replace(/color:\s*#888888/gi, 'color: var(--text-secondary)');
-    formatted = formatted.replace(/color:\s*#888/gi, 'color: var(--text-secondary)');
-
-    // Replace hardcoded white backgrounds with transparent
-    formatted = formatted.replace(/background-color:\s*#ffffff/gi, 'background-color: transparent');
-    formatted = formatted.replace(/background-color:\s*#fff/gi, 'background-color: transparent');
-    formatted = formatted.replace(/background:\s*#ffffff/gi, 'background: transparent');
-    formatted = formatted.replace(/background:\s*#fff/gi, 'background: transparent');
+    // Strip hardcoded inline font colors so CSS theme rules apply cleanly
+    formatted = formatted.replace(/color\s*:\s*[^;"]+;?/gi, '');
+    // Strip hardcoded inline backgrounds
+    formatted = formatted.replace(/background(-color)?\s*:\s*[^;"]+;?/gi, '');
 
     formatted = formatted.replace(
       /(<table[\s\S]*?)(?:border="[^"]*")?([\s\S]*?>)/i,
@@ -2717,7 +2708,9 @@ export default function ExhibitionsSection({
           body.light-theme .artist-bio-rendered * {
             background-color: #ffffff !important;
             color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
             font-weight: 100 !important;
+            opacity: 1 !important;
           }
           body.light-theme .artist-bio-rendered table {
             background: #ffffff !important;
@@ -2725,20 +2718,28 @@ export default function ExhibitionsSection({
             border: 1px solid rgba(0, 0, 0, 0.15) !important;
           }
           body.light-theme .artist-bio-rendered th,
-          body.light-theme .artist-bio-rendered td {
+          body.light-theme .artist-bio-rendered td,
+          body.light-theme .artist-bio-rendered th *,
+          body.light-theme .artist-bio-rendered td * {
             background: #ffffff !important;
             background-color: #ffffff !important;
-            border: 1px solid rgba(0, 0, 0, 0.15) !important;
+            border-color: rgba(0, 0, 0, 0.15) !important;
             color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
             font-weight: 100 !important;
+            opacity: 1 !important;
           }
           body.light-theme .artist-bio-rendered tr td:first-child,
-          body.light-theme .artist-bio-rendered tr th:first-child {
+          body.light-theme .artist-bio-rendered tr th:first-child,
+          body.light-theme .artist-bio-rendered tr td:first-child *,
+          body.light-theme .artist-bio-rendered tr th:first-child * {
             background: #ffffff !important;
             background-color: #ffffff !important;
             color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
             font-weight: 100 !important;
-            border: 1px solid rgba(0, 0, 0, 0.15) !important;
+            opacity: 1 !important;
+            border-color: rgba(0, 0, 0, 0.15) !important;
           }
           body.light-theme .artist-bio-empty-box {
             background: #ffffff !important;
