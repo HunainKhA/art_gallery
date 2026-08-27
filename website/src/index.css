@@ -219,6 +219,13 @@ body.light-theme .artists-section-wrapper .alphabet-filter-btn.active {
   font-weight: 100 !important;
 }
 
+body.light-theme .artists-section-wrapper .alphabet-filter-btn {
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
 body.light-theme .artists-section-wrapper .alphabet-filter-btn.active {
   background-color: #ffffff !important;
   background: #ffffff !important;
