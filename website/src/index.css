@@ -1465,10 +1465,82 @@ body.light-theme .footer-search-input:focus {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
+}
+
 .footer-search-input::placeholder,
 body.light-theme .footer-search-input::placeholder {
   font-style: normal !important;
   font-weight: 400 !important;
+}
+
+/* ====================================================
+   Artist Biography Text & Tables Formatting
+   ==================================================== */
+.artist-bio-rendered {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.75;
+  padding-right: 0.5rem;
+}
+
+.artist-bio-rendered table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin-bottom: 1.5rem !important;
+  border: 1px solid var(--border-color) !important;
+  background: transparent !important;
+}
+
+.artist-bio-rendered th,
+.artist-bio-rendered td {
+  padding: 1.15rem 1.4rem !important;
+  border: 1px solid var(--border-color) !important;
+  vertical-align: top !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.75 !important;
+}
+
+.artist-bio-rendered tr td:first-child,
+.artist-bio-rendered tr th:first-child {
+  width: 25% !important;
+  min-width: 140px !important;
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+  padding: 1.15rem 1.4rem !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+body.light-theme .artist-bio-rendered table,
+body.light-theme .artist-bio-rendered th,
+body.light-theme .artist-bio-rendered td {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+body.light-theme .artist-bio-rendered tr td:first-child,
+body.light-theme .artist-bio-rendered tr th:first-child {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme .artist-bio-rendered td {
+  color: #222222 !important;
+}
+
+.artist-bio-rendered p {
+  margin: 0 0 1rem 0 !important;
+  line-height: 1.75 !important;
+}
+
+.artist-bio-rendered strong,
+.artist-bio-rendered b {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme .artist-bio-rendered strong,
+body.light-theme .artist-bio-rendered b {
+  color: #000000 !important;
 }
 
 @media (max-width: 768px) {

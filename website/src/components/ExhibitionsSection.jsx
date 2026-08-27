@@ -54,11 +54,25 @@ export default function ExhibitionsSection({
   const formatBioHtml = (bioHtml) => {
     if (!bioHtml) return '';
     let formatted = bioHtml;
+    // Replace dark text colors with CSS theme variable
+    formatted = formatted.replace(/color:\s*#333333/gi, 'color: var(--text-secondary)');
+    formatted = formatted.replace(/color:\s*#333/gi, 'color: var(--text-secondary)');
+    formatted = formatted.replace(/color:\s*#666666/gi, 'color: var(--text-secondary)');
+    formatted = formatted.replace(/color:\s*#666/gi, 'color: var(--text-secondary)');
+    formatted = formatted.replace(/color:\s*#888888/gi, 'color: var(--text-secondary)');
+    formatted = formatted.replace(/color:\s*#888/gi, 'color: var(--text-secondary)');
+
+    // Replace hardcoded white backgrounds with transparent
+    formatted = formatted.replace(/background-color:\s*#ffffff/gi, 'background-color: transparent');
+    formatted = formatted.replace(/background-color:\s*#fff/gi, 'background-color: transparent');
+    formatted = formatted.replace(/background:\s*#ffffff/gi, 'background: transparent');
+    formatted = formatted.replace(/background:\s*#fff/gi, 'background: transparent');
+
     formatted = formatted.replace(
       /(<table[\s\S]*?)(?:border="[^"]*")?([\s\S]*?>)/i,
       (match, p1, p2) => {
-        let clean = (p1 + p2).replace(/\s*border="[^"]*"/gi, '');
-        return clean.replace('<table', '<table border="1" cellspacing="0" cellpadding="6" style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;"');
+        let clean = (p1 + p2).replace(/\s*(?:border|cellpadding|cellspacing)="[^"]*"/gi, '');
+        return clean.replace('<table', '<table border="0"');
       }
     );
     return formatted;
@@ -2610,6 +2624,66 @@ export default function ExhibitionsSection({
             gap: 2.5rem;
             align-items: start;
           }
+
+          /* Artist Biography Text and Table Formatting */
+          .artist-bio-rendered {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.75;
+            padding-right: 0.5rem;
+          }
+          .artist-bio-rendered table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-bottom: 1.5rem !important;
+            border: 1px solid var(--border-color) !important;
+            background: transparent !important;
+          }
+          .artist-bio-rendered th,
+          .artist-bio-rendered td {
+            padding: 1.15rem 1.4rem !important;
+            border: 1px solid var(--border-color) !important;
+            vertical-align: top !important;
+            color: var(--text-secondary) !important;
+            line-height: 1.7 !important;
+          }
+          .artist-bio-rendered tr td:first-child,
+          .artist-bio-rendered tr th:first-child {
+            width: 25% !important;
+            min-width: 140px !important;
+            color: var(--text-primary) !important;
+            font-weight: 500 !important;
+            padding: 1.15rem 1.4rem !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+          }
+          body.light-theme .artist-bio-rendered table,
+          body.light-theme .artist-bio-rendered th,
+          body.light-theme .artist-bio-rendered td {
+            border-color: rgba(0, 0, 0, 0.15) !important;
+          }
+          body.light-theme .artist-bio-rendered tr td:first-child,
+          body.light-theme .artist-bio-rendered tr th:first-child {
+            background: rgba(0, 0, 0, 0.03) !important;
+            color: #000000 !important;
+            font-weight: 600 !important;
+          }
+          body.light-theme .artist-bio-rendered td {
+            color: #222222 !important;
+          }
+          .artist-bio-rendered p {
+            margin: 0 0 1rem 0 !important;
+            line-height: 1.75 !important;
+          }
+          .artist-bio-rendered strong,
+          .artist-bio-rendered b {
+            color: var(--text-primary) !important;
+            font-weight: 600 !important;
+          }
+          body.light-theme .artist-bio-rendered strong,
+          body.light-theme .artist-bio-rendered b {
+            color: #000000 !important;
+          }
+
           .bio-slides-column {
             display: flex;
             flex-direction: column;
