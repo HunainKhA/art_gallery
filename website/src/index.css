@@ -306,6 +306,30 @@ body.light-theme .artwork-detail-page-wrapper .status-sold,
   font-weight: 400 !important;
 }
 
+/* Room Wall Preview Modal - Always Dark with Crisp White Text */
+.room-wall-modal-container,
+body.light-theme .room-wall-modal-container,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container h1,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container h2,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container h3,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container h4,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container p,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container strong,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container span,
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container button {
+  color: #ffffff !important;
+}
+
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container .modal-header-subtitle {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
 .about-story-heading,
 h2.about-story-heading {
   color: var(--text-primary) !important;
