@@ -851,7 +851,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <Layout size={20} color="var(--accent-gold)" /> Room Wall Preview
-                <span className="modal-header-subtitle" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                <span className="modal-header-subtitle" style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 500, marginLeft: '0.5rem', opacity: 1 }}>
                   — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} | {artwork.width || 36}" × {artwork.length || 24}" (Scale: 16ft × 11ft Wall)
                 </span>
               </h3>

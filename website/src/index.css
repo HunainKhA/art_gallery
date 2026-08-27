@@ -321,8 +321,12 @@ body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container button 
   color: #ffffff !important;
 }
 
+.room-wall-modal-container .modal-header-subtitle,
+body.light-theme .room-wall-modal-container .modal-header-subtitle,
 body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container .modal-header-subtitle {
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
 }
 
 body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container svg {
