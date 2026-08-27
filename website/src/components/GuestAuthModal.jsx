@@ -136,42 +136,36 @@ export default function GuestAuthModal({ isOpen, onClose, guestSession, onLoginS
     }
   };
 
-  const handleSimulateWebhook = async () => {
-    if (!code) return;
-    setSimulating(true);
+  const [hasOpenedWhatsApp, setHasOpenedWhatsApp] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const handleOpenWhatsApp = () => {
+    setHasOpenedWhatsApp(true);
     setError('');
-    try {
-      const res = await simulateWhatsAppVerify(code);
-      if (res.username && res.password) {
-        setUsername(res.username);
-        setPassword(res.password);
-      }
-      setStep('login');
-    } catch (err) {
-      setError('Webhook simulation failed.');
-    } finally {
-      setSimulating(false);
-    }
+    window.open(whatsappLink, '_blank', 'noopener,noreferrer');
   };
 
-  const handleManualOtpVerify = async (e) => {
-    e.preventDefault();
-    if (!manualOtp.trim()) return;
-    setManualVerifyLoading(true);
+  const handleConfirmWhatsAppSent = async () => {
+    if (!hasOpenedWhatsApp) {
+      setError('Please click "Verify via WhatsApp" first to send the code to our gallery number.');
+      return;
+    }
+    if (!code) return;
+    setConfirmLoading(true);
     setError('');
     try {
-      const res = await verifyGuestOtp(manualOtp.trim());
+      const res = await verifyGuestOtp(code);
       if (res.status === 'success' && res.username && res.password) {
         setUsername(res.username);
         setPassword(res.password);
         setStep('login');
       } else {
-        setError('Verification failed.');
+        setError('WhatsApp verification is pending. Please ensure the code is sent on WhatsApp.');
       }
     } catch (err) {
-      setError(err.message || 'Invalid OTP code.');
+      setError(err.message || 'Verification failed. Please ensure the message was sent to WhatsApp.');
     } finally {
-      setManualVerifyLoading(false);
+      setConfirmLoading(false);
     }
   };
 
@@ -266,8 +260,6 @@ export default function GuestAuthModal({ isOpen, onClose, guestSession, onLoginS
             marginBottom: '1.5rem',
             fontSize: '0.85rem',
             color: 'var(--text-secondary)',
-
-
           }}>
             <AlertCircle size={16} color="var(--accent-red)" style={{ flexShrink: 0 }} />
             <span>{error}</span>
@@ -322,14 +314,15 @@ export default function GuestAuthModal({ isOpen, onClose, guestSession, onLoginS
 
         {/* STEP 2: VERIFY */}
         {step === 'verify' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', width: '100%' }}>
             <div style={{
               backgroundColor: 'rgba(255,255,255,0.02)',
               border: '1px dashed var(--border-color)',
               padding: '1rem 2rem',
               borderRadius: '12px',
               textAlign: 'center',
-              width: '100%'
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Your Login Code</span>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: '0.25rem', letterSpacing: '2px' }}>
@@ -337,87 +330,60 @@ export default function GuestAuthModal({ isOpen, onClose, guestSession, onLoginS
               </div>
             </div>
 
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>
-              Click the button below to send this code to our WhatsApp. Alternatively, text <strong>"{code}"</strong> manually to our WhatsApp business number.
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5, margin: '0 0 0.5rem 0' }}>
+              To activate your access, click the button below to send this verification code to our official gallery WhatsApp.
             </p>
 
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={handleOpenWhatsApp}
               style={{
                 ...submitButtonStyle,
-                textDecoration: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 backgroundColor: '#25D366',
                 color: '#fff',
-                boxShadow: '0 4px 15px rgba(37, 211, 102, 0.2)'
+                boxShadow: '0 4px 15px rgba(37, 211, 102, 0.25)',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%'
               }}
             >
-              <MessageSquare size={18} /> Verify via WhatsApp
-            </a>
+              <MessageSquare size={18} /> {hasOpenedWhatsApp ? 'Re-open WhatsApp to Send Code' : 'Verify via WhatsApp (Send Code)'}
+            </button>
 
-            {/* Waiting/Polling message */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-              <div className="dot-pulse" />
-              <span>Awaiting WhatsApp message delivery...</span>
-            </div>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', margin: '0.5rem 0' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)', opacity: 0.5 }}></div>
-              <span style={{ padding: '0 10px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>OR VERIFY MANUALLY</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)', opacity: 0.5 }}></div>
-            </div>
-
-            {/* Manual OTP Input Form */}
-            <form onSubmit={handleManualOtpVerify} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Shield size={16} style={{ position: 'absolute', left: '14px', color: 'var(--text-muted)' }} />
-                  <input
-                    type="text"
-                    maxLength={15}
-                    placeholder="Enter 4-digit code (e.g. 1234)"
-                    required
-                    value={manualOtp}
-                    onChange={(e) => setManualOtp(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: '2.5rem' }}
-                    className="modal-input"
-                  />
+            {/* Waiting / Confirmation Action */}
+            {hasOpenedWhatsApp ? (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--accent-green)' }}>
+                  <CheckCircle2 size={16} />
+                  <span>WhatsApp opened. Please send the message on WhatsApp.</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleConfirmWhatsAppSent}
+                  disabled={confirmLoading}
+                  style={{
+                    ...submitButtonStyle,
+                    backgroundColor: 'var(--accent-gold)',
+                    color: '#000',
+                    fontWeight: 700,
+                    cursor: confirmLoading ? 'not-allowed' : 'pointer',
+                    width: '100%'
+                  }}
+                  className="modal-btn"
+                >
+                  {confirmLoading ? 'Verifying Dispatch...' : 'I Have Sent The WhatsApp Message → Proceed'}
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={manualVerifyLoading || !manualOtp.trim()}
-                style={submitButtonStyle}
-                className="modal-btn"
-              >
-                {manualVerifyLoading ? 'Verifying OTP...' : 'Verify OTP & Continue'}
-              </button>
-            </form>
-
-            {/* Local bypass for easier review */}
-            <div style={{ borderTop: '1px solid var(--border-color)', width: '100%', paddingTop: '1rem', marginTop: '0.75rem', textAlign: 'center' }}>
-              <button
-                onClick={handleSimulateWebhook}
-                disabled={simulating}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent-gold)',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  textDecoration: 'underline',
-                  fontWeight: 600
-                }}
-              >
-                {simulating ? 'Simulating Webhook...' : 'Developer Bypass: Simulate WhatsApp Verification'}
-              </button>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <div className="dot-pulse" />
+                <span>Waiting for WhatsApp dispatch...</span>
+              </div>
+            )}
           </div>
         )}
 

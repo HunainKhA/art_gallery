@@ -98,7 +98,7 @@ export default function ArtistsSection({
           border: 1px solid var(--border-color);
           color: var(--text-secondary);
           font-size: 12px;
-          font-weight: 400 !important;
+          font-weight: 100 !important;
           width: 32px;
           height: 32px;
           border-radius: 50%;
