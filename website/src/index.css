@@ -318,6 +318,34 @@ body.light-theme h2.about-story-heading {
   font-weight: 400 !important;
 }
 
+/* Light Theme - Contact Section (Pure Solid Black Font & Weight 400) */
+body.light-theme .contact-section-wrapper,
+body.light-theme .contact-section-wrapper h1,
+body.light-theme .contact-section-wrapper h2,
+body.light-theme .contact-section-wrapper h3,
+body.light-theme .contact-section-wrapper h4,
+body.light-theme .contact-section-wrapper strong,
+body.light-theme .contact-section-wrapper p,
+body.light-theme .contact-section-wrapper span,
+body.light-theme .contact-section-wrapper label,
+body.light-theme .contact-section-wrapper input,
+body.light-theme .contact-section-wrapper textarea {
+  color: #000000 !important;
+  font-weight: 400 !important;
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+body.light-theme .contact-section-wrapper input,
+body.light-theme .contact-section-wrapper textarea {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+body.light-theme .contact-section-wrapper svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
 /* Light Theme - Pagination (Selected / Active page White Background & Black Text) */
 body.light-theme .pagination-page-btn.active,
 body.light-theme button.pagination-page-btn.active {

@@ -3,7 +3,7 @@ import { MapPin, Phone, Clock } from 'lucide-react';
 
 export default function ContactSection() {
   return (
-    <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
+    <div className="page-content contact-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
       {/* Google Map Section */}
       <div className="glass-card" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <h2 style={{ color: 'var(--accent-gold)', fontSize: '18px', margin: 0 }}>Find Us on Google Maps</h2>
