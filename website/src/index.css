@@ -1465,6 +1465,10 @@ body.light-theme .footer-search-input:focus {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
+.footer-search-input::placeholder,
+body.light-theme .footer-search-input::placeholder {
+  font-style: normal !important;
+  font-weight: 400 !important;
 }
 
 @media (max-width: 768px) {

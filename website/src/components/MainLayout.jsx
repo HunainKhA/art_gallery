@@ -1112,9 +1112,10 @@ export default function MainLayout({ children, state }) {
         }
         .footer-search-input::placeholder {
           color: var(--text-muted);
-          font-style: italic;
-          opacity: 0.6;
-          letter-spacing: 0.06em;
+          font-style: normal;
+          font-weight: 400;
+          opacity: 0.65;
+          letter-spacing: 0.04em;
         }
         .footer-search-input:focus {
           border-bottom: 1px solid var(--accent-gold) !important;
@@ -1136,7 +1137,7 @@ export default function MainLayout({ children, state }) {
         /* Footer Right Column (Subscribe on top, Search on bottom) */
         .footer-right-column {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           gap: 1.15rem;
           margin-left: auto;
           align-items: flex-end;
