@@ -37,9 +37,18 @@ export default function MainLayout({ children, state }) {
   const [subscribeEmail, setSubscribeEmail] = useState('');
   const [showSubscribePopup, setShowSubscribePopup] = useState(false);
 
-  const handleSubscribeSubmit = (e) => {
+  const handleSubscribeSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!subscribeEmail || !subscribeEmail.includes('@')) return;
+    try {
+      await fetch(getApiUrl('/api/subscribers/subscribe'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: subscribeEmail })
+      });
+    } catch (err) {
+      console.error("Subscription error:", err);
+    }
     setShowSubscribePopup(true);
     setSubscribeEmail('');
   };

@@ -331,6 +331,13 @@ def get_dashboard_stats(branch_id: int = 1):
             except Exception:
                 active_guests = 0
 
+            # 4d. Total Newsletter Subscribers
+            try:
+                cursor.execute("SELECT COUNT(*) as count FROM newsletter_subscribers WHERE status = 'active'")
+                total_subscribers = cursor.fetchone()["count"] or 0
+            except Exception:
+                total_subscribers = 0
+
             # Mock data for developer testing if DB is empty
             if total_invoices == 0:
                 total_invoices = 48
@@ -412,6 +419,7 @@ def get_dashboard_stats(branch_id: int = 1):
             "total_visitors": 12450 + total_visitors,
             "total_inquiries": 342 + total_inquiries,
             "active_guests": active_guests,
+            "total_subscribers": total_subscribers,
             "sales_chart": sales_data,
             "visitors_chart": visitors_data,
             "inquiries_chart": inquiries_data,

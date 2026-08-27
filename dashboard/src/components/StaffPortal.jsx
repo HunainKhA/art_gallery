@@ -3,7 +3,7 @@ import {
   FileText, Shield, User, LogOut, Package, Calculator, BarChart3, Plus, 
   Trash2, Search, Check, AlertCircle, ShoppingCart, RefreshCw, X, CreditCard, Eye, Edit,
   ChevronDown, ChevronRight, Upload, Users, Image, Layers, Palette, Menu, ChevronLeft,
-  Home, DollarSign, TrendingUp, Globe, Sun, Moon, Activity
+  Home, DollarSign, TrendingUp, Globe, Sun, Moon, Activity, Mail
 } from 'lucide-react';
 import { getLogoUrl } from '../services/api';
 
@@ -23,6 +23,7 @@ import ExhibitionsBannerSection from './ExhibitionsBannerSection';
 import WebsiteSettingsSection from './WebsiteSettingsSection';
 import GuestAccessSection from './GuestAccessSection';
 import AboutSettingsSection from './AboutSettingsSection';
+import SubscribersSection from './SubscribersSection';
 
 export default function StaffPortal({ theme, toggleTheme }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -976,6 +977,26 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && <span>Website Controls</span>}
         </button>
 
+        {/* Newsletter Subscribers */}
+        <button 
+          onClick={() => setCurrentSection('subscribers')} 
+          className={`nav-btn ${currentSection === 'subscribers' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Newsletter Subscribers" : ""}
+        >
+          <Mail size={18} color={currentSection === 'subscribers' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Subscribers</span>}
+        </button>
+
       </aside>
 
       {/* 🖼️ DYNAMIC MAIN CONTENT PANEL */}
@@ -1337,6 +1358,11 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {/* Guest Access Manager */}
           {currentSection === 'guest_access' && (
             <GuestAccessSection theme={theme} />
+          )}
+
+          {/* Newsletter Subscribers Manager */}
+          {currentSection === 'subscribers' && (
+            <SubscribersSection />
           )}
 
           {/* Security / Change Password */}

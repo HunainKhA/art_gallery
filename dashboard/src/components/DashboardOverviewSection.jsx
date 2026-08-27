@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  RefreshCw, Globe, FileText, ShoppingCart, Check, AlertCircle, Users, Plus, TrendingUp, Edit, Shield
+  RefreshCw, Globe, FileText, ShoppingCart, Check, AlertCircle, Users, Plus, TrendingUp, Edit, Shield, Mail
 } from 'lucide-react';
 
 export default function DashboardOverviewSection({ stats, frames, loading, onRefresh, onNavigate }) {
@@ -69,6 +69,7 @@ export default function DashboardOverviewSection({ stats, frames, loading, onRef
   const totalArtists = stats?.total_artists || 0;
   const newArtists = stats?.new_artists_30d || 0;
   const activeGuests = stats?.active_guests || 0;
+  const totalSubscribers = stats?.total_subscribers || 0;
 
   const visitorsChart = stats?.visitors_chart || [];
   const inquiriesChart = stats?.inquiries_chart || [];
@@ -142,6 +143,34 @@ export default function DashboardOverviewSection({ stats, frames, loading, onRef
       {/* Metrics Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
         
+        {/* Card: Subscribers */}
+        <div
+          className="glass-card metric-card"
+          onClick={() => onNavigate && onNavigate('subscribers')}
+          style={{
+            padding: '1.5rem',
+            position: 'relative',
+            overflow: 'hidden',
+            borderLeft: '4px solid #ec4899',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            minHeight: '110px',
+            cursor: 'pointer'
+          }}
+          title="Click to view all newsletter subscribers"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subscribers</span>
+            <Mail size={18} style={{ color: '#ec4899' }} />
+          </div>
+          <div style={{ marginTop: '0.5rem' }}>
+            <strong style={{ fontSize: '1.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{totalSubscribers.toLocaleString()}</strong>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: '#ec4899', marginTop: '0.2rem' }}>Newsletter List →</span>
+          </div>
+          <div className="card-glow" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.1), transparent 50%)', pointerEvents: 'none' }} />
+        </div>
+
         {/* Card 1: Visitors */}
         <div className="glass-card metric-card" style={{
           padding: '1.5rem',
