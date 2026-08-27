@@ -662,14 +662,15 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
           >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#333333', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 Inquiry
               </h2>
               <button
                 onClick={() => setShowInquiryForm(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem', lineHeight: 1 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555555', padding: '0.25rem', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Close"
               >
-                <X size={18} />
+                <X size={12} strokeWidth={2} />
               </button>
             </div>
 
