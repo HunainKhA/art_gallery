@@ -2350,7 +2350,7 @@ export default function ExhibitionsSection({
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="glass-card"
+              className="glass-card artist-bio-modal-card"
               style={{
                 width: '100%',
                 maxWidth: '1100px',
@@ -2367,7 +2367,7 @@ export default function ExhibitionsSection({
               }}
             >
               {/* Header */}
-              <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
+              <div className="artist-bio-modal-header" style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                   <img
                     src={getArtistImageUrl(selectedBioArtist.profile_image) || ''}
@@ -2490,6 +2490,7 @@ export default function ExhibitionsSection({
               {/* Content */}
               <div
                 ref={bioBodyRef}
+                className="custom-scrollbar artist-bio-modal-body"
                 style={{
                   padding: '2rem',
                   overflowY: 'auto',
@@ -2499,7 +2500,6 @@ export default function ExhibitionsSection({
                   lineHeight: '1.7',
                   scrollBehavior: 'smooth'
                 }}
-                className="custom-scrollbar"
               >
                 <div
                   key={selectedBioArtist?.id || bioArtistIndex}
@@ -2512,7 +2512,7 @@ export default function ExhibitionsSection({
                       className="artist-bio-rendered"
                     />
                   ) : (
-                    <div style={{
+                    <div className="artist-bio-empty-box" style={{
                       padding: '2.5rem 1.5rem',
                       textAlign: 'center',
                       color: 'var(--text-muted)',
@@ -2523,7 +2523,8 @@ export default function ExhibitionsSection({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      minHeight: '150px'
+                      minHeight: '260px',
+                      fontWeight: 100
                     }}>
                       Biography not available
                     </div>
@@ -2569,7 +2570,7 @@ export default function ExhibitionsSection({
               </div>
 
               {/* Footer */}
-              <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)' }}>
+              <div className="artist-bio-modal-footer" style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)' }}>
                 {bioArtistsList.length > 1 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <button
@@ -2651,11 +2652,16 @@ export default function ExhibitionsSection({
           }
 
           /* Artist Biography Text and Table Formatting */
+          .artist-bio-rendered,
+          .artist-bio-rendered * {
+            font-weight: 100 !important;
+          }
           .artist-bio-rendered {
             color: var(--text-secondary);
             font-size: 13px;
             line-height: 1.75;
             padding-right: 0.5rem;
+            font-weight: 100 !important;
           }
           .artist-bio-rendered table {
             width: 100% !important;
@@ -2671,42 +2677,75 @@ export default function ExhibitionsSection({
             vertical-align: top !important;
             color: var(--text-secondary) !important;
             line-height: 1.7 !important;
+            font-weight: 100 !important;
           }
           .artist-bio-rendered tr td:first-child,
           .artist-bio-rendered tr th:first-child {
             width: 25% !important;
             min-width: 140px !important;
             color: var(--text-primary) !important;
-            font-weight: 500 !important;
+            font-weight: 100 !important;
             padding: 1.15rem 1.4rem !important;
-            background: rgba(255, 255, 255, 0.02) !important;
+            background: transparent !important;
           }
-          body.light-theme .artist-bio-rendered table,
+          .artist-bio-rendered p,
+          .artist-bio-rendered strong,
+          .artist-bio-rendered b,
+          .artist-bio-rendered h1,
+          .artist-bio-rendered h2,
+          .artist-bio-rendered h3,
+          .artist-bio-rendered h4,
+          .artist-bio-rendered span,
+          .artist-bio-rendered div {
+            font-weight: 100 !important;
+          }
+
+          /* Light Theme: Pure White Background & Crisp Pure Black / 100 Weight */
+          body.light-theme .artist-bio-modal-card {
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
+          }
+          body.light-theme .artist-bio-modal-header,
+          body.light-theme .artist-bio-modal-body,
+          body.light-theme .artist-bio-modal-footer {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+          }
+          body.light-theme .artist-bio-rendered,
+          body.light-theme .artist-bio-rendered * {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-weight: 100 !important;
+          }
+          body.light-theme .artist-bio-rendered table {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.15) !important;
+          }
           body.light-theme .artist-bio-rendered th,
           body.light-theme .artist-bio-rendered td {
-            border-color: rgba(0, 0, 0, 0.15) !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.15) !important;
+            color: #000000 !important;
+            font-weight: 100 !important;
           }
           body.light-theme .artist-bio-rendered tr td:first-child,
           body.light-theme .artist-bio-rendered tr th:first-child {
-            background: rgba(0, 0, 0, 0.03) !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
             color: #000000 !important;
-            font-weight: 600 !important;
+            font-weight: 100 !important;
+            border: 1px solid rgba(0, 0, 0, 0.15) !important;
           }
-          body.light-theme .artist-bio-rendered td {
-            color: #222222 !important;
-          }
-          .artist-bio-rendered p {
-            margin: 0 0 1rem 0 !important;
-            line-height: 1.75 !important;
-          }
-          .artist-bio-rendered strong,
-          .artist-bio-rendered b {
-            color: var(--text-primary) !important;
-            font-weight: 600 !important;
-          }
-          body.light-theme .artist-bio-rendered strong,
-          body.light-theme .artist-bio-rendered b {
+          body.light-theme .artist-bio-empty-box {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border: 1px dashed rgba(0, 0, 0, 0.2) !important;
             color: #000000 !important;
+            font-weight: 100 !important;
           }
 
           .bio-slides-column {
