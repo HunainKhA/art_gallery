@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutGrid, Users, ShoppingCart, Home, Info, Calendar,
   BookOpen, Flame, Video, Mail, Search, Sun, Moon, Lock, Unlock,
-  Menu, X, User
+  Menu, X, User, Check
 } from 'lucide-react';
 import { getLogoUrl, getApiUrl } from '../services/api';
 
@@ -34,6 +34,15 @@ export default function MainLayout({ children, state }) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exhibitions, setExhibitions] = useState([]);
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [showSubscribePopup, setShowSubscribePopup] = useState(false);
+
+  const handleSubscribeSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!subscribeEmail || !subscribeEmail.includes('@')) return;
+    setShowSubscribePopup(true);
+    setSubscribeEmail('');
+  };
 
   // Fetch exhibitions list on mount
   useEffect(() => {
@@ -439,32 +448,179 @@ export default function MainLayout({ children, state }) {
               </a>
             </div>
           </div>
-          {/*  Footer Search Bar */}
-          <div className="footer-search">
-            <input
-              type="text"
-              placeholder="Search painting..."
-              className="footer-search-input"
-              value={searchQuery}
-              onChange={(e) => handleSidebarSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearchSubmit();
-                }
-              }}
-            />
-            <Search
-              size={16}
-              className="footer-search-icon"
-              style={{ cursor: 'pointer' }}
-              onClick={handleSearchSubmit}
-            />
+
+          {/* Footer Right Column: Subscribe & Search Bar */}
+          <div className="footer-right-column">
+            {/* Newsletter / Subscribe Box */}
+            <div className="footer-search footer-subscribe-box">
+              <form
+                onSubmit={handleSubscribeSubmit}
+                style={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'center' }}
+              >
+                <input
+                  type="email"
+                  placeholder="Subscribe to Newsletter..."
+                  className="footer-search-input footer-subscribe-input"
+                  value={subscribeEmail}
+                  onChange={(e) => setSubscribeEmail(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="footer-search-icon footer-subscribe-btn"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '2px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'auto'
+                  }}
+                  title="Subscribe to updates"
+                >
+                  <Mail size={16} />
+                </button>
+              </form>
+            </div>
+
+            {/*  Footer Search Bar */}
+            <div className="footer-search">
+              <input
+                type="text"
+                placeholder="Search painting..."
+                className="footer-search-input"
+                value={searchQuery}
+                onChange={(e) => handleSidebarSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchSubmit();
+                  }
+                }}
+              />
+              <Search
+                size={16}
+                className="footer-search-icon"
+                style={{ cursor: 'pointer' }}
+                onClick={handleSearchSubmit}
+              />
+            </div>
           </div>
         </footer>
 
       </main>
 
+      {/* Subscribe Confirmation Message Box */}
+      {showSubscribePopup && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '1.5rem',
+            animation: 'fadeIn 0.3s ease'
+          }}
+          onClick={() => setShowSubscribePopup(false)}
+        >
+          <div
+            className="glass-card"
+            style={{
+              maxWidth: '460px',
+              width: '100%',
+              padding: '2.5rem 2rem',
+              textAlign: 'center',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              background: 'var(--bg-glass)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowSubscribePopup(false)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={18} />
+            </button>
 
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              color: '#10b981',
+              border: '1px solid rgba(16, 185, 129, 0.3)'
+            }}>
+              <Check size={28} />
+            </div>
+
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 500,
+              margin: '0 0 0.75rem 0',
+              color: 'var(--text-primary)',
+              fontFamily: 'Montserrat, sans-serif'
+            }}>
+              Thank You!
+            </h3>
+
+            <p style={{
+              fontSize: '13px',
+              lineHeight: '1.6',
+              color: 'var(--text-secondary)',
+              margin: '0 0 1.75rem 0',
+              fontFamily: 'Montserrat, sans-serif',
+              fontWeight: 400
+            }}>
+              thanks for subscribe now you can receive our updates Via email
+            </p>
+
+            <button
+              className="btn-primary"
+              onClick={() => setShowSubscribePopup(false)}
+              style={{
+                padding: '0.65rem 2.25rem',
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                background: 'var(--accent-gold)',
+                color: '#000000'
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating WhatsApp Button */}
       <a
@@ -968,6 +1124,20 @@ export default function MainLayout({ children, state }) {
           transform: scale(1.1);
         }
 
+        /* Footer Right Column (Subscribe on top, Search on bottom) */
+        .footer-right-column {
+          display: flex;
+          flex-direction: column;
+          gap: 1.15rem;
+          margin-left: auto;
+          align-items: flex-end;
+        }
+
+        .footer-subscribe-btn:hover {
+          color: var(--accent-gold) !important;
+          transform: scale(1.15);
+        }
+
         /* Responsive styling for footer layout */
         @media (max-width: 768px) {
           .global-footer {
@@ -981,6 +1151,11 @@ export default function MainLayout({ children, state }) {
             transform: none;
             padding-left: 0;
             white-space: normal;
+          }
+          .footer-right-column {
+            margin: 0 auto;
+            width: 100%;
+            align-items: center;
           }
           .footer-search {
             width: 100%;
