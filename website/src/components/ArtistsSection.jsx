@@ -98,7 +98,7 @@ export default function ArtistsSection({
           border: 1px solid var(--border-color);
           color: var(--text-secondary);
           font-size: 12px;
-          font-weight: 100 !important;
+          font-weight: 400 !important;
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -113,13 +113,13 @@ export default function ArtistsSection({
           color: var(--accent-gold);
           border-color: var(--accent-gold);
           background: rgba(212, 175, 55, 0.05);
-          font-weight: 100 !important;
+          font-weight: 400 !important;
         }
         .alphabet-filter-btn.active {
           color: #000;
           background: var(--accent-gold);
           border-color: var(--accent-gold);
-          font-weight: 100 !important;
+          font-weight: 400 !important;
           box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
         }
         .alphabet-filter-btn:first-child {

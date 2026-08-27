@@ -216,22 +216,28 @@ body.light-theme .artists-section-wrapper .status-inquiry {
 .artists-section-wrapper .alphabet-filter-btn:hover,
 body.light-theme .artists-section-wrapper .alphabet-filter-btn,
 body.light-theme .artists-section-wrapper .alphabet-filter-btn.active {
-  font-weight: 100 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
 }
 
 body.light-theme .artists-section-wrapper .alphabet-filter-btn {
   color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
   border-color: rgba(0, 0, 0, 0.2) !important;
   background-color: #ffffff !important;
   background: #ffffff !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
 }
 
 body.light-theme .artists-section-wrapper .alphabet-filter-btn.active {
   background-color: #ffffff !important;
   background: #ffffff !important;
   color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
   border: 1.5px solid #000000 !important;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
 }
 
 body.light-theme .artists-section-wrapper .status-available {
