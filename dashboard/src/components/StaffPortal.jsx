@@ -20,6 +20,9 @@ import CRMImportView from './CRMImportView';
 import FrameHeavensRatesSection from './FrameHeavensRatesSection';
 import PDFImportSection from './PDFImportSection';
 import ExhibitionsBannerSection from './ExhibitionsBannerSection';
+import WebsiteSettingsSection from './WebsiteSettingsSection';
+import GuestAccessSection from './GuestAccessSection';
+import AboutSettingsSection from './AboutSettingsSection';
 
 export default function StaffPortal({ theme, toggleTheme }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -796,6 +799,26 @@ export default function StaffPortal({ theme, toggleTheme }) {
           )}
         </div>
 
+        {/* About Us Settings */}
+        <button 
+          onClick={() => setCurrentSection('about_settings')} 
+          className={`nav-btn ${currentSection === 'about_settings' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "About Us Editor" : ""}
+        >
+          <FileText size={18} color={currentSection === 'about_settings' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>About Us</span>}
+        </button>
+
         {/* CRM MODULES: Framer's Heaven */}
         <div>
           <button 
@@ -910,6 +933,49 @@ export default function StaffPortal({ theme, toggleTheme }) {
           )}
         </div>
 
+        {/* Divider */}
+        <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)', margin: '0.5rem 0' }} />
+
+        {/* Guest Access Manager */}
+        <button 
+          onClick={() => setCurrentSection('guest_access')} 
+          className={`nav-btn ${currentSection === 'guest_access' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Guest Access" : ""}
+        >
+          <Shield size={18} color={currentSection === 'guest_access' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Guest Access</span>}
+        </button>
+
+        {/* Website Settings */}
+        <button 
+          onClick={() => setCurrentSection('website_settings')} 
+          className={`nav-btn ${currentSection === 'website_settings' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Website Controls" : ""}
+        >
+          <Globe size={18} color={currentSection === 'website_settings' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Website Controls</span>}
+        </button>
+
       </aside>
 
       {/* 🖼️ DYNAMIC MAIN CONTENT PANEL */}
@@ -917,7 +983,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
         marginLeft: '230px',
         flex: 1,
         minHeight: '100vh',
-        padding: '3rem 5%',
+        padding: '2.5rem 1.5rem 2.5rem 1rem',
         overflowX: 'visible',
         transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
@@ -974,8 +1040,9 @@ export default function StaffPortal({ theme, toggleTheme }) {
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  backgroundColor: 'var(--accent-gold)',
-                  color: '#000',
+                  backgroundColor: theme === 'light' ? '#ffffff' : 'var(--accent-gold)',
+                  color: theme === 'light' ? '#374151' : '#000000',
+                  border: theme === 'light' ? '1px solid var(--border-color)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1014,12 +1081,13 @@ export default function StaffPortal({ theme, toggleTheme }) {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--accent-gold)',
-                      color: '#000',
+                      backgroundColor: theme === 'light' ? '#ffffff' : 'var(--accent-gold)',
+                      color: theme === 'light' ? '#374151' : '#000000',
+                      border: theme === 'light' ? '1px solid var(--border-color)' : 'none',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: 'var(--shadow-gold)'
+                      boxShadow: theme === 'light' ? 'none' : 'var(--shadow-gold)'
                     }}>
                       <User size={18} />
                     </div>
@@ -1171,6 +1239,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
               frames={frames}
               loading={statsLoading} 
               onRefresh={fetchDashboardStats} 
+              onNavigate={setCurrentSection}
             />
           )}
 
@@ -1253,6 +1322,21 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {/* 10. Exhibitions Banner Customizer */}
           {currentSection === 'exhibitions_banner' && (
             <ExhibitionsBannerSection />
+          )}
+
+          {/* 11. Website Display Controls */}
+          {currentSection === 'website_settings' && (
+            <WebsiteSettingsSection />
+          )}
+
+          {/* About Us Page Editor */}
+          {currentSection === 'about_settings' && (
+            <AboutSettingsSection />
+          )}
+
+          {/* Guest Access Manager */}
+          {currentSection === 'guest_access' && (
+            <GuestAccessSection theme={theme} />
           )}
 
           {/* Security / Change Password */}

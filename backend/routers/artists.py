@@ -69,8 +69,7 @@ def get_all_artists():
         LEFT JOIN art_artists_cstm c ON a.id = c.id_c
         LEFT JOIN email_addr_bean_rel r ON a.id = r.bean_id AND r.bean_module = 'art_Artists' AND r.primary_address = 1 AND r.deleted = 0
         LEFT JOIN email_addresses e ON r.email_address_id = e.id AND e.deleted = 0
-        WHERE a.deleted = 0
-        ORDER BY a.first_name ASC, a.last_name ASC;
+        WHERE a.deleted = 0;
     """
     try:
         artists = execute_query(query)
@@ -80,6 +79,9 @@ def get_all_artists():
             # Convert decimal fields to float
             artist["artist_advance"] = float(artist["artist_advance"]) if artist["artist_advance"] is not None else 0.0
             artist["pending_amount"] = float(artist["pending_amount"]) if artist["pending_amount"] is not None else 0.0
+        
+        # Robust Alphabetical sorting (A-Z) by display name
+        artists.sort(key=lambda x: (x['name'] or '').strip().upper())
         return artists
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -125,7 +127,9 @@ def get_artist_by_id(artist_id: str):
             c.document_name AS title,
             c.filename AS image,
             cstm.sale_gallery_price_c AS price,
-            c.collection_status AS status
+            c.collection_status AS status,
+            cstm.collection_size_length_c AS length,
+            cstm.collection_size_width_c AS width
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         LEFT JOIN art_artists_art_collections_c rel 
@@ -253,7 +257,7 @@ def update_artist(artist_id: str, data: ArtistRequest):
             date_modified = %s, description = %s, first_name = %s, last_name = %s, 
             title = %s, phone_mobile = %s, phone_other = %s,
             primary_address_street = %s, primary_address_city = %s, primary_address_state = %s, primary_address_postalcode = %s, primary_address_country = %s,
-            alt_address_street = %s, alt_address_city = %s, alt_address_state = %s, alt_address_postalcode = %s, alt_address_country = %s, filename = %s
+            alt_address_street = %s, alt_address_city = %s, alt_address_state = %s, alt_address_postalcode = %s, alt_address_country = %s, filename = COALESCE(NULLIF(%s, ''), filename)
         WHERE id = %s AND deleted = 0;
     """
     update_cstm_query = """
@@ -405,9 +409,11 @@ def get_artist_image(filename: str):
 def get_artist_portfolio_report(artist_id: str):
     """
     Serves a print-ready PDF/HTML report of the artist's full portfolio
-    categorized by Sold and Unsold artworks with totals and metrics.
+    with customizable selection, 10 paintings per page, exact column layout:
+    S# | Code & Type | Painting | Medium | Size | Price | Invoice | Status
     """
     from fastapi.responses import HTMLResponse
+    import json
     
     # 1. Fetch artist profile
     artist_query = """
@@ -429,7 +435,7 @@ def get_artist_portfolio_report(artist_id: str):
         WHERE a.id = %s AND a.deleted = 0;
     """
     
-    # 2. Fetch all artworks with size, status, code, price, and created date
+    # 2. Fetch all artworks with size, status, code, price, invoice, and type
     artworks_query = """
         SELECT 
             c.id AS id,
@@ -443,7 +449,16 @@ def get_artist_portfolio_report(artist_id: str):
             cstm.code_c AS code,
             cstm.sale_c AS deal_type,
             cstm.purchase_price_c AS purchase_price,
-            m.name AS medium_name
+            m.name AS medium_name,
+            (
+                SELECT inv.invoice_id1 
+                FROM saleinvoicedetail d 
+                JOIN saleinvoice inv ON d.invoice_id = inv.invoice_id1 AND d.branch_id = inv.branch_id
+                WHERE (d.paintingId = c.id OR (cstm.code_c IS NOT NULL AND cstm.code_c != '' AND d.code = cstm.code_c)) 
+                  AND inv.is_cancel = 0
+                ORDER BY inv.invoice_id1 DESC 
+                LIMIT 1
+            ) AS invoice_number
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         LEFT JOIN art_artists_art_collections_c rel 
@@ -460,469 +475,276 @@ def get_artist_portfolio_report(artist_id: str):
             return HTMLResponse("<h3>Artist not found</h3>", status_code=404)
             
         full_name = f"{artist['first_name'] or ''} {artist['last_name'] or ''}".strip()
-        
-        artworks = execute_query(artworks_query, (artist_id,))
-        
-        # Split into Sold and Unsold
-        sold_list = []
-        unsold_list = []
+        artworks_raw = execute_query(artworks_query, (artist_id,))
         
         total_sold_value = 0.0
         total_unsold_value = 0.0
         total_artist_share = 0.0
-        total_gallery_share = 0.0
         
-        for art in artworks:
-            # Parse price (Retail Price)
+        artworks_data = []
+        for idx, art in enumerate(artworks_raw, 1):
+            # Parse price
             try:
-                price = float(art["price"]) if art["price"] else 0.0
+                price_num = float(art["price"]) if art["price"] else 0.0
+                price_str = f"{int(price_num):,}" if price_num.is_integer() else f"{price_num:,.2f}"
             except:
-                price = 0.0
-            art["parsed_price"] = price
-            
-            # Parse purchase price
+                price_num = 0.0
+                price_str = "0"
+                
             try:
                 purchase_price = float(art["purchase_price"]) if art["purchase_price"] else 0.0
             except:
                 purchase_price = 0.0
-            art["parsed_purchase_price"] = purchase_price
             
             # Deal type
-            deal_type = art["deal_type"] if art["deal_type"] else "Sale_Basis"
-            art["parsed_deal_type"] = "Sale Basis" if deal_type == "Sale_Basis" else "Gallery Purchase"
+            deal_raw = (art.get("deal_type") or "").strip()
+            if "gallery" in deal_raw.lower() or "purchase" in deal_raw.lower():
+                deal_display = "Gallery Purchase"
+            else:
+                deal_display = "Sale Basis"
             
-            # Format dimensions
+            # Dimensions
             try:
                 l = float(art["length"]) if art["length"] else 0.0
                 w = float(art["width"]) if art["width"] else 0.0
                 dim = f'{int(l) if l.is_integer() else l}" x {int(w) if w.is_integer() else w}"' if (l > 0 or w > 0) else 'N/A'
             except:
                 dim = 'N/A'
-            art["dimensions"] = dim
+                
+            # Status normalization (Available, Sold, Return)
+            raw_status = (art.get("status") or "").strip()
+            if raw_status.lower() in ["sold"]:
+                norm_status = "Sold"
+                total_sold_value += price_num
+                if "gallery" in deal_raw.lower() or "purchase" in deal_raw.lower():
+                    total_artist_share += purchase_price
+                else:
+                    total_artist_share += (0.60 * price_num)
+            elif raw_status.lower() in ["return", "returned"]:
+                norm_status = "Return"
+                total_unsold_value += price_num
+            else:
+                norm_status = "Available"
+                total_unsold_value += price_num
+                
+            inv_no = art.get("invoice_number")
+            inv_display = f"#{inv_no}" if inv_no else ""
             
-            # Format date
-            if art["date_added"]:
-                try:
-                    art["date_str"] = datetime.strptime(str(art["date_added"]), "%Y-%m-%d %H:%M:%S").strftime("%b %d, %Y")
-                except:
-                    art["date_str"] = "N/A"
-            else:
-                art["date_str"] = "N/A"
-                
-            # Classify
-            if art["status"] == "Sold":
-                sold_list.append(art)
-                total_sold_value += price
-                
-                # Calculate payout share
-                if deal_type == "Sale_Basis":
-                    gallery_cut = 0.40 * price
-                    artist_share = 0.60 * price
-                else:  # Purchase_Basis
-                    artist_share = purchase_price
-                    gallery_cut = max(0.0, price - purchase_price)
-                    
-                art["gallery_cut"] = gallery_cut
-                art["artist_share"] = artist_share
-                
-                total_artist_share += artist_share
-                total_gallery_share += gallery_cut
-            else:
-                unsold_list.append(art)
-                total_unsold_value += price
-                
-        # Total counts
-        total_artworks = len(artworks)
-        sold_count = len(sold_list)
-        unsold_count = len(unsold_list)
+            artworks_data.append({
+                "id": str(art.get("id")),
+                "index": idx,
+                "code": art.get("code") or "N/A",
+                "deal_type": deal_display,
+                "title": art.get("title") or "Untitled",
+                "medium": art.get("medium_name") or "Original Medium",
+                "size": dim,
+                "price": price_str,
+                "price_num": price_num,
+                "invoice": inv_display,
+                "status": norm_status
+            })
+            
+        json_artworks = json.dumps(artworks_data)
         
-        # Advance & Pending Payments
+        # Advance & Metrics
         try:
             advance = float(artist["artist_advance"]) if artist["artist_advance"] else 0.0
         except:
             advance = 0.0
             
+        total_items = len(artworks_data)
+        sold_items = len([a for a in artworks_data if a["status"] == "Sold"])
+        avail_items = len([a for a in artworks_data if a["status"] == "Available"])
+        return_items = len([a for a in artworks_data if a["status"] == "Return"])
         outstanding_val = total_artist_share - advance
-            
-        # Build Sold and Unsold HTML tables
-        sold_rows = ""
-        for art in sold_list:
-            art_id = art.get("id")
-            code_val = art.get("code") or "N/A"
-            title_val = art.get("title") or "Untitled"
-            medium_val = art.get("medium_name") or "N/A"
-            dims_val = art.get("dimensions") or "N/A"
-            deal_type_val = art.get("parsed_deal_type")
-            price_val = f"{art.get('parsed_price'):,.2f}"
-            cut_val = f"{art.get('gallery_cut'):,.2f}"
-            share_val = f"{art.get('artist_share'):,.2f}"
-            sold_rows += f"""
-            <tr>
-                <td><strong>{code_val}</strong></td>
-                <td style="text-align: center; vertical-align: middle; padding: 5px; width: 80px;">
-                    <img src="/api/artworks/image/{art_id}" style="max-height: 45px; max-width: 70px; object-fit: contain; border-radius: 4px; border: 1px solid #eee; display: block; margin: 0 auto;" onerror="this.style.display='none'">
-                </td>
-                <td>{title_val}</td>
-                <td>{medium_val}</td>
-                <td>{dims_val}</td>
-                <td>{deal_type_val}</td>
-                <td style="text-align: right;">{price_val}</td>
-                <td style="text-align: right; color: #888;">{cut_val}</td>
-                <td style="text-align: right; font-weight: 600; color: #10b981;">{share_val}</td>
-            </tr>
-            """
-            
-        unsold_rows = ""
-        for art in unsold_list:
-            art_id = art.get("id")
-            code_val = art.get("code") or "N/A"
-            title_val = art.get("title") or "Untitled"
-            medium_val = art.get("medium_name") or "N/A"
-            dims_val = art.get("dimensions") or "N/A"
-            deal_type_val = art.get("parsed_deal_type")
-            price_val = f"{art.get('parsed_price'):,.2f}"
-            unsold_rows += f"""
-            <tr>
-                <td><strong>{code_val}</strong></td>
-                <td style="text-align: center; vertical-align: middle; padding: 5px; width: 80px;">
-                    <img src="/api/artworks/image/{art_id}" style="max-height: 45px; max-width: 70px; object-fit: contain; border-radius: 4px; border: 1px solid #eee; display: block; margin: 0 auto;" onerror="this.style.display='none'">
-                </td>
-                <td>{title_val}</td>
-                <td>{medium_val}</td>
-                <td>{dims_val}</td>
-                <td>{deal_type_val}</td>
-                <td style="text-align: right; font-weight: 600;">{price_val}</td>
-            </tr>
-            """
-            
-        sold_table_html = f"""
-        <table class="item-table">
-            <thead>
-                <tr>
-                    <th style="width: 10%">Code</th>
-                    <th style="width: 12%; text-align: center;">Photo</th>
-                    <th style="width: 22%">Artwork Title</th>
-                    <th style="width: 14%">Medium</th>
-                    <th style="width: 12%">Size</th>
-                    <th style="width: 10%">Type</th>
-                    <th style="width: 10%; text-align: right;">Worth</th>
-                    <th style="width: 10%; text-align: right;">Gallery Cut</th>
-                    <th style="width: 10%; text-align: right;">Artist Share</th>
-                </tr>
-            </thead>
-            <tbody>
-                {sold_rows}
-            </tbody>
-        </table>
-        """ if sold_list else '<div class="empty-msg">No sold paintings recorded for this artist.</div>'
         
-        unsold_table_html = f"""
-        <table class="item-table">
-            <thead>
-                <tr>
-                    <th style="width: 12%">Code</th>
-                    <th style="width: 15%; text-align: center;">Photo</th>
-                    <th style="width: 25%">Artwork Title</th>
-                    <th style="width: 15%">Medium</th>
-                    <th style="width: 11%">Size</th>
-                    <th style="width: 10%">Type</th>
-                    <th style="width: 12%; text-align: right;">Price (PKR)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {unsold_rows}
-            </tbody>
-        </table>
-        """ if unsold_list else '<div class="empty-msg">No unsold/available paintings recorded for this artist.</div>'
-        
-        # Compile beautiful report html
-        # Escaping curly brackets for Python f-string
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
             <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Portfolio Report - {full_name}</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
                 
-                body {{
-                    margin: 0;
-                    padding: 0;
-                    background-color: #f5f5f5;
-                    font-family: 'Montserrat', sans-serif;
-                    color: #111;
-                }}
+                * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+                body {{ background-color: #f1f3f5; font-family: 'Montserrat', sans-serif; color: #111; padding: 15px; }}
                 
-                .print-controls {{
-                    max-width: 210mm;
-                    margin: 15px auto;
-                    padding: 12px 20px;
-                    background: #fff;
-                    border: 1px solid #ddd;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    box-sizing: border-box;
-                }}
+                .controls-bar {{ max-width: 1050px; margin: 0 auto 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; }}
+                .controls-top-row {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }}
+                .report-title-badge {{ font-size: 16px; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px; }}
+                .report-title-badge span {{ color: #bda04c; }}
+                .controls-actions {{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }}
+                .btn {{ padding: 8px 16px; font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 600; border-radius: 6px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }}
+                .btn-print {{ background-color: #111827; color: #ffffff; }}
+                .btn-gold {{ background-color: #bda04c; color: #ffffff; }}
+                .btn-secondary {{ background-color: #f3f4f6; color: #374151; border-color: #d1d5db; }}
                 
-                .btn {{
-                    padding: 8px 16px;
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 13px;
-                    font-weight: 600;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    text-decoration: none;
-                    transition: all 0.2s;
-                }}
+                .controls-bottom-row {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 10px; }}
+                .filter-tabs {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+                .filter-btn {{ padding: 5px 12px; font-size: 12px; font-weight: 600; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }}
+                .filter-btn.active {{ background: #111827; color: #ffffff; border-color: #111827; }}
+                .selection-counter {{ font-size: 13px; font-weight: 600; color: #64748b; }}
+                .selection-counter b {{ color: #0f172a; }}
+
+                .report-page {{ width: 100%; max-width: 1050px; margin: 0 auto 30px; background-color: #ffffff; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 26px 32px 20px; box-sizing: border-box; display: flex; flex-direction: column; }}
+
+                .page-header {{ display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #bda04c; padding-bottom: 10px; margin-bottom: 12px; }}
+                .compact-header {{ border-bottom: 1.5px solid #d1d5db; padding-bottom: 6px; margin-bottom: 10px; }}
+
+                .artist-header-info h1 {{ font-size: 22px; font-weight: 700; color: #111; margin-bottom: 2px; }}
+                .artist-header-info p {{ font-size: 12.5px; color: #555; }}
+                .gallery-header-branding {{ text-align: right; }}
+                .gallery-header-branding img {{ height: 40px; object-fit: contain; margin-bottom: 2px; }}
+                .gallery-header-branding .brand-title {{ font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; color: #333; }}
+                .page-number-indicator {{ font-size: 11.5px; color: #111; margin-top: 2px; font-weight: 700; }}
+
+                .metrics-grid {{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }}
+                .metric-card {{ background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 8px 6px; text-align: center; }}
+                .metric-card.highlight {{ background-color: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.25); }}
+                .metric-label {{ font-size: 9.5px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 3px; }}
+                .metric-val {{ font-size: 14px; font-weight: 800; color: #0f172a; }}
+                .metric-sub {{ font-size: 9.5px; color: #64748b; margin-top: 2px; font-weight: 500; }}
+
+                .report-table {{ width: 100%; border-collapse: collapse; font-size: 12px; color: #1f2937; margin-bottom: 12px; border: 1px solid #cbd5e1; }}
+                .report-table th {{ background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 7px 6px; font-weight: 700; color: #0f172a; text-align: left; font-size: 11.5px; letter-spacing: 0.2px; }}
+                .report-table td {{ border: 1px solid #e2e8f0; padding: 6px 7px; vertical-align: middle; font-size: 12px; }}
+                .report-table tr:nth-child(even) {{ background-color: #fafbfd; }}
+
+                .col-select {{ width: 30px; text-align: center; }}
+                .col-sno {{ width: 36px; text-align: center; font-weight: 600; color: #64748b; }}
+                .col-code {{ width: 130px; }}
+                .code-title {{ font-weight: 700; color: #0f172a; font-size: 12px; }}
+                .deal-type-badge {{ display: inline-block; font-size: 9.5px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }}
+                .col-photo {{ width: 75px; text-align: center; }}
+                .painting-thumb {{ max-height: 44px; max-width: 65px; object-fit: contain; border-radius: 2px; border: 1px solid #cbd5e1; display: block; margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
+                .col-medium {{ width: 135px; color: #334155; }}
+                .col-size {{ width: 95px; font-weight: 500; color: #334155; white-space: nowrap; }}
+                .col-price {{ width: 110px; text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap; }}
+                .col-invoice {{ width: 80px; text-align: center; font-weight: 600; color: #475569; }}
+                .col-status {{ width: 90px; text-align: center; }}
                 
-                .btn-print {{
-                    background-color: #bda04c;
-                    color: #fff;
-                }}
-                
-                .btn-print:hover {{
-                    background-color: #a48539;
-                }}
-                
-                .report-container {{
-                    width: 210mm;
-                    min-height: 297mm;
-                    margin: 20px auto;
-                    background-color: #fff;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                    box-sizing: border-box;
-                    padding: 0.5in 0.6in;
-                    display: flex;
-                    flex-direction: column;
-                }}
-                
-                .header-section {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    border-bottom: 2px solid #bda04c;
-                    padding-bottom: 15px;
-                    margin-bottom: 25px;
-                }}
-                
-                .artist-info h1 {{
-                    margin: 0;
-                    font-size: 26px;
-                    font-weight: 700;
-                    color: #111;
-                }}
-                
-                .artist-info p {{
-                    margin: 5px 0 0 0;
-                    font-size: 14px;
-                    color: #555;
-                }}
-                
-                .gallery-branding {{
-                    text-align: right;
-                }}
-                
-                .gallery-branding img {{
-                    height: 50px;
-                    object-fit: contain;
-                    margin-bottom: 5px;
-                }}
-                
-                .gallery-branding div {{
-                    font-size: 11px;
-                    color: #666;
-                    font-weight: 500;
-                }}
-                
-                .metrics-grid {{
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 15px;
-                    margin-bottom: 30px;
-                }}
-                
-                .metric-card {{
-                    background-color: #f9f9f9;
-                    border: 1px solid #eee;
-                    border-radius: 6px;
-                    padding: 15px;
-                    text-align: center;
-                }}
-                
-                .metric-card.highlight {{
-                    background-color: rgba(212, 175, 55, 0.05);
-                    border-color: rgba(212, 175, 55, 0.2);
-                }}
-                
-                .metric-label {{
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    color: #666;
-                    font-weight: 600;
-                    letter-spacing: 0.5px;
-                    margin-bottom: 6px;
-                }}
-                
-                .metric-val {{
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #111;
-                }}
-                
-                .section-title {{
-                    font-size: 16px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    margin-top: 10px;
-                    margin-bottom: 12px;
-                    color: #000;
-                    border-bottom: 1.5px solid #000;
-                    padding-bottom: 5px;
-                }}
-                
-                .item-table {{
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 12px;
-                    margin-bottom: 30px;
-                }}
-                
-                .item-table th {{
-                    background-color: #f5f5f5;
-                    border: 1px solid #ddd;
-                    padding: 8px 10px;
-                    font-weight: 700;
-                    text-align: left;
-                    color: #333;
-                }}
-                
-                .item-table td {{
-                    border: 1px solid #ddd;
-                    padding: 8px 10px;
-                    color: #444;
-                }}
-                
-                .item-table tr:nth-child(even) {{
-                    background-color: #fafafa;
-                }}
-                
-                .empty-msg {{
-                    text-align: center;
-                    padding: 20px;
-                    color: #777;
-                    font-style: italic;
-                    background-color: #fafafa;
-                    border: 1px solid #eee;
-                    border-radius: 4px;
-                    margin-bottom: 30px;
-                }}
-                
-                .footer {{
-                    margin-top: auto;
-                    border-top: 1px solid #ddd;
-                    padding-top: 15px;
-                    text-align: center;
-                    font-size: 10px;
-                    color: #777;
-                }}
-                
+                .status-text {{ font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; background: transparent !important; border: none !important; display: inline-block; }}
+                .status-available {{ color: #16a34a !important; }}
+                .status-sold {{ color: #dc2626 !important; }}
+                .status-return {{ color: #7c3aed !important; }}
+
+                .page-footer {{ margin-top: auto; border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; font-size: 9.5px; color: #94a3b8; }}
+
                 @media print {{
-                    body {{
-                        background-color: #fff;
-                        margin: 0;
-                        padding: 0;
-                    }}
-                    
-                    .print-controls {{
-                        display: none;
-                    }}
-                    
-                    .report-container {{
-                        margin: 0;
-                        box-shadow: none;
-                        width: 100%;
-                        min-height: auto;
-                        padding: 0.2in 0;
-                    }}
-                    
-                    @page {{
-                        size: A4 portrait;
-                        margin: 15mm;
-                    }}
+                    body {{ background-color: #ffffff !important; margin: 0 !important; padding: 0 !important; }}
+                    .controls-bar, .col-select, .no-print {{ display: none !important; }}
+                    .report-page {{ box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; padding: 8mm 10mm !important; width: 100% !important; max-width: 100% !important; min-height: 280mm !important; page-break-after: always !important; break-after: page !important; }}
+                    .report-page:last-child {{ page-break-after: auto !important; break-after: auto !important; }}
+                    .report-table {{ border: 1.5px solid #000000 !important; width: 100% !important; }}
+                    .report-table th {{ border: 1px solid #000000 !important; background-color: #eeeeee !important; color: #000000 !important; font-weight: 700 !important; -webkit-print-color-adjust: exact !important; }}
+                    .report-table td {{ border: 1px solid #333333 !important; color: #000000 !important; padding: 3px 5px !important; }}
+                    .painting-thumb {{ max-height: 38px !important; border: 1px solid #000 !important; -webkit-print-color-adjust: exact !important; }}
+                    .status-text {{ border: none !important; background: transparent !important; -webkit-print-color-adjust: exact !important; }}
+                    .status-available {{ color: #16a34a !important; }}
+                    .status-sold {{ color: #dc2626 !important; }}
+                    .status-return {{ color: #7c3aed !important; }}
+                    @page {{ size: A4 portrait; margin: 4mm; }}
                 }}
             </style>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         </head>
         <body>
-            <div class="print-controls">
-                <span style="font-weight:600; font-size:14px; color:#333;">Artist Portfolio Statement: {full_name}</span>
-                <button class="btn btn-print" onclick="window.print()">Print Statement</button>
-            </div>
-            
-            <div class="report-container">
-                <div class="header-section">
-                    <div class="artist-info">
-                        <h1>{full_name}</h1>
-                        <p>{artist.get("title") or "Professional Artist"}</p>
-                        <p style="font-size: 12px; color: #777; margin-top: 5px;">
-                            Email: {artist.get("email") or "N/A"} &nbsp;|&nbsp; Mobile: {artist.get("phone_mobile") or "N/A"}
-                        </p>
-                    </div>
-                    <div class="gallery-branding">
-                        <img src="/api/artworks/logo" alt="Mainframe Logo">
-                        <div>MAINFRAME THE GALLERY</div>
-                        <div style="font-size: 9px; margin-top: 3px;">Portfolio Account Statement</div>
+            <div class="controls-bar no-print">
+                <div class="controls-top-row">
+                    <div class="report-title-badge"><span>Mainframe</span> Portfolio Report: {full_name}</div>
+                    <div class="controls-actions">
+                        <button class="btn btn-secondary" onclick="selectAll(true)">Select All</button>
+                        <button class="btn btn-secondary" onclick="selectAll(false)">Deselect All</button>
+                        <button class="btn btn-secondary" onclick="selectFirstN(10)">Select First 10</button>
+                        <button class="btn btn-gold" onclick="downloadPDF()">Download PDF</button>
+                        <button class="btn btn-print" onclick="window.print()">Print Inventory</button>
                     </div>
                 </div>
-                
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Total Artworks</div>
-                        <div class="metric-val">{total_artworks}</div>
+                <div class="controls-bottom-row">
+                    <div class="filter-tabs">
+                        <button class="filter-btn active" onclick="setFilter('all', this)">All ({total_items})</button>
+                        <button class="filter-btn" onclick="setFilter('Available', this)">Available ({avail_items})</button>
+                        <button class="filter-btn" onclick="setFilter('Sold', this)">Sold ({sold_items})</button>
+                        <button class="filter-btn" onclick="setFilter('Return', this)">Return ({return_items})</button>
                     </div>
-                    <div class="metric-card highlight">
-                        <div class="metric-label">Sold Paintings (Retail)</div>
-                        <div class="metric-val">{sold_count} <span style="font-size: 11px; font-weight: normal; color: #666;"><br>({total_sold_value:,.2f} PKR)</span></div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Unsold / Available</div>
-                        <div class="metric-val">{unsold_count} <span style="font-size: 11px; font-weight: normal; color: #666;"><br>({total_unsold_value:,.2f} PKR)</span></div>
-                    </div>
-                </div>
-                
-                <div class="metrics-grid" style="margin-top: -15px; margin-bottom: 30px;">
-                    <div class="metric-card">
-                        <div class="metric-label">Total Artist Share</div>
-                        <div class="metric-val" style="font-size: 18px; font-weight: 700; color: #333;">{total_artist_share:,.2f} PKR</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Paid Advances</div>
-                        <div class="metric-val" style="color: #666; font-size: 16px; font-weight: 600;">{advance:,.2f} PKR</div>
-                    </div>
-                    <div class="metric-card highlight" style="background-color: rgba(16, 185, 129, 0.03); border-color: rgba(16, 185, 129, 0.15);">
-                        <div class="metric-label" style="color: #10b981;">Net Outstanding balance</div>
-                        <div class="metric-val" style="color: #10b981; font-size: 18px;">{outstanding_val:,.2f} PKR</div>
-                    </div>
-                </div>
-                
-                <!-- SOLD SECTION -->
-                <div class="section-title">Sold Artworks ({sold_count})</div>
-                {sold_table_html}
-                
-                <!-- UNSOLD SECTION -->
-                <div class="section-title">Unsold / Available Artworks ({unsold_count})</div>
-                {unsold_table_html}
-                
-                <div class="footer">
-                    MainFrame The Gallery &nbsp;|&nbsp; F-73/9, Block-4, Clifton Karachi Pakistan &nbsp;|&nbsp; +92 21 3582 4155
-                    <div style="margin-top: 5px; font-size: 8px; color: #999;">Generated on {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</div>
+                    <div class="selection-counter">Selected: <b id="selectedCountText">{total_items}</b> of {total_items} items (<b id="pagesCountText">0</b> pages @ 10/page)</div>
                 </div>
             </div>
+
+            <div id="pagesContainer"></div>
+
+            <script>
+                const allArtworks = {json_artworks};
+                const artistName = "{full_name}";
+                const artistTitle = "{artist.get('title') or 'Professional Artist'}";
+                const totalArtworksCount = {total_items};
+                const statsTotalWorth = "{(total_sold_value + total_unsold_value):,.0f}";
+                const statsTotalSoldVal = "{total_sold_value:,.0f}";
+                const statsTotalUnsoldVal = "{total_unsold_value:,.0f}";
+                const statsAdvance = "{advance:,.0f}";
+                
+                let selectedIds = new Set(allArtworks.map(a => a.id));
+                let currentStatusFilter = 'all';
+
+                function renderPages() {{
+                    const container = document.getElementById('pagesContainer');
+                    container.innerHTML = '';
+                    const filtered = allArtworks.filter(a => (currentStatusFilter === 'all' || a.status === currentStatusFilter) && selectedIds.has(a.id));
+                    document.getElementById('selectedCountText').innerText = filtered.length;
+                    if (filtered.length === 0) {{ container.innerHTML = '<div class="report-page" style="text-align: center; padding: 60px 20px;"><h3>No paintings selected</h3></div>'; return; }}
+
+                    const pageSize = 10;
+                    const totalPages = Math.ceil(filtered.length / pageSize);
+                    document.getElementById('pagesCountText').innerText = totalPages;
+
+                    for (let p = 0; p < totalPages; p++) {{
+                        const pageItems = filtered.slice(p * pageSize, (p + 1) * pageSize);
+                        const pageNum = p + 1;
+                        let rowsHtml = '';
+                        pageItems.forEach((art, idx) => {{
+                            const globalIndex = p * pageSize + idx + 1;
+                            const statusClass = art.status === 'Sold' ? 'status-sold' : (art.status === 'Return' ? 'status-return' : 'status-available');
+                            rowsHtml += `
+                                <tr>
+                                    <td class="col-select no-print"><input type="checkbox" checked onchange="toggleItem('${{art.id}}', this.checked)" style="cursor:pointer;"></td>
+                                    <td class="col-sno">${{globalIndex}}</td>
+                                    <td class="col-code"><div class="code-title">${{art.code}}</div><div class="deal-type-badge">${{art.deal_type}}</div></td>
+                                    <td class="col-photo"><img class="painting-thumb" src="/api/artworks/image/${{art.id}}" onerror="this.src='https://placehold.co/70x50?text=Artwork'"></td>
+                                    <td class="col-medium">${{art.medium}}</td>
+                                    <td class="col-size">${{art.size}}</td>
+                                    <td class="col-price">${{art.price}} PKR</td>
+                                    <td class="col-invoice">${{art.invoice}}</td>
+                                    <td class="col-status"><span class="status-text ${{statusClass}}">${{art.status}}</span></td>
+                                </tr>`;
+                        }});
+
+                        let headerHtml = (pageNum === 1) ? `
+                            <div class="page-header">
+                                <div class="artist-header-info"><h1>${{artistName}}</h1><p>${{artistTitle}} &bull; Portfolio Statement</p></div>
+                                <div class="gallery-header-branding"><img src="/api/artworks/logo" alt="Logo"><div class="brand-title">MAINFRAME THE GALLERY</div><div class="page-number-indicator">Page 1 of ${{totalPages}}</div></div>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-card"><div class="metric-label">Total Paintings</div><div class="metric-val">${{totalArtworksCount}}</div></div>
+                                <div class="metric-card"><div class="metric-label">Total Worth</div><div class="metric-val" style="color:#0f172a;">${{statsTotalWorth}} PKR</div></div>
+                                <div class="metric-card"><div class="metric-label">Sold Paintings</div><div class="metric-val" style="color:#dc2626;">${{allArtworks.filter(a => a.status === 'Sold').length}}</div><div class="metric-sub">${{statsTotalSoldVal}} PKR</div></div>
+                                <div class="metric-card"><div class="metric-label">Available / Unsold</div><div class="metric-val" style="color:#16a34a;">${{allArtworks.filter(a => a.status === 'Available').length}}</div><div class="metric-sub">${{statsTotalUnsoldVal}} PKR</div></div>
+                                <div class="metric-card"><div class="metric-label">Paid Advances</div><div class="metric-val">${{statsAdvance}} PKR</div></div>
+                                <div class="metric-card highlight"><div class="metric-label" style="color:#059669;">Available Stock Value</div><div class="metric-val" style="color:#059669;">${{statsTotalUnsoldVal}} PKR</div></div>
+                            </div>` : `
+                            <div class="page-header compact-header"><div style="font-size: 13px; font-weight: 700;">${{artistName}} &bull; <span style="font-weight: 500; color: #64748b;">Portfolio</span></div><div class="page-number-indicator">Page ${{pageNum}} of ${{totalPages}}</div></div>`;
+
+                        container.innerHTML += `<div class="report-page">${{headerHtml}}<table class="report-table"><thead><tr><th class="col-select no-print">#</th><th class="col-sno">S#</th><th class="col-code">Code</th><th class="col-photo">Painting</th><th class="col-medium">Medium</th><th class="col-size">Size</th><th class="col-price">Price</th><th class="col-invoice">Invoice</th><th class="col-status">Status</th></tr></thead><tbody>${{rowsHtml}}</tbody></table><div class="page-footer"><div>MainFrame The Gallery &bull; Karachi</div><div>${{new Date().toLocaleDateString()}}</div></div></div>`;
+                    }}
+                }}
+                function toggleItem(id, isChecked) {{ isChecked ? selectedIds.add(id) : selectedIds.delete(id); renderPages(); }}
+                function selectAll(state) {{ state ? allArtworks.forEach(a => selectedIds.add(a.id)) : selectedIds.clear(); renderPages(); }}
+                function selectFirstN(n) {{ selectedIds.clear(); allArtworks.slice(0, n).forEach(a => selectedIds.add(a.id)); renderPages(); }}
+                function setFilter(status, btnElem) {{ currentStatusFilter = status; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btnElem.classList.add('active'); renderPages(); }}
+                function downloadPDF() {{ html2pdf().from(document.getElementById('pagesContainer')).set({{ margin: [4, 4, 4, 4], filename: 'Portfolio_{artist_id}.pdf', jsPDF: {{ unit: 'mm', format: 'a4', orientation: 'portrait' }} }}).save(); }}
+                window.addEventListener('DOMContentLoaded', renderPages);
+            </script>
         </body>
         </html>
         """

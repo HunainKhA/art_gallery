@@ -97,7 +97,69 @@ export const getBannerImageUrl = (filename) => {
   if (!filename) return '';
   return `${API_BASE}/api/crm/exhibitions/banner/image/${filename}`;
 };
+export const fetchWebsiteSettings = async () => {
+  const res = await fetch(`${API_BASE}/api/settings`);
+  if (!res.ok) throw new Error("Could not fetch website display settings.");
+  return res.json();
+};
 
+export const saveWebsiteSettings = async (settings) => {
+  const res = await fetch(`${API_BASE}/api/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings)
+  });
+  if (!res.ok) throw new Error("Could not save website display settings.");
+  return res.json();
+};
 
+export const fetchGuestUsers = async () => {
+  const res = await fetch(`${API_BASE}/api/guest/users`);
+  if (!res.ok) throw new Error("Failed to load guest users list.");
+  return res.json();
+};
+
+export const fetchGuestCredentials = async () => {
+  const res = await fetch(`${API_BASE}/api/guest/credentials`);
+  if (!res.ok) throw new Error("Failed to load guest credentials list.");
+  return res.json();
+};
+
+export const createGuestCredential = async (username, password) => {
+  const res = await fetch(`${API_BASE}/api/guest/credentials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Failed to create guest credential.");
+  }
+  return res.json();
+};
+
+export const deleteGuestCredential = async (id) => {
+  const res = await fetch(`${API_BASE}/api/guest/credentials/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error("Failed to delete guest credential.");
+  return res.json();
+};
+
+export const fetchWhatsAppNumber = async () => {
+  const res = await fetch(`${API_BASE}/api/guest/whatsapp-number`);
+  if (!res.ok) throw new Error("Failed to fetch WhatsApp business number.");
+  return res.json();
+};
+
+export const saveWhatsAppNumber = async (whatsapp_number) => {
+  const res = await fetch(`${API_BASE}/api/guest/whatsapp-number`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ whatsapp_number })
+  });
+  if (!res.ok) throw new Error("Failed to save WhatsApp business number.");
+  return res.json();
+};
 
 

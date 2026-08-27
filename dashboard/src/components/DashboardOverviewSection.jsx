@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  RefreshCw, Globe, FileText, ShoppingCart, Check, AlertCircle, Users, Plus, TrendingUp, Edit
+  RefreshCw, Globe, FileText, ShoppingCart, Check, AlertCircle, Users, Plus, TrendingUp, Edit, Shield
 } from 'lucide-react';
 
-export default function DashboardOverviewSection({ stats, frames, loading, onRefresh }) {
+export default function DashboardOverviewSection({ stats, frames, loading, onRefresh, onNavigate }) {
   const [hoveredVisIdx, setHoveredVisIdx] = useState(null);
   const [hoveredSalesIdx, setHoveredSalesIdx] = useState(null);
   const [refillEditingId, setRefillEditingId] = useState(null);
@@ -68,6 +68,7 @@ export default function DashboardOverviewSection({ stats, frames, loading, onRef
   const totalPending = stats?.total_pending || 0;
   const totalArtists = stats?.total_artists || 0;
   const newArtists = stats?.new_artists_30d || 0;
+  const activeGuests = stats?.active_guests || 0;
 
   const visitorsChart = stats?.visitors_chart || [];
   const inquiriesChart = stats?.inquiries_chart || [];
@@ -300,6 +301,46 @@ export default function DashboardOverviewSection({ stats, frames, loading, onRef
             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Joined last 30 days</span>
           </div>
           <div className="card-glow" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(249, 115, 22, 0.1), transparent 50%)', pointerEvents: 'none' }} />
+        </div>
+
+        {/* Card 7: Guest Access */}
+        <div 
+          className="glass-card metric-card" 
+          onClick={() => onNavigate && onNavigate('guest_access')}
+          style={{
+            padding: '1.5rem',
+            position: 'relative',
+            overflow: 'hidden',
+            borderLeft: '4px solid #ef4444',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            minHeight: '110px',
+            cursor: 'pointer',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Guest Access</span>
+            <Shield size={18} style={{ color: '#ef4444' }} />
+          </div>
+          <div style={{ marginTop: '0.5rem' }}>
+            <strong style={{ fontSize: '1.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+              {activeGuests.toLocaleString()}
+            </strong>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Active Credentials &rsaquo;
+            </span>
+          </div>
+          <div className="card-glow" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.1), transparent 50%)', pointerEvents: 'none' }} />
         </div>
 
       </div>

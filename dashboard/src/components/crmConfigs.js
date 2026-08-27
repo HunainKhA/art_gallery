@@ -28,7 +28,7 @@ export const CONFIGS = {
     fields: [
       { name: 'title', label: 'Artwork Title *', type: 'text', required: true },
       { name: 'description', label: 'Description', type: 'textarea' },
-      { name: 'status', label: 'Status *', type: 'select', options: ['Available', 'Sold', 'Reserved'], defaultValue: 'Available', required: true },
+      { name: 'status', label: 'Status *', type: 'select', options: [{value: 'Available', label: 'Available'}, {value: 'Sold', label: 'Soldout'}, {value: 'Return', label: 'Return'}], defaultValue: 'Available', required: true },
       { name: 'price', label: 'Retail Price (PKR)', type: 'number' },
       { name: 'length', label: 'Length (inches)', type: 'number' },
       { name: 'width', label: 'Width (inches)', type: 'number' },
@@ -138,6 +138,7 @@ export const LIST_COLUMNS = {
   artists: [
     { key: 'profile_image', label: 'Photo' },
     { key: 'name', label: 'Artist Name' },
+    { key: 'artist_biography', label: 'Biography' },
     { key: 'title', label: 'Title/Designation' },
     { key: 'phone_mobile', label: 'Phone' },
     { key: 'primary_address_street', label: 'Address' },
@@ -199,6 +200,7 @@ export const LIST_COLUMNS = {
   catalogues: [
     { key: 'filename', label: 'Photo' },
     { key: 'document_name', label: 'Title' },
+    { key: 'artist_name', label: 'Artist' },
     { key: 'description', label: 'Description' }
   ],
   flashimages: [

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Lock } from 'lucide-react';
 import { getArtworkImageUrl } from '../services/api';
-import { formatPrice } from '../services/currency';
+import { formatPrice, renderDimensions } from '../services/currency';
 
 export default function CollectionsSection({
   categories,
@@ -15,7 +15,10 @@ export default function CollectionsSection({
   handleAddToCart,
   viewArtworkDetail,
   currency,
-  exchangeRates
+  exchangeRates,
+  websiteSettings = { hide_prices: false },
+  guestSession,
+  setIsGuestModalOpen
 }) {
   // Pagination states for artworks
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,13 +45,13 @@ export default function CollectionsSection({
           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
           disabled={activePage === 1}
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            color: activePage === 1 ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-input)',
+            color: activePage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
             padding: '0.55rem 1.1rem',
             borderRadius: '6px',
             cursor: activePage === 1 ? 'not-allowed' : 'pointer',
-            fontSize: '0.85rem',
+            fontSize: '12px',
             transition: 'all 0.2s'
           }}
         >
@@ -66,16 +69,17 @@ export default function CollectionsSection({
                 )}
                 <button
                   onClick={() => setCurrentPage(page)}
+                  className={`pagination-page-btn ${activePage === page ? 'active' : ''}`}
                   style={{
-                    background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
-                    color: activePage === page ? '#000' : '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
+                    color: activePage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     fontWeight: activePage === page ? '700' : '500',
                     padding: '0.55rem 1.1rem',
                     minWidth: '2.6rem',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '0.85rem',
+                    fontSize: '12px',
                     transition: 'all 0.2s'
                   }}
                 >
@@ -89,13 +93,13 @@ export default function CollectionsSection({
           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
           disabled={activePage === totalPages}
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            color: activePage === totalPages ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-input)',
+            color: activePage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
             padding: '0.55rem 1.1rem',
             borderRadius: '6px',
             cursor: activePage === totalPages ? 'not-allowed' : 'pointer',
-            fontSize: '0.85rem',
+            fontSize: '12px',
             transition: 'all 0.2s'
           }}
         >
@@ -114,57 +118,140 @@ export default function CollectionsSection({
     const activeSearchPage = currentPage > totalSearchPages ? Math.max(1, totalSearchPages) : currentPage;
 
     return (
-      <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
+      <div className="page-content collections-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
           <div>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 800 }}>Search Results</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 400 }}>Search Results</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '0.25rem' }}>
               Showing results for: <strong style={{ color: 'var(--accent-gold)' }}>"{searchQuery}"</strong> ({filteredArtworks.length} items found)
             </p>
           </div>
-          <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+          <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '12px' }}>
             Clear Search
           </button>
         </div>
 
         {loadingArtworks ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: 'var(--accent-gold)', fontSize: '1.1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: 'var(--accent-gold)', fontSize: '22px' }}>
             Loading search results...
           </div>
         ) : (
           <>
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
               {currentSearchArtworks.map((art) => (
-                <div 
-                  key={art.id} 
+                <div
+                  key={art.id}
                   className="glass-card artwork-card"
-                  style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
+                  style={{ padding: '0.1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
                   onClick={() => viewArtworkDetail(art.id)}
                 >
                   <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '240px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
+                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
                     <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
-                      <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        View Details <ArrowRight size={14} />
+                      <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        View Details <ArrowRight size={11} />
                       </span>
                     </div>
                   </div>
-                  <div style={{ marginTop: '1.25rem' }}>
-                    <h3 style={{ fontSize: '1.15rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{art.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>{art.artist_name || 'Unknown Artist'}</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                  <div style={{
+                    padding: '1rem 0.25rem 0.25rem',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    fontFamily: 'Montserrat, sans-serif'
+                  }}>
+                    {/* Heading: Artist Name (18px, Thin font, black/text-primary) */}
+                    <h3 className="artist-name" style={{
+                      fontSize: '18px',
+                      color: 'var(--text-primary)',
+                      margin: '0 0 0.55rem 0',
+                      fontWeight: 400,
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.3',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {art.artist_name || 'Unknown Artist'}
+                    </h3>
+
+                    {/* Medium (12px) */}
+                    <p style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      margin: '0 0 0.45rem 0',
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.4'
+                    }}>
+                      {art.medium_name || 'Oil on Canvas'}
+                    </p>
+
+                    {/* Dimensions (12px) */}
+                    {(() => {
+                      const dims = renderDimensions(art.width, art.length);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.45rem' }}>
+                          {dims.cmStr && (
+                            <p style={{
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              margin: 0,
+                              fontFamily: 'Montserrat, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {dims.cmStr}
+                            </p>
+                          )}
+                          {dims.inStr && (
+                            <p style={{
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              margin: 0,
+                              fontFamily: 'Montserrat, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {dims.inStr}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Code / Title (12px - Placed at bottom, matches text above) */}
+                    <p style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      margin: '0 0 0.85rem 0',
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.4',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {art.title}
+                    </p>
+
+                    {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 'auto',
+                      borderTop: '1px solid var(--border-color)',
+                      paddingTop: '0.85rem'
+                    }}>
                       {art.status === 'Available' || art.status === 'not_sold' ? (
                         <>
-                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
-                            {formatPrice(art.price, currency, exchangeRates)}
+                          <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                            Inquiry
                           </span>
-                          <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-green)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Available</span>
+                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            Available
+                          </span>
                         </>
                       ) : (
-                        <>
-                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-red)' }}>Sold Out</span>
-                          <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Sold</span>
-                        </>
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          Sold
+                        </span>
                       )}
                     </div>
                   </div>
@@ -187,15 +274,7 @@ export default function CollectionsSection({
   // Render Collection Types (Category Grid) if no category is selected
   if (!selectedCategory) {
     return (
-      <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-          <h1 className="gradient-title">
-            Art Collections
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-            Explore our exquisite range of masterpieces categorized by medium and styles.
-          </p>
-        </div>
+      <div className="page-content collections-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
 
         {/* Categories Grid (Collection Types Cards) */}
         <div className="categories-grid">
@@ -215,21 +294,21 @@ export default function CollectionsSection({
               }}
             >
               {/* Category Image Box */}
-              <div style={{ 
-                height: '280px', 
-                overflow: 'hidden', 
+              <div style={{
+                height: '280px',
+                overflow: 'hidden',
                 backgroundColor: '#111',
                 position: 'relative'
               }} className="category-img-box">
-                <img 
-                  src={cat.image_id ? getArtworkImageUrl(cat.image_id) : 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500'} 
-                  alt={cat.name} 
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
+                <img
+                  src={cat.image_id ? getArtworkImageUrl(cat.image_id) : ''}
+                  alt={cat.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
                     objectFit: 'cover',
                     transition: 'transform 0.6s ease'
-                  }} 
+                  }}
                   className="category-card-img"
                 />
                 <div style={{
@@ -240,30 +319,30 @@ export default function CollectionsSection({
                   alignItems: 'flex-end',
                   padding: '1.5rem 2rem'
                 }}>
-                  <span style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--accent-gold)', 
-                    fontWeight: 600,
+                  <span style={{
+                    fontSize: '16px',
+                    color: 'var(--accent-gold)',
+                    fontWeight: 400,
                     textTransform: 'uppercase',
                     letterSpacing: '1px'
                   }}>
-                    {cat.count} masterpieces
+                    {cat.count}
                   </span>
                 </div>
               </div>
 
               {/* Category Footer Title Label */}
-              <div style={{ 
-                padding: '1.5rem', 
-                textAlign: 'center', 
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderTop: '1px solid rgba(255, 255, 255, 0.04)'
+              <div style={{
+                padding: '1.5rem',
+                textAlign: 'center',
+                background: 'transparent',
+                borderTop: '1px solid var(--border-color)'
               }} className="category-card-footer">
-                <h3 style={{ 
-                  fontSize: '1.35rem', 
-                  color: '#fff', 
+                <h3 style={{
+                  fontSize: '14px',
+                  color: 'var(--text-primary)',
                   margin: 0,
-                  fontWeight: 700,
+                  fontWeight: 400,
                   transition: 'color 0.3s ease'
                 }} className="category-card-title">
                   {cat.name}
@@ -311,9 +390,17 @@ export default function CollectionsSection({
     );
   }
 
-  // Render Artworks Grid for selected category
-  const categoryArtworks = artworks.filter(art => art.category_name === selectedCategory);
-  
+  // Render Artworks Grid for selected category (Unsold/Available first, Sold last)
+  const categoryArtworks = artworks
+    .filter(art => art.category_name === selectedCategory)
+    .sort((a, b) => {
+      const aAvailable = a.status === 'Available' || a.status === 'not_sold';
+      const bAvailable = b.status === 'Available' || b.status === 'not_sold';
+      if (aAvailable && !bAvailable) return -1;
+      if (!aAvailable && bAvailable) return 1;
+      return 0;
+    });
+
   // Slicing for pagination
   const totalPages = Math.ceil(categoryArtworks.length / artworksPerPage);
   const activePage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage;
@@ -322,37 +409,37 @@ export default function CollectionsSection({
   const currentArtworks = categoryArtworks.slice(indexOfFirstArt, indexOfLastArt);
 
   return (
-    <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
-      
-      {/* Category Header with Back Navigation */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        marginBottom: '2.5rem',
+    <div className="page-content collections-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
+
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1.5rem',
         flexWrap: 'wrap',
         gap: '1rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button 
-            onClick={() => setSelectedCategory(null)} 
-            className="btn-secondary" 
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem',
-              padding: '0.5rem 1rem', 
-              fontSize: '0.85rem' 
-            }}
-          >
-            <ArrowLeft size={16} /> Back to Collections
-          </button>
-          <div>
-            <h1 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0 }}>{selectedCategory}</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>
-              Showing {categoryArtworks.length} artworks in this collection
-            </p>
-          </div>
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: 'var(--text-primary)'
+          }}
+        >
+          <ArrowLeft size={16} /> Back to Collections
+        </button>
+        <div style={{ textAlign: 'right' }}>
+          <h1 style={{ fontSize: '18px', fontWeight: 400, margin: 0, color: 'var(--text-primary)' }}>{selectedCategory}</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '0.2rem 0 0 0' }}>
+            {categoryArtworks.length} artworks
+          </p>
         </div>
       </div>
 
@@ -364,36 +451,119 @@ export default function CollectionsSection({
         <>
           <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
             {currentArtworks.map((art) => (
-              <div 
-                key={art.id} 
+              <div
+                key={art.id}
                 className="glass-card artwork-card"
                 style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
                 onClick={() => viewArtworkDetail(art.id)}
               >
                 <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '240px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
+                  <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
                   <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
-                    <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       View Details <ArrowRight size={14} />
                     </span>
                   </div>
                 </div>
-                <div style={{ marginTop: '1.25rem' }}>
-                  <h3 style={{ fontSize: '1.15rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{art.title}</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>{art.artist_name || 'Unknown Artist'}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                <div style={{
+                  padding: '1rem 0.25rem 0.25rem',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  fontFamily: 'Montserrat, sans-serif'
+                }}>
+                  {/* Heading: Artist Name (18px, Thin font, black/text-primary) */}
+                  <h3 className="artist-name" style={{
+                    fontSize: '14px',
+                    color: 'var(--text-primary)',
+                    margin: '0 0 0.55rem 0',
+                    fontWeight: 100,
+                    fontFamily: 'Montserrat, sans-serif',
+                    lineHeight: '1.3',
+                    letterSpacing: '0.02em',
+                    textTransform: 'uppercase'
+                  }}>
+                    {art.artist_name || 'Unknown Artist'}
+                  </h3>
+
+                  {/* Medium (12px) */}
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    margin: '0 0 0.45rem 0',
+                    fontFamily: 'Montserrat, sans-serif',
+                    lineHeight: '1.4'
+                  }}>
+                    {art.medium_name || 'Oil on Canvas'}
+                  </p>
+
+                  {/* Dimensions (12px) */}
+                  {(() => {
+                    const dims = renderDimensions(art.width, art.length);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.45rem' }}>
+                        {dims.cmStr && (
+                          <p style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            margin: 0,
+                            fontFamily: 'Montserrat, sans-serif',
+                            lineHeight: '1.4'
+                          }}>
+                            {dims.cmStr}
+                          </p>
+                        )}
+                        {dims.inStr && (
+                          <p style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            margin: 0,
+                            fontFamily: 'Montserrat, sans-serif',
+                            lineHeight: '1.4'
+                          }}>
+                            {dims.inStr}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Code / Title (12px - Placed at bottom, matches text above) */}
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    margin: '0 0 0.85rem 0',
+                    fontFamily: 'Montserrat, sans-serif',
+                    lineHeight: '1.4',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {art.title}
+                  </p>
+
+                  {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: 'auto',
+                    borderTop: '1px solid var(--border-color)',
+                    paddingTop: '0.85rem'
+                  }}>
                     {art.status === 'Available' || art.status === 'not_sold' ? (
                       <>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
-                          {formatPrice(art.price, currency, exchangeRates)}
+                        <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                          Inquiry
                         </span>
-                        <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-green)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Available</span>
+                        <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                          Available
+                        </span>
                       </>
                     ) : (
-                      <>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-red)' }}>Sold Out</span>
-                        <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Sold</span>
-                      </>
+                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                        Sold
+                      </span>
                     )}
                   </div>
                 </div>

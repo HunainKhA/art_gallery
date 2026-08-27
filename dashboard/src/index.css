@@ -9,14 +9,14 @@
   --bg-input: rgba(31, 41, 55, 0.5);
   --bg-sidebar: rgba(12, 13, 16, 0.95);
   --bg-header: rgba(10, 11, 13, 0.85);
-  
+
   /* Primary & Accent Colors */
   --accent-gold: #d4af37;
   --accent-gold-hover: #b8952b;
   --accent-blue: #3b82f6;
   --accent-red: #ef4444;
   --accent-green: #10b981;
-  
+
   /* Typography Colors */
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
@@ -24,12 +24,12 @@
   --text-logo: #ffffff;
   --text-hover: #ffffff;
   --bg-hover: rgba(255, 255, 255, 0.03);
-  
+
   /* Layout Borders & Shadows */
   --border-color: rgba(255, 255, 255, 0.08);
   --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
   --shadow-gold: 0 0 20px rgba(212, 175, 55, 0.25);
-  
+
   /* Transitions */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --font-title: 'Montserrat', sans-serif;
@@ -38,12 +38,15 @@
 
 /* Premium Light Theme Override */
 body.light-theme {
-  --bg-dark: #f8fafc; /* Beautiful soft slate gray */
-  --bg-card: rgba(255, 255, 255, 0.85); /* Slightly translucent white card */
-  --bg-input: rgba(226, 232, 240, 0.8); /* slate-200 */
+  --bg-dark: #f8fafc;
+  /* Beautiful soft slate gray */
+  --bg-card: rgba(255, 255, 255, 0.95);
+  /* Clean white card */
+  --bg-input: #ffffff;
+  /* Pure white text boxes */
   --bg-sidebar: rgba(255, 255, 255, 0.95);
   --bg-header: rgba(248, 250, 252, 0.85);
-  
+
   /* Typography Colors */
   --text-primary: #000000;
   --text-secondary: #333333;
@@ -51,28 +54,184 @@ body.light-theme {
   --text-logo: #000000;
   --text-hover: #000000;
   --bg-hover: rgba(15, 23, 42, 0.04);
-  
+
   /* Layout Borders & Shadows */
-  --border-color: rgba(15, 23, 42, 0.08); /* Darker borders for light mode */
+  --border-color: rgba(15, 23, 42, 0.12);
+  /* Clean visible borders for light mode */
   --shadow-premium: 0 10px 30px -10px rgba(15, 23, 42, 0.12);
-  --shadow-gold: 0 0 20px rgba(212, 175, 55, 0.15);
+  --shadow-gold: 0 0 20px rgba(55, 65, 81, 0.1);
+
+  /* Replace Golden color with Premium Dark Gray in Light Theme */
+  --accent-gold: #374151;
+  --accent-gold-hover: #1f2937;
+}
+
+/* ====================================================
+   Light Theme - Text Boxes (Inputs, Textareas, Selects)
+   ==================================================== */
+body.light-theme input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+body.light-theme textarea,
+body.light-theme select,
+body.light-theme .form-control,
+body.light-theme .input-field,
+body.light-theme .sidebar-search-input,
+body.light-theme .login-input,
+body.light-theme .search-input {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+body.light-theme input::placeholder,
+body.light-theme textarea::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+body.light-theme input:focus,
+body.light-theme textarea:focus,
+body.light-theme select:focus {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border-color: #000000 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ====================================================
+   Light Theme - Buttons (White Background & Black Text)
+   ==================================================== */
+body.light-theme .btn-primary,
+body.light-theme .btn-secondary,
+body.light-theme .btn-action,
+body.light-theme .action-btn,
+body.light-theme .login-btn,
+body.light-theme input[type="button"],
+body.light-theme input[type="submit"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .btn-primary:hover,
+body.light-theme .btn-secondary:hover,
+body.light-theme .btn-action:hover,
+body.light-theme .action-btn:hover,
+body.light-theme .login-btn:hover,
+body.light-theme input[type="button"]:hover,
+body.light-theme input[type="submit"]:hover {
+  background-color: #f3f4f6 !important;
+  background: #f3f4f6 !important;
+  color: #000000 !important;
+  border-color: #9ca3af !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+body.light-theme .btn-primary svg,
+body.light-theme .btn-secondary svg,
+body.light-theme .btn-action svg,
+body.light-theme .action-btn svg,
+body.light-theme .login-btn svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* Sidebar Nav button customizations for Light Theme */
+body.light-theme .nav-btn,
+body.light-theme .submenu-btn {
+  color: #555555 !important;
+}
+
+body.light-theme .nav-btn:hover,
+body.light-theme .submenu-btn:hover {
+  color: #000000 !important;
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .nav-btn.active,
+body.light-theme .submenu-btn.active {
+  color: #000000 !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+  border-left-color: #000000 !important;
+}
+
+body.light-theme .nav-btn svg,
+body.light-theme .submenu-btn svg {
+  stroke: #555555 !important;
+  color: #555555 !important;
+}
+
+body.light-theme .nav-btn:hover svg,
+body.light-theme .nav-btn.active svg,
+body.light-theme .submenu-btn:hover svg,
+body.light-theme .submenu-btn.active svg {
+  stroke: #000000 !important;
+  color: #000000 !important;
 }
 
 body.light-theme .app-container {
   background-image: radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.02) 0%, transparent 60%),
-                    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 60%);
+    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 60%);
 }
 
 body.light-theme ::-webkit-scrollbar-thumb {
   background: rgba(15, 23, 42, 0.15);
 }
 
+/* Pagination controls styling in Light Theme */
+body.light-theme .pagination-btn {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+body.light-theme .pagination-btn:hover:not(:disabled) {
+  background-color: #f3f4f6 !important;
+  background: #f3f4f6 !important;
+  color: #000000 !important;
+  border-color: #9ca3af !important;
+}
+
+body.light-theme .pagination-btn.active {
+  background-color: #000000 !important;
+  /* solid black indicator for active page */
+  color: #ffffff !important;
+  /* white font for active page */
+  border-color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme .pagination-btn:disabled {
+  background-color: #f8fafc !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed !important;
+}
+
+body.light-theme .pagination-select {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+body.light-theme .pagination-select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+
 /* Global Reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: var(--font-body);
+  font-family: Montserrat, sans-serif;
 }
 
 body {
@@ -86,19 +245,27 @@ body {
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-dark);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-gold);
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-title);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Montserrat, sans-serif;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -125,7 +292,7 @@ body.light-theme .gradient-title {
 .app-container {
   min-height: 100vh;
   background-image: radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.03) 0%, transparent 60%),
-                    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 60%);
+    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 60%);
 }
 
 .glass-card {
@@ -178,7 +345,8 @@ body.light-theme .gradient-title {
   transition: var(--transition-smooth);
 }
 
-.nav-btn:hover, .nav-btn.active {
+.nav-btn:hover,
+.nav-btn.active {
   color: var(--accent-gold);
   background: var(--bg-hover);
 }
@@ -273,62 +441,73 @@ body.light-theme .gradient-title {
 .frame-none {
   border: none;
 }
+
 .frame-black {
   border: 12px solid #000000;
-  box-shadow: inset 0 0 4px rgba(255,255,255,0.2), 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.6);
 }
+
 .frame-white {
   border: 12px solid #f3f4f6;
-  box-shadow: inset 0 0 4px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.6);
 }
+
 .frame-gold {
   border: 12px solid #d4af37;
   border-image: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) 12;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
+
 .frame-wooden {
   border: 12px solid #8b5a2b;
-  box-shadow: inset 0 0 6px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.6);
-  background-image: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.6);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
 }
+
 .frame-silver {
   border: 12px solid #cbd5e1;
   border-image: linear-gradient(to right, #94a3b8, #f1f5f9, #cbd5e1, #f8fafc, #64748b) 12;
-  box-shadow: inset 0 0 4px rgba(255,255,255,0.4), 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.6);
 }
+
 .frame-bronze {
   border: 12px solid #7c2d12;
   border-image: linear-gradient(to right, #451a03, #b45309, #78350f, #d97706, #451a03) 12;
-  box-shadow: inset 0 0 6px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.6);
 }
+
 .frame-oak {
   border: 12px solid #d6b48c;
-  box-shadow: inset 0 0 6px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.6);
-  background: #d6b48c repeating-linear-gradient(90deg, rgba(255,255,255,0.05), rgba(0,0,0,0.05) 15px);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.6);
+  background: #d6b48c repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.05) 15px);
 }
+
 .frame-walnut {
   border: 12px solid #482f1d;
-  box-shadow: inset 0 0 6px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.6);
-  background: #482f1d repeating-linear-gradient(45deg, rgba(255,255,255,0.03), rgba(0,0,0,0.05) 20px);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.6);
+  background: #482f1d repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.05) 20px);
 }
+
 .frame-baroque {
   border: 16px double #d4af37;
   border-image: linear-gradient(135deg, #aa771c 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%) 16;
   outline: 2px solid #855812;
   outline-offset: -8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
+
 .frame-floating-black {
   border: 3px solid #111;
   padding: 8px;
   background-color: #000;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
 }
+
 .frame-floating-gold {
   border: 3px solid #d4af37;
   padding: 8px;
   background-color: #050505;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
 }
 
 /* ====================================================
@@ -363,7 +542,8 @@ body.light-theme .gradient-title {
   margin-left: 280px;
   flex: 1;
   min-height: 100vh;
-  padding: 0; /* content padding managed by pages */
+  padding: 0;
+  /* content padding managed by pages */
   overflow-x: hidden;
 }
 
@@ -372,6 +552,7 @@ body.light-theme .gradient-title {
   margin-bottom: 2.25rem;
   text-align: left;
 }
+
 .sidebar-logo h1 {
   font-size: 1.65rem;
   font-weight: 800;
@@ -380,9 +561,12 @@ body.light-theme .gradient-title {
   line-height: 1.1;
   text-transform: uppercase;
 }
+
 .sidebar-logo h1 span.teal-text {
-  color: #14b8a6; /* Cyan/Teal brand accent */
+  color: #14b8a6;
+  /* Cyan/Teal brand accent */
 }
+
 .sidebar-logo p.sub-spaced {
   font-size: 0.65rem;
   letter-spacing: 0.52em;
@@ -493,7 +677,8 @@ body.light-theme .gradient-title {
   position: absolute;
   top: 0.6rem;
   right: 1.5rem;
-  z-index: 1100; /* Must sit above sidebars and modals */
+  z-index: 1100;
+  /* Must sit above sidebars and modals */
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -556,16 +741,16 @@ body.light-theme .theme-slider {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.theme-switch input:checked + .theme-slider {
+.theme-switch input:checked+.theme-slider {
   background-color: var(--accent-gold);
 }
 
-.theme-switch input:checked + .theme-slider:before {
+.theme-switch input:checked+.theme-slider:before {
   transform: translateX(22px);
   background-color: #000;
 }
 
-body.light-theme .theme-switch input:checked + .theme-slider:before {
+body.light-theme .theme-switch input:checked+.theme-slider:before {
   background-color: #fff;
 }
 
@@ -661,11 +846,7 @@ body.light-theme .currency-select option {
 }
 
 /* Hide leading menu icons in dashboard sidebar menu */
-.nav-btn > svg:first-child,
-.nav-btn span > svg:first-child {
+.nav-btn>svg:first-child,
+.nav-btn span>svg:first-child {
   display: none !important;
 }
-
-
-
-

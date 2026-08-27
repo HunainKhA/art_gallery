@@ -4,14 +4,6 @@ import { Video } from 'lucide-react';
 export default function VideosSection() {
   return (
     <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
-      <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-        <h1 className="gradient-title">
-          Gallery Videos
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-          Watch artist interviews, tour walkthroughs, and behind-the-scenes framing craftsmanship.
-        </p>
-      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         <div className="glass-card" style={{ padding: '1.5rem', cursor: 'pointer' }} onClick={() => alert("Video player launching soon...")}>

@@ -25,7 +25,8 @@ export const fetchArtworks = async (params = {}) => {
   }
   const res = await fetch(url);
   if (!res.ok) throw new Error("Could not fetch artworks inventory list.");
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data.filter(art => art.status !== 'Return') : [];
 };
 
 export const fetchArtistDetail = async (artistId) => {
@@ -97,7 +98,71 @@ export const getBannerImageUrl = (filename) => {
   if (!filename) return '';
   return `${API_BASE}/api/crm/exhibitions/banner/image/${filename}`;
 };
+export const fetchWebsiteSettings = async () => {
+  const res = await fetch(`${API_BASE}/api/settings`);
+  if (!res.ok) throw new Error("Could not fetch website display settings.");
+  return res.json();
+};
 
+export const registerGuest = async (email, phone) => {
+  const res = await fetch(`${API_BASE}/api/guest/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, phone })
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Failed to register guest.");
+  }
+  return res.json();
+};
 
+export const checkGuestStatus = async (code) => {
+  const res = await fetch(`${API_BASE}/api/guest/status/${encodeURIComponent(code)}`);
+  if (!res.ok) throw new Error("Failed to check verification status.");
+  return res.json();
+};
+
+export const loginGuest = async (code, username, password) => {
+  const res = await fetch(`${API_BASE}/api/guest/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, username, password })
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Invalid guest credentials.");
+  }
+  return res.json();
+};
+
+export const validateGuestToken = async (token) => {
+  const res = await fetch(`${API_BASE}/api/guest/validate-token/${encodeURIComponent(token)}`);
+  if (!res.ok) throw new Error("Failed to validate guest session token.");
+  return res.json();
+};
+
+export const simulateWhatsAppVerify = async (code) => {
+  const res = await fetch(`${API_BASE}/api/guest/verify-simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  });
+  if (!res.ok) throw new Error("Failed to simulate webhook verification.");
+  return res.json();
+};
+
+export const verifyGuestOtp = async (otp) => {
+  const res = await fetch(`${API_BASE}/api/guest/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ otp })
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Invalid OTP code.");
+  }
+  return res.json();
+};
 
 

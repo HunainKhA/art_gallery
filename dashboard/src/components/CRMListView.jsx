@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Upload, Edit, X, Printer, FileText } from 'lucide-react';
+import { Trash2, Upload, Edit, X, Printer, FileText, Plus } from 'lucide-react';
 import { CONFIGS, LIST_COLUMNS } from './crmConfigs';
 import CRMCreateForm from './CRMCreateForm';
 import { getApiUrl } from '../services/api';
@@ -41,6 +41,26 @@ export default function CRMListView({ module }) {
       })
       .catch(err => alert("Error toggling letter: " + err.message));
   };
+
+  const handleStatusChange = (id, newStatus) => {
+    fetch(getApiUrl(`/api/artworks/${id}/status`), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          fetchRecords();
+        } else {
+          alert("Failed to update status.");
+        }
+      })
+      .catch(err => alert("Error updating status: " + err.message));
+  };
+
 
   const handleTemplateUpload = (e) => {
     const file = e.target.files[0];
@@ -218,6 +238,7 @@ export default function CRMListView({ module }) {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
+              className="pagination-select"
               style={{
                 background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
                 color: '#fff',
@@ -240,6 +261,7 @@ export default function CRMListView({ module }) {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={activePage === 1}
+              className="pagination-btn"
               style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 color: activePage === 1 ? 'rgba(255, 255, 255, 0.2)' : '#fff',
@@ -265,6 +287,7 @@ export default function CRMListView({ module }) {
                     )}
                     <button
                       onClick={() => setCurrentPage(page)}
+                      className={`pagination-btn ${activePage === page ? 'active' : ''}`}
                       style={{
                         background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
                         color: activePage === page ? '#000' : '#fff',
@@ -287,6 +310,7 @@ export default function CRMListView({ module }) {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={activePage === totalPages}
+              className="pagination-btn"
               style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 color: activePage === totalPages ? 'rgba(255, 255, 255, 0.2)' : '#fff',
@@ -314,7 +338,7 @@ export default function CRMListView({ module }) {
         {/* Left Side: Category List */}
         <div className="glass-card" style={{ padding: '1.5rem', overflowX: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>Collection Types ({filteredData.length})</h3>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Collection Types ({filteredData.length})</h3>
             
             <div style={{ display: 'flex', gap: '0.5rem', width: '220px' }}>
               <input 
@@ -322,7 +346,7 @@ export default function CRMListView({ module }) {
                 placeholder="Search types..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.8rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: '#fff' }}
+                style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.8rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }}
               />
             </div>
           </div>
@@ -425,7 +449,7 @@ export default function CRMListView({ module }) {
 
       <div className="glass-card" style={{ padding: '1.5rem', overflowX: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>{config?.title} listings ({filteredData.length})</h3>
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>{config?.title} listings ({filteredData.length})</h3>
           
           <div style={{ display: 'flex', gap: '0.5rem', width: '250px' }}>
             <input 
@@ -433,7 +457,7 @@ export default function CRMListView({ module }) {
               placeholder="Search records..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.8rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: '#fff' }}
+              style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.8rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }}
             />
           </div>
         </div>
@@ -556,7 +580,55 @@ export default function CRMListView({ module }) {
                   )}
                   {columns.map(col => (
                     <td key={col.key} style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
-                      {col.key === 'portfolio_report' ? (
+                      {col.key === 'artist_biography' ? (() => {
+                        const bioText = (row.artist_biography || row.bio || '').trim();
+                        const hasBio = bioText !== '' && bioText !== 'Biography not available.' && bioText !== 'null';
+                        return hasBio ? (
+                          <button 
+                            type="button"
+                            onClick={() => setEditingRecord(row)}
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--accent-gold)',
+                              border: '1px solid rgba(207, 161, 92, 0.3)',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '4px',
+                              background: 'rgba(207, 161, 92, 0.05)',
+                              transition: 'all 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600',
+                              cursor: 'pointer'
+                            }}
+                            title="Biography available. Click to edit biography."
+                          >
+                            <FileText size={12} /> Edit Bio
+                          </button>
+                        ) : (
+                          <button 
+                            type="button"
+                            onClick={() => setEditingRecord(row)}
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#ef4444',
+                              border: '1px dashed rgba(239, 68, 68, 0.4)',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '4px',
+                              background: 'rgba(239, 68, 68, 0.06)',
+                              transition: 'all 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '500',
+                              cursor: 'pointer'
+                            }}
+                            title="No biography found. Click to add biography."
+                          >
+                            <Plus size={12} /> + Add Bio
+                          </button>
+                        );
+                      })() : col.key === 'portfolio_report' ? (
                         <a 
                           href={getApiUrl(`/api/artists/${row.id}/portfolio-report`)}
                           target="_blank"
@@ -723,6 +795,28 @@ export default function CRMListView({ module }) {
                             <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>No Pic</span>
                           )}
                         </div>
+                      ) : (col.key === 'status' && module === 'collections') ? (
+                        <select
+                          value={row[col.key] || 'Available'}
+                          onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                          style={{
+                            background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
+                            color: 'var(--text-primary, #fff)',
+                            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                            borderRadius: '4px',
+                            padding: '0.2rem 0.4rem',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="Available" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Available</option>
+                          <option value="Sold" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Soldout</option>
+                          <option value="Return" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Return</option>
+                          {row[col.key] && !['Available', 'Sold', 'Return'].includes(row[col.key]) && (
+                            <option value={row[col.key]} style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>{row[col.key]}</option>
+                          )}
+                        </select>
                       ) : (
                         col.format ? col.format(row[col.key]) : row[col.key] || 'N/A'
                       )}

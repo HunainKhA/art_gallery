@@ -94,7 +94,7 @@ def create_payment_intent(data: PaymentIntentRequest):
             except ValueError:
                 pass
                 
-        if total_pkr <= 0:
+        if total_pkr < 0:
             raise HTTPException(status_code=400, detail="Invalid total checkout amount.")
             
         # Get real-time exchange rates securely on the server side
@@ -111,8 +111,8 @@ def create_payment_intent(data: PaymentIntentRequest):
         # Stripe expects amount in smallest currency unit (cents/subunits)
         stripe_amount = int(rounded_amount * 100)
         
-        # Check if dummy key is used and fallback to a mock client secret for local testing
-        if not stripe.api_key or "sk_test_51PTestKey" in stripe.api_key:
+        # Check if dummy key is used or if the amount is zero, and fallback to a mock client secret
+        if stripe_amount == 0 or not stripe.api_key or "sk_test_51PTestKey" in stripe.api_key:
             return {
                 "clientSecret": f"pi_mock_{uuid.uuid4().hex}_secret_{uuid.uuid4().hex}",
                 "totalAmount": rounded_amount,

@@ -292,6 +292,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
+              className="pagination-select"
               style={{
                 background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
                 color: '#fff',
@@ -314,6 +315,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={activePage === 1}
+              className="pagination-btn"
               style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 color: activePage === 1 ? 'rgba(255, 255, 255, 0.2)' : '#fff',
@@ -339,6 +341,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
                     )}
                     <button
                       onClick={() => setCurrentPage(page)}
+                      className={`pagination-btn ${activePage === page ? 'active' : ''}`}
                       style={{
                         background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
                         color: activePage === page ? '#000' : '#fff',
@@ -361,6 +364,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={activePage === totalPages}
+              className="pagination-btn"
               style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 color: activePage === totalPages ? 'rgba(255, 255, 255, 0.2)' : '#fff',

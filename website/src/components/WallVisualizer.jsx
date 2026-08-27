@@ -122,7 +122,7 @@ export default function WallVisualizer({ artwork }) {
               height: `${artHeightPercent * scale}%`,
               maxHeight: '70%',
               maxWidth: '80%',
-              backgroundImage: `url(${artwork.id ? `http://localhost:8000/api/artworks/image/${artwork.id}` : (artwork.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500')})`,
+              backgroundImage: `url(${artwork.id ? `http://localhost:8000/api/artworks/image/${artwork.id}` : (artwork.image || '')})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               transition: 'all 0.3s ease',

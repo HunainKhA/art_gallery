@@ -324,6 +324,13 @@ def get_dashboard_stats(branch_id: int = 1):
             cursor.execute("SELECT COUNT(*) as count FROM saleinvoice WHERE is_cancel = 0 AND orderStatus != 'Delivered' AND branch_id = %s", (branch_id,))
             total_pending = cursor.fetchone()["count"] or 0
 
+            # 4c. Active Guest Credentials
+            try:
+                cursor.execute("SELECT COUNT(*) as count FROM guest_credentials WHERE active = 1")
+                active_guests = cursor.fetchone()["count"] or 0
+            except Exception:
+                active_guests = 0
+
             # Mock data for developer testing if DB is empty
             if total_invoices == 0:
                 total_invoices = 48
@@ -404,6 +411,7 @@ def get_dashboard_stats(branch_id: int = 1):
             "total_pending": total_pending,
             "total_visitors": 12450 + total_visitors,
             "total_inquiries": 342 + total_inquiries,
+            "active_guests": active_guests,
             "sales_chart": sales_data,
             "visitors_chart": visitors_data,
             "inquiries_chart": inquiries_data,

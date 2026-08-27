@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Lock } from 'lucide-react';
 import { getArtworkImageUrl, getArtistImageUrl } from '../services/api';
-import { formatPrice } from '../services/currency';
+import { formatPrice, renderDimensions } from '../services/currency';
 
 export default function ArtistsSection({
   artists,
@@ -11,21 +11,28 @@ export default function ArtistsSection({
   handleViewArtistDetail,
   viewArtworkDetail,
   currency,
-  exchangeRates
+  exchangeRates,
+  websiteSettings = { hide_prices: false },
+  guestSession,
+  setIsGuestModalOpen
 }) {
   const [selectedLetter, setSelectedLetter] = useState('ALL');
   const [showBioModal, setShowBioModal] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const alphabets = ['ALL', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 
+  const sortedArtists = [...artists].sort((a, b) =>
+    (a.name || '').trim().localeCompare((b.name || '').trim(), undefined, { sensitivity: 'base' })
+  );
+
   const filteredArtists = selectedLetter === 'ALL'
-    ? artists
-    : artists.filter(artist => {
-        const name = (artist.name || '').trim();
-        // Remove leading spaces, quotes, etc., for clean letter matching
-        const cleanName = name.replace(/^["'\s]+/, '').toUpperCase();
-        return cleanName.startsWith(selectedLetter);
-      });
+    ? sortedArtists
+    : sortedArtists.filter(artist => {
+      const name = (artist.name || '').trim();
+      // Remove leading spaces, quotes, etc., for clean letter matching
+      const cleanName = name.replace(/^["'\s]+/, '').toUpperCase();
+      return cleanName.startsWith(selectedLetter);
+    });
 
   React.useEffect(() => {
     let interval;
@@ -62,10 +69,10 @@ export default function ArtistsSection({
     formatted = formatted.replace(/color:\s*#666/gi, 'color: var(--text-secondary)');
     formatted = formatted.replace(/color:\s*#888888/gi, 'color: var(--text-secondary)');
     formatted = formatted.replace(/color:\s*#888/gi, 'color: var(--text-secondary)');
-    
+
     // Replace orange, gold, yellow, and red highlights with var(--bio-highlight)
     formatted = formatted.replace(/color:\s*(#d4af37|#ff9900|#ffa500|#ffa600|orange|gold|rgb\(\s*255\s*,\s*165\s*,\s*0\s*\))/gi, 'color: var(--bio-highlight)');
-    
+
     // Replace hardcoded white backgrounds with transparent
     formatted = formatted.replace(/background-color:\s*#ffffff/gi, 'background-color: transparent');
     formatted = formatted.replace(/background-color:\s*#fff/gi, 'background-color: transparent');
@@ -75,7 +82,7 @@ export default function ArtistsSection({
   };
 
   return (
-    <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
+    <div className="page-content artists-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
       <style>{`
         .alphabet-filter-container {
           display: flex;
@@ -90,8 +97,8 @@ export default function ArtistsSection({
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid var(--border-color);
           color: var(--text-secondary);
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-size: 12px;
+          font-weight: 400;
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -111,7 +118,7 @@ export default function ArtistsSection({
           color: #000;
           background: var(--accent-gold);
           border-color: var(--accent-gold);
-          font-weight: 700;
+          font-weight: 400;
           box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
         }
         .alphabet-filter-btn:first-child {
@@ -175,16 +182,16 @@ export default function ArtistsSection({
           flex-direction: column;
         }
         .artist-card-name {
-          font-size: 1.15rem !important;
-          font-weight: 700;
+          font-size: 14px !important;
+          font-weight: 100;
           color: var(--text-primary);
           margin: 0 0 0.25rem 0;
           line-height: 1.3;
         }
         .artist-card-title {
-          font-size: 0.75rem;
+          font-size: 12px;
           color: var(--accent-gold);
-          font-weight: 600;
+          font-weight: 100;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 0.75rem;
@@ -192,7 +199,7 @@ export default function ArtistsSection({
         }
         .artist-card-bio {
           color: var(--text-secondary);
-          font-size: 0.8rem;
+          font-size: 12px;
           line-height: 1.6;
           margin: 0 0 1.25rem 0;
           display: -webkit-box;
@@ -203,8 +210,8 @@ export default function ArtistsSection({
         }
         .artist-card-link-text {
           margin-top: auto;
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-size: 12px;
+          font-weight: 100;
           color: var(--accent-gold);
           transition: transform 0.3s ease;
         }
@@ -241,13 +248,32 @@ export default function ArtistsSection({
         .artist-bio-rendered h2,
         .artist-bio-rendered h3 {
           color: var(--text-primary) !important;
-          font-weight: 700;
+          font-weight: 100;
         }
         /* Style labels in the biography (first cell of table rows) */
         .artist-bio-rendered tr td:first-child,
         .artist-bio-rendered tr td:first-child * {
           color: var(--text-primary) !important;
+          font-weight: 100 !important;
+        }
+
+        .status-inquiry {
+          color: #000000 !important;
           font-weight: 600 !important;
+          font-size: 12px !important;
+          font-family: 'Montserrat', sans-serif !important;
+        }
+        .status-available {
+          color: #10b981 !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          font-family: 'Montserrat', sans-serif !important;
+        }
+        .status-sold {
+          color: #ef4444 !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          font-family: 'Montserrat', sans-serif !important;
         }
         
         /* Biography Modal Layout */
@@ -287,9 +313,9 @@ export default function ArtistsSection({
         }
         
         .bio-slideshow-title {
-          font-size: 0.8rem;
+          font-size: 12px;
           color: var(--bio-highlight);
-          font-weight: 600;
+          font-weight: 100;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 0.5rem;
@@ -340,9 +366,9 @@ export default function ArtistsSection({
         }
         
         .bio-slideshow-info span:first-child {
-          font-size: 0.8rem;
+          font-size: 12px;
           color: #ffffff;
-          font-weight: 600;
+          font-weight: 100;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -350,9 +376,9 @@ export default function ArtistsSection({
         }
         
         .bio-slideshow-info span:last-child {
-          font-size: 0.8rem;
+          font-size: 12px;
           color: var(--accent-gold);
-          font-weight: 700;
+          font-weight: 100;
         }
         
         @media (max-width: 768px) {
@@ -366,7 +392,7 @@ export default function ArtistsSection({
         }
       `}</style>
       {loadingArtistDetail ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh', color: 'var(--accent-gold)', fontSize: '1.25rem', fontWeight: 600 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh', color: 'var(--accent-gold)', fontSize: '12px', fontWeight: 100 }}>
           Loading Artist Portfolio...
         </div>
       ) : selectedArtist ? (
@@ -375,21 +401,20 @@ export default function ArtistsSection({
           <button onClick={() => setSelectedArtist(null)} className="btn-secondary" style={{ marginBottom: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <ArrowLeft size={16} /> Back to Artists List
           </button>
-          
+
           <div className="glass-card" style={{ padding: '2rem', display: 'grid', gridTemplateColumns: '150px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '3rem' }}>
-            <img src={getArtistImageUrl(selectedArtist.profile_image) || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300'} alt={selectedArtist.name} style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
+            <img src={getArtistImageUrl(selectedArtist.profile_image) || ''} alt={selectedArtist.name} style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
             <div>
-              <span style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>ARTIST PORTFOLIO</span>
-              <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', marginTop: '0.25rem' }}>{selectedArtist.name}</h1>
+              <h1 style={{ fontSize: '14px', marginBottom: '0.5rem', marginTop: '0.25rem' }}>{selectedArtist.name}</h1>
               {selectedArtist.bio && selectedArtist.bio.trim() !== '' && selectedArtist.bio !== 'Biography not available.' ? (
                 <div style={{ marginTop: '0.75rem' }}>
-                  <button 
-                    onClick={() => setShowBioModal(true)} 
-                    className="btn-secondary" 
-                    style={{ 
-                      padding: '0.5rem 1.25rem', 
-                      fontSize: '0.85rem', 
-                      color: 'var(--accent-gold)', 
+                  <button
+                    onClick={() => setShowBioModal(true)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.5rem 1.25rem',
+                      fontSize: '12px',
+                      color: 'var(--accent-gold)',
                       borderColor: 'rgba(212, 175, 55, 0.4)',
                       background: 'rgba(212, 175, 55, 0.03)'
                     }}
@@ -398,38 +423,56 @@ export default function ArtistsSection({
                   </button>
                 </div>
               ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '0.5rem' }}>Biography not available.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'Montserrat', marginTop: '0.5rem' }}>Biography not available.</p>
               )}
             </div>
           </div>
 
-          <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Artworks by {selectedArtist.name}</h2>
+          <h2 style={{ fontSize: '14px', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>  {selectedArtist.name}</h2>
           {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
               {selectedArtist.artworks.map((art) => (
-                <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id)}>
+                <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id, selectedArtist.artworks)}>
                   <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '240px', backgroundColor: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
+                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
                     <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
-                      <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>View Details <ArrowRight size={14} /></span>
+                      <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>View Details <ArrowRight size={14} /></span>
                     </div>
                   </div>
                   <div style={{ marginTop: '1.25rem' }}>
-                    <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{art.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>By {selectedArtist.name}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>{art.medium_name || 'Oil on Canvas'}</p>
+                    {(() => {
+                      const dims = renderDimensions(art.width, art.length);
+                      return (
+                        <>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>
+                            {dims.cmStr}
+                          </p>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0' }}>
+                            {dims.inStr}
+                          </p>
+                        </>
+                      );
+                    })()}
+                    <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                       {art.status === 'Available' || art.status === 'not_sold' ? (
                         <>
-                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
-                            {formatPrice(art.price, currency, exchangeRates)}
+                          <span className="status-inquiry" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
+                            {!guestSession ? (
+                              'Inquiry'
+                            ) : (
+                              websiteSettings.hide_prices ? 'Price on Request' : formatPrice(art.price, currency, exchangeRates)
+                            )}
                           </span>
-                          <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-green)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Available</span>
+                          <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                            Available
+                          </span>
                         </>
                       ) : (
-                        <>
-                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-red)' }}>Sold Out</span>
-                          <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 600 }}>Sold</span>
-                        </>
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          Sold
+                        </span>
                       )}
                     </div>
                   </div>
@@ -443,10 +486,7 @@ export default function ArtistsSection({
       ) : (
         /* Artists Directory View */
         <div>
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <h1 className="gradient-title">Our Featured Artists</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>Meet the master painters, sketchers, and sculptors whose masterpieces are exhibited in Mainframe The Gallery.</p>
-          </div>
+
 
           {/* A-Z Alphabet Filter Navigation */}
           <div className="alphabet-filter-container">
@@ -460,36 +500,37 @@ export default function ArtistsSection({
               </button>
             ))}
           </div>
-          
+
           {filteredArtists.length > 0 ? (
             <div className="artists-grid-4col">
               {filteredArtists.map((artist) => (
-                <div 
-                  key={artist.id} 
-                  className="glass-card artist-grid-card" 
+                <div
+                  key={artist.id}
+                  className="glass-card artist-grid-card"
                   onClick={() => handleViewArtistDetail(artist.id)}
                 >
                   <div className="artist-card-img-container">
-                    <img 
-                      src={getArtistImageUrl(artist.profile_image) || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300'} 
-                      alt={artist.name} 
+                    <img
+                      src={getArtistImageUrl(artist.profile_image) || ''}
+                      alt={artist.name}
                       className="artist-card-img"
                       onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300';
+                        e.target.onerror = null;
+                        e.target.src = '';
                       }}
                     />
                   </div>
                   <div className="artist-card-content">
                     <h2 className="artist-card-name">{artist.name}</h2>
-                    <span className="artist-card-title">{artist.title || 'Resident Artist'}</span>
+                    <span className="artist-card-title">{artist.title}</span>
                     <p className="artist-card-bio">
-                      {artist.bio && artist.bio.trim() !== '' && artist.bio !== 'Biography not available.' 
+                      {artist.bio && artist.bio.trim() !== '' && artist.bio !== 'Biography not available.'
                         ? (artist.bio.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '...')
                         : 'Biography not available.'
                       }
                     </p>
                     <div className="artist-card-link-text">
-                      View Portfolio →
+                      View  →
                     </div>
                   </div>
                 </div>
@@ -503,9 +544,9 @@ export default function ArtistsSection({
         </div>
       )}
 
-      {/* 📜 ARTIST BIOGRAPHY MODAL */}
+      {/*  ARTIST BIOGRAPHY MODAL */}
       {showBioModal && selectedArtist && (
-        <div 
+        <div
           onClick={() => setShowBioModal(false)}
           style={{
             position: 'fixed',
@@ -523,7 +564,7 @@ export default function ArtistsSection({
             padding: '2rem'
           }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             className="glass-card"
             style={{
@@ -542,22 +583,22 @@ export default function ArtistsSection({
             {/* Header */}
             <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                <img 
-                  src={getArtistImageUrl(selectedArtist.profile_image) || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'} 
-                  alt={selectedArtist.name} 
-                  style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    objectFit: 'cover', 
-                    border: '1px solid var(--border-color)' 
-                  }} 
+                <img
+                  src={getArtistImageUrl(selectedArtist.profile_image) || ''}
+                  alt={selectedArtist.name}
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    objectFit: 'cover',
+                    border: '1px solid var(--border-color)'
+                  }}
                 />
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--bio-highlight)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Biography</span>
-                  <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.5rem', color: 'var(--text-primary)', fontWeight: 700 }}>{selectedArtist.name}</h3>
+                  <span style={{ fontSize: '12px', color: 'var(--bio-highlight)', fontWeight: 100, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Biography</span>
+                  <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '12px', color: 'var(--text-primary)', fontWeight: 100 }}>{selectedArtist.name}</h3>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowBioModal(false)}
                 style={{
                   background: 'var(--bg-hover)',
@@ -588,13 +629,13 @@ export default function ArtistsSection({
             </div>
 
             {/* Content */}
-            <div 
-              style={{ 
-                padding: '2rem', 
-                overflowY: 'auto', 
-                flex: 1, 
-                color: 'var(--text-secondary)', 
-                fontSize: '0.95rem', 
+            <div
+              style={{
+                padding: '2rem',
+                overflowY: 'auto',
+                flex: 1,
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
                 lineHeight: '1.7',
                 maxHeight: '60vh'
               }}
@@ -602,10 +643,28 @@ export default function ArtistsSection({
             >
               <div className="bio-modal-layout">
                 {/* Left Side: Biography text */}
-                <div 
-                  dangerouslySetInnerHTML={{ __html: formatBioHtml(selectedArtist.bio) }} 
-                  className="artist-bio-rendered"
-                />
+                {selectedArtist.bio && selectedArtist.bio.trim() ? (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: formatBioHtml(selectedArtist.bio) }}
+                    className="artist-bio-rendered"
+                  />
+                ) : (
+                  <div style={{
+                    padding: '2.5rem 1.5rem',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                    background: 'rgba(255,255,255,0.01)',
+                    border: '1px dashed var(--border-color)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '150px'
+                  }}>
+                    Biography not available
+                  </div>
+                )}
 
                 {/* Right Side: Work Slideshow */}
                 <div className="bio-slides-column">
@@ -614,20 +673,32 @@ export default function ArtistsSection({
                     <div>
                       <h4 className="bio-slideshow-title" style={{ marginTop: 0 }}>Artist's Work Gallery</h4>
                       <div className="bio-slideshow-frame">
-                        <img 
-                          src={getArtworkImageUrl(selectedArtist.artworks[currentSlideIndex].id)} 
-                          alt={selectedArtist.artworks[currentSlideIndex].title} 
+                        <img
+                          src={getArtworkImageUrl(selectedArtist.artworks[currentSlideIndex].id)}
+                          alt={selectedArtist.artworks[currentSlideIndex].title}
                           className="bio-slideshow-img"
                           key={currentSlideIndex}
                         />
                         <div className="bio-slideshow-info">
                           <span>{selectedArtist.artworks[currentSlideIndex].title}</span>
-                          <span>{formatPrice(selectedArtist.artworks[currentSlideIndex].price, currency, exchangeRates)}</span>
+                          <span>
+                            {selectedArtist.artworks[currentSlideIndex].status !== 'Available' && selectedArtist.artworks[currentSlideIndex].status !== 'not_sold' ? (
+                              <span style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444' }}>
+                                Sold
+                              </span>
+                            ) : !guestSession ? (
+                              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)' }}>
+                                Inquiry
+                              </span>
+                            ) : (
+                              websiteSettings.hide_prices ? 'Price on Request' : formatPrice(selectedArtist.artworks[currentSlideIndex].price, currency, exchangeRates)
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)', fontSize: '12px' }}>
                       No artworks uploaded yet.
                     </div>
                   )}
@@ -636,7 +707,7 @@ export default function ArtistsSection({
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid var(--border-color)', background: 'rgba(0, 0, 0, 0.4)', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid var(--border-color)', background: 'white', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowBioModal(false)} className="btn-secondary" style={{ padding: '0.5rem 1.5rem' }}>
                 Close
               </button>

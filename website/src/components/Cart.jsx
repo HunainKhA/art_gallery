@@ -124,7 +124,7 @@ export default function Cart({ cartItems, onRemoveFromCart, onClearCart, onBack,
             {cartItems.map((item) => (
               <div key={item.id} className="glass-card" style={{ padding: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                 <img 
-                  src={item.id ? `http://localhost:8000/api/artworks/image/${item.id}` : (item.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300')} 
+                  src={item.id ? `http://localhost:8000/api/artworks/image/${item.id}` : (item.image || '')} 
                   alt={item.title} 
                   style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
                 />

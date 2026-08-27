@@ -6,7 +6,7 @@ export default function ContactSection() {
     <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
       {/* Google Map Section */}
       <div className="glass-card" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h2 style={{ color: 'var(--accent-gold)', fontSize: '1.3rem', margin: 0 }}>Find Us on Google Maps</h2>
+        <h2 style={{ color: 'var(--accent-gold)', fontSize: '18px', margin: 0 }}>Find Us on Google Maps</h2>
         <div style={{
           width: '100%',
           height: '280px',
@@ -37,55 +37,151 @@ export default function ContactSection() {
         </p> */}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '3rem', alignItems: 'start' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '2.5rem',
+        alignItems: 'stretch',
+        maxWidth: '1000px',
+        margin: '0 auto 2rem'
+      }}>
 
         {/* Contact Information card */}
-        <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <h2 style={{ color: 'var(--accent-gold)', fontSize: '1.4rem' }}>Gallery Location</h2>
+        <div className="glass-card" style={{
+          padding: '2rem 2.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          borderRadius: '16px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '14px', margin: 0, fontWeight: 500 }}>
+            Gallery Location
+          </h2>
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <MapPin color="var(--accent-gold)" size={24} style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Address</strong>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.15rem' }}>F-73/8, Block 4 Clifton
-                Karachi, Pakistan</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', margin: 'auto 0', padding: '1.5rem 0' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+              <MapPin color="var(--text-primary)" size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '14px', display: 'block', fontWeight: 500 }}>Address</strong>
+                <p style={{ color: 'var(--text-primary)', fontSize: '12px', marginTop: '0.25rem', lineHeight: '1.5', fontWeight: 400 }}>
+                  F-73/9, Block 4 Clifton<br />Karachi, Pakistan
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <Phone color="var(--accent-gold)" size={24} style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Phone & Inquiries</strong>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.15rem' }}>+92 21 35870000 | info@mainframethegallery.com</p>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+              <Phone color="var(--text-primary)" size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '14px', display: 'block', fontWeight: 500 }}>Phone & Inquiries</strong>
+                <p style={{ color: 'var(--text-primary)', fontSize: '12px', marginTop: '0.25rem', lineHeight: '1.5', fontWeight: 400 }}>
+                  +92 21 35870000 | info@mainframethegallery.com
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <Clock color="var(--accent-gold)" size={24} style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Opening Hours</strong>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.15rem' }}>Mon - Sat: 11:00 AM - 8:00 PM (Sunday Closed)</p>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+              <Clock color="var(--text-primary)" size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '14px', display: 'block', fontWeight: 500 }}>Opening Hours</strong>
+                <p style={{ color: 'var(--text-primary)', fontSize: '12px', marginTop: '0.25rem', lineHeight: '1.5', fontWeight: 400 }}>
+                  Mon - Sat: 11:00 AM - 8:00 PM<br />(Sunday Closed)
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Contact Form */}
-        <div className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '1.5rem' }}>Send Us a Message</h2>
-          <form onSubmit={(e) => { e.preventDefault(); alert("Message sent successfully! Our curator will contact you."); }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="glass-card" style={{
+          padding: '2rem 2.5rem',
+          borderRadius: '16px',
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '14px', marginBottom: '1.25rem', fontWeight: 500 }}>
+            Send Us a Message
+          </h2>
+          <form
+            onSubmit={(e) => { e.preventDefault(); alert("Message sent successfully! Our curator will contact you."); }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Your Name</label>
-              <input type="text" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} required />
+              <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-primary)', marginBottom: '0.35rem', fontWeight: 400 }}>
+                Your Name
+              </label>
+              <input
+                type="text"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Email Address</label>
-              <input type="email" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} required />
+              <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-primary)', marginBottom: '0.35rem', fontWeight: 400 }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Message / Artwork Code Inquiry</label>
-              <textarea rows="4" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff', resize: 'none' }} required placeholder="Enter details about calligraphic paintings or frame services..." />
+              <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-primary)', marginBottom: '0.35rem', fontWeight: 400 }}>
+                Message / Artwork Code Inquiry
+              </label>
+              <textarea
+                rows="3"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  resize: 'none',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                required
+                placeholder="Enter details about calligraphic paintings or frame services..."
+              />
             </div>
-            <button type="submit" className="btn-primary" style={{ padding: '0.8rem' }}>Send Inquiry Message</button>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{
+                padding: '0.65rem 1.25rem',
+                fontSize: '12px',
+                marginTop: '0.25rem',
+                border: 'none'
+              }}
+            >
+              Send Inquiry Message
+            </button>
           </form>
         </div>
 

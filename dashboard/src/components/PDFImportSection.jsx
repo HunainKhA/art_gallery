@@ -89,7 +89,8 @@ export default function PDFImportSection() {
       }
 
       const result = await response.json();
-      setPreviewList(result.artworks || []);
+      const items = (result.artworks || []).map(item => ({ ...item, selected: true }));
+      setPreviewList(items);
       setIsUploaded(true);
     } catch (err) {
       setError(err.message);
@@ -126,11 +127,18 @@ export default function PDFImportSection() {
     setLoading(true);
     setError('');
 
+    const selectedArtworks = previewList.filter(item => item.selected);
+    if (selectedArtworks.length === 0) {
+      setError('Please select at least one artwork to import.');
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       artist_id: artistId,
       category_id: categoryId || null,
       medium_id: mediumId || null,
-      artworks: previewList.map(item => ({
+      artworks: selectedArtworks.map(item => ({
         temp_image_id: item.temp_image_id,
         title: item.title,
         code: item.code,
@@ -226,11 +234,11 @@ export default function PDFImportSection() {
                   value={artistId} 
                   onChange={(e) => setArtistId(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
                 >
-                  <option value="" style={{ background: '#111' }}>-- Select Artist --</option>
+                  <option value="" style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>-- Select Artist --</option>
                   {artists.map(a => (
-                    <option key={a.id} value={a.id} style={{ background: '#111' }}>
+                    <option key={a.id} value={a.id} style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>
                       {`${a.first_name || ''} ${a.last_name || ''}`.trim()}
                     </option>
                   ))}
@@ -243,11 +251,11 @@ export default function PDFImportSection() {
                 <select 
                   value={categoryId} 
                   onChange={(e) => setCategoryId(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
                 >
-                  <option value="" style={{ background: '#111' }}>-- Select Category --</option>
+                  <option value="" style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>-- Select Category --</option>
                   {categories.map(c => (
-                    <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.name}</option>
+                    <option key={c.id} value={c.id} style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -258,11 +266,11 @@ export default function PDFImportSection() {
                 <select 
                   value={mediumId} 
                   onChange={(e) => setMediumId(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
                 >
-                  <option value="" style={{ background: '#111' }}>-- Select Medium --</option>
+                  <option value="" style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>-- Select Medium --</option>
                   {mediums.map(m => (
-                    <option key={m.id} value={m.id} style={{ background: '#111' }}>{m.name}</option>
+                    <option key={m.id} value={m.id} style={{ background: 'var(--bg-dark)', color: 'var(--text-primary)' }}>{m.name}</option>
                   ))}
                 </select>
               </div>
@@ -286,7 +294,7 @@ export default function PDFImportSection() {
                   </div>
                   {pdfFile ? (
                     <div>
-                      <p style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 500, marginBottom: '0.25rem' }}>{pdfFile.name}</p>
+                      <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 500, marginBottom: '0.25rem' }}>{pdfFile.name}</p>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{(pdfFile.size / (1024 * 1024)).toFixed(2)} MB • Catalog Selected</p>
                     </div>
                   ) : (
@@ -331,21 +339,21 @@ export default function PDFImportSection() {
                 placeholder="Price (PKR)" 
                 value={globalPrice} 
                 onChange={(e) => setGlobalPrice(e.target.value)}
-                style={{ padding: '0.5rem 0.75rem', width: '140px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                style={{ padding: '0.5rem 0.75rem', width: '140px', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
               />
               <input 
                 type="number" 
                 placeholder="Length (in)" 
                 value={globalLength} 
                 onChange={(e) => setGlobalLength(e.target.value)}
-                style={{ padding: '0.5rem 0.75rem', width: '110px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                style={{ padding: '0.5rem 0.75rem', width: '110px', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
               />
               <input 
                 type="number" 
                 placeholder="Width (in)" 
                 value={globalWidth} 
                 onChange={(e) => setGlobalWidth(e.target.value)}
-                style={{ padding: '0.5rem 0.75rem', width: '110px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                style={{ padding: '0.5rem 0.75rem', width: '110px', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
               />
               
               {/* Global Deal Type selection */}
@@ -357,7 +365,7 @@ export default function PDFImportSection() {
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.85rem',
                     background: globalDealType === 'Sale_Basis' ? 'var(--accent-gold)' : 'rgba(0,0,0,0.2)',
-                    color: globalDealType === 'Sale_Basis' ? '#000' : '#fff',
+                    color: globalDealType === 'Sale_Basis' ? '#000' : 'var(--text-primary)',
                     border: 'none',
                     cursor: 'pointer',
                     fontWeight: 600,
@@ -372,7 +380,7 @@ export default function PDFImportSection() {
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.85rem',
                     background: globalDealType === 'Purchase_Basis' ? 'var(--accent-gold)' : 'rgba(0,0,0,0.2)',
-                    color: globalDealType === 'Purchase_Basis' ? '#000' : '#fff',
+                    color: globalDealType === 'Purchase_Basis' ? '#000' : 'var(--text-primary)',
                     border: 'none',
                     cursor: 'pointer',
                     fontWeight: 600,
@@ -389,7 +397,7 @@ export default function PDFImportSection() {
                   placeholder="Buy Price (PKR)" 
                   value={globalPurchasePrice} 
                   onChange={(e) => setGlobalPurchasePrice(e.target.value)}
-                  style={{ padding: '0.5rem 0.75rem', width: '140px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                  style={{ padding: '0.5rem 0.75rem', width: '140px', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                 />
               )}
 
@@ -402,18 +410,65 @@ export default function PDFImportSection() {
               </button>
             </div>
 
+            {/* Select All Checkbox */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="checkbox" 
+                  id="select-all-checkbox"
+                  checked={previewList.length > 0 && previewList.every(item => item.selected)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setPreviewList(prev => prev.map(item => ({ ...item, selected: checked })));
+                  }}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent-gold)' }}
+                />
+                <label htmlFor="select-all-checkbox" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
+                  Select All Pages
+                </label>
+              </div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Selected: {previewList.filter(item => item.selected).length} of {previewList.length} pages
+              </span>
+            </div>
+
             {/* Pages Grid Editor */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2.5rem', maxHeight: '600px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {previewList.map((item, idx) => (
-                <div key={item.temp_image_id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                <div key={item.temp_image_id} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.8rem', 
+                  padding: '0.75rem', 
+                  background: 'rgba(255,255,255,0.01)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '12px',
+                  opacity: item.selected ? 1 : 0.4,
+                  transition: 'opacity 0.2s ease'
+                }}>
                   
+                  {/* Select Checkbox */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px' }}>
+                    <input 
+                      type="checkbox"
+                      checked={!!item.selected}
+                      onChange={(e) => handleRowChange(idx, 'selected', e.target.checked)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--accent-gold)'
+                      }}
+                    />
+                  </div>
+
                   {/* Page Indicator */}
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, width: '60px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, width: '50px', textAlign: 'center' }}>
                     Page {item.page}
                   </div>
 
                   {/* Thumbnail Image */}
-                  <div style={{ width: '100px', height: '130px', background: '#050505', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                  <div style={{ width: '80px', height: '110px', background: '#050505', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
                     <img 
                       src={getApiUrl(`/api/artworks/temp-image/${item.temp_image_id}`)} 
                       alt={`Page ${item.page}`}
@@ -427,7 +482,7 @@ export default function PDFImportSection() {
                     gridTemplateColumns: item.deal_type === 'Purchase_Basis'
                       ? '1.8fr 1.5fr 1.5fr 1.3fr 1.2fr 0.8fr 0.8fr'
                       : '2fr 1.8fr 1.8fr 1.4fr 1fr 1fr', 
-                    gap: '0.85rem', 
+                    gap: '0.45rem', 
                     flex: 1 
                   }}>
                     
@@ -438,7 +493,7 @@ export default function PDFImportSection() {
                         type="text" 
                         value={item.title} 
                         onChange={(e) => handleRowChange(idx, 'title', e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
@@ -449,7 +504,7 @@ export default function PDFImportSection() {
                         type="text" 
                         value={item.code} 
                         onChange={(e) => handleRowChange(idx, 'code', e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
@@ -465,7 +520,7 @@ export default function PDFImportSection() {
                             padding: '0 0.5rem',
                             fontSize: '0.75rem',
                             background: item.deal_type === 'Sale_Basis' ? 'var(--accent-gold)' : 'transparent',
-                            color: item.deal_type === 'Sale_Basis' ? '#000' : '#fff',
+                            color: item.deal_type === 'Sale_Basis' ? '#000' : 'var(--text-primary)',
                             border: 'none',
                             cursor: 'pointer',
                             fontWeight: 600,
@@ -481,7 +536,7 @@ export default function PDFImportSection() {
                             padding: '0 0.5rem',
                             fontSize: '0.75rem',
                             background: item.deal_type === 'Purchase_Basis' ? 'var(--accent-gold)' : 'transparent',
-                            color: item.deal_type === 'Purchase_Basis' ? '#000' : '#fff',
+                            color: item.deal_type === 'Purchase_Basis' ? '#000' : 'var(--text-primary)',
                             border: 'none',
                             cursor: 'pointer',
                             fontWeight: 600,
@@ -500,7 +555,7 @@ export default function PDFImportSection() {
                         min="0"
                         value={item.price} 
                         onChange={(e) => handleRowChange(idx, 'price', e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
@@ -513,7 +568,7 @@ export default function PDFImportSection() {
                           min="0"
                           value={item.purchase_price || ''} 
                           onChange={(e) => handleRowChange(idx, 'purchase_price', e.target.value)}
-                          style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                          style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                         />
                       </div>
                     )}
@@ -527,7 +582,7 @@ export default function PDFImportSection() {
                         min="0"
                         value={item.length} 
                         onChange={(e) => handleRowChange(idx, 'length', e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
@@ -540,7 +595,7 @@ export default function PDFImportSection() {
                         min="0"
                         value={item.width} 
                         onChange={(e) => handleRowChange(idx, 'width', e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
@@ -562,7 +617,7 @@ export default function PDFImportSection() {
                 </>
               ) : (
                 <>
-                  <Save size={20} /> Confirm & Save All Artworks ({previewList.length} items)
+                  <Save size={20} /> Confirm & Save Selected Artworks ({previewList.filter(item => item.selected).length} items)
                 </>
               )}
             </button>
@@ -576,7 +631,7 @@ export default function PDFImportSection() {
               <CheckCircle2 size={48} />
             </div>
             
-            <h3 style={{ fontSize: '1.6rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
               Import Completed Successfully!
             </h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto', lineHeight: '1.6' }}>
@@ -585,7 +640,7 @@ export default function PDFImportSection() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem', textLeft: 'left', marginBottom: '3rem' }}>
               {successResult.artworks.map((art) => (
-                <div key={art.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div key={art.id} style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ width: '100%', height: '150px', background: '#050505', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <img 
                       src={getApiUrl(`/api/artworks/image/${art.id}`)} 
@@ -594,7 +649,7 @@ export default function PDFImportSection() {
                     />
                   </div>
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.2rem' }}>{art.title}</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.2rem' }}>{art.title}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 500 }}>{art.code}</div>
                   </div>
                 </div>

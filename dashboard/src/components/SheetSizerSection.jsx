@@ -140,10 +140,27 @@ class GuillotinePacker {
 
     return {
       packed: this.usedRectangles,
-      unpacked: unpacked
+      unpacked: unpacked,
+      free: this.freeRectangles
     };
   }
 }
+
+const getFontSizeForBox = (text, w, h) => {
+  const clean = text.replace(/\s+#\d+$/, '');
+  const baseSize = Math.max(1.3, Math.min(3.2, (w / clean.length) * 1.8));
+  return Math.min(baseSize, h * 0.5);
+};
+
+const fitTextToBox = (text, w, h) => {
+  const clean = text.replace(/\s+#\d+$/, '');
+  const fontSize = getFontSizeForBox(clean, w, h);
+  const maxChars = Math.floor(w / (fontSize * 0.44));
+  if (clean.length > maxChars && maxChars > 3) {
+    return clean.substring(0, maxChars - 3) + '...';
+  }
+  return clean;
+};
 
 export default function SheetSizerSection() {
   // Tab State
@@ -165,9 +182,8 @@ export default function SheetSizerSection() {
   const [customSheetWidth, setCustomSheetWidth] = useState('');
 
   // Tab 3: Mixed Sizes Layout Sizer State (Visual Diagram)
-  const [mixedCuts, setMixedCuts] = useState([{ id: 1, length: '', width: '', qty: 1 }]);
+  const [mixedCuts, setMixedCuts] = useState([{ id: 1, label: '', length: '', width: '', qty: 1 }]);
   const [mixedResult, setMixedResult] = useState(null);
-  const [includeMargin, setIncludeMargin] = useState(true);
 
   // Fetch standard sheets on load
   useEffect(() => {
@@ -202,13 +218,13 @@ export default function SheetSizerSection() {
 
         if (parts.length === 3) {
           label = parts[0];
-          l = parseFloat(parts[1]);
-          w = parseFloat(parts[2]);
-        } else if (parts.length === 2) {
-          l = parseFloat(parts[0]);
           w = parseFloat(parts[1]);
+          l = parseFloat(parts[2]);
+        } else if (parts.length === 2) {
+          w = parseFloat(parts[0]);
+          l = parseFloat(parts[1]);
         } else {
-          alert(`Invalid format on line ${i + 1}: "${lines[i]}"\nUse: Length, Width OR Label, Length, Width`);
+          alert(`Invalid format on line ${i + 1}: "${lines[i]}"\nUse: Width, Height OR Label, Width, Height`);
           setCalculating(false);
           return;
         }
@@ -276,7 +292,7 @@ export default function SheetSizerSection() {
 
   // Tab 3: Dynamic Cuts List row operations
   const handleAddMixedRow = () => {
-    setMixedCuts(prev => [...prev, { id: Date.now(), length: '', width: '', qty: 1 }]);
+    setMixedCuts(prev => [...prev, { id: Date.now(), label: '', length: '', width: '', qty: 1 }]);
   };
 
   const handleRemoveMixedRow = (id) => {
@@ -297,7 +313,7 @@ export default function SheetSizerSection() {
     e.preventDefault();
     setMixedResult(null);
 
-    const margin = includeMargin ? 1.5 : 0.0;
+    const margin = 0.0;
     const rectsToPack = [];
 
     for (let i = 0; i < mixedCuts.length; i++) {
@@ -318,10 +334,27 @@ export default function SheetSizerSection() {
           h: l + 2 * margin,  // Y size
           origW: w,
           origH: l,
-          label: `Art ${String.fromCharCode(65 + i)} #${q + 1}`
+          baseLabel: row.label && row.label.trim() ? row.label.trim() : `Art ${String.fromCharCode(65 + i)}`
         });
       }
     }
+
+    // Calculate dynamic sequence suffixes for duplicate names globally
+    const labelCounts = {};
+    rectsToPack.forEach(r => {
+      labelCounts[r.baseLabel] = (labelCounts[r.baseLabel] || 0) + 1;
+    });
+
+    const labelIndices = {};
+    rectsToPack.forEach(r => {
+      const count = labelCounts[r.baseLabel];
+      if (count > 1) {
+        labelIndices[r.baseLabel] = (labelIndices[r.baseLabel] || 0) + 1;
+        r.label = `${r.baseLabel} #${labelIndices[r.baseLabel]}`;
+      } else {
+        r.label = r.baseLabel;
+      }
+    });
 
     let sheetL = 0;
     let sheetW = 0;
@@ -414,6 +447,7 @@ export default function SheetSizerSection() {
       sheetWidth: sheetW,
       packed: packingResult.packed,
       unpacked: packingResult.unpacked,
+      free: packingResult.free,
       sheetArea: Math.round(sheetArea * 10) / 10,
       utilizedArea: Math.round(utilizedArea * 10) / 10,
       wastageArea: Math.round(wastageArea * 10) / 10,
@@ -507,16 +541,18 @@ export default function SheetSizerSection() {
             svg {
               max-width: 100%;
               max-height: 480px;
-              border: 2px solid #111827;
+              border: 0.5px solid #000000;
               background: #ffffff;
             }
             /* Style SVG items to look solid black/gray on print */
             svg rect {
               stroke: #000000 !important;
-              stroke-width: 0.75px !important;
+              stroke-width: 0.05px !important;
             }
             svg text {
-              fill: #000000 !important;
+              fill: #333333 !important;
+              text-anchor: middle !important;
+              dominant-baseline: middle !important;
             }
             table {
               width: 100%;
@@ -566,7 +602,7 @@ export default function SheetSizerSection() {
           <div class="header">
             <div class="title">Framing Glass Cutting Plan</div>
             <div class="sheet-banner">
-              SELECTED GLASS SHEET PRESET: ${mixedResult.sheetWidth}" x ${mixedResult.sheetLength}" (${mixedResult.sheetName})
+              Glass Sheet Size: ${mixedResult.sheetWidth}" x ${mixedResult.sheetLength}"
             </div>
           </div>
 
@@ -582,13 +618,14 @@ export default function SheetSizerSection() {
             ${svgHtml}
           </div>
 
-          <div class="section-title">Cut Specifications (Including 1.5" Margins)</div>
+          <div class="section-title">Cut Specifications</div>
           <table>
             <thead>
               <tr>
                 <th>Cut ID</th>
-                <th>Target Art Size (H x W)</th>
-                <th>Required Cut Dimensions (H x W)</th>
+                <th>Target Art Size (W x H)</th>
+                <th>Required Cut Dimensions (W x H)</th>
+                <th>Glass Type</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -596,17 +633,19 @@ export default function SheetSizerSection() {
               ${mixedResult.packed.map(r => `
                 <tr>
                   <td><strong>${r.label}</strong></td>
-                  <td>${r.origH}" x ${r.origW}"</td>
-                  <td>${r.h}" x ${r.w}"</td>
-                  <td>Fitted ${r.rotated ? '(Rotated to Fit)' : 'Normal'}</td>
+                  <td>${r.origW}" x ${r.origH}"</td>
+                  <td>${r.w}" x ${r.h}"</td>
+                  <td>Museum clarity Glass</td>
+                  <td>Available</td>
                 </tr>
               `).join('')}
               ${mixedResult.unpacked.map(r => `
                 <tr style="color: #dc2626; background: #fef2f2;">
                   <td><strong>${r.label}</strong></td>
-                  <td>${r.origH}" x ${r.origW}"</td>
-                  <td>${r.h}" x ${r.w}"</td>
-                  <td><strong>Did Not Fit</strong></td>
+                  <td>${r.origW}" x ${r.origH}"</td>
+                  <td>${r.w}" x ${r.h}"</td>
+                  <td>Museum clarity Glass</td>
+                  <td><strong>Not Available</strong></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -704,7 +743,7 @@ export default function SheetSizerSection() {
             {isBulk ? (
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                  Bulk Artwork Dimensions (one per line - enter Height/Length first, then Width) *
+                  Bulk Artwork Dimensions (one per line - enter Width first, then Height/Length) *
                 </label>
                 <textarea 
                   value={bulkText} 
@@ -716,27 +755,27 @@ export default function SheetSizerSection() {
                     background: 'var(--bg-input)', 
                     border: '1px solid var(--border-color)', 
                     borderRadius: '8px', 
-                    color: '#fff',
+                    color: 'var(--text-primary)',
                     fontFamily: 'monospace',
                     fontSize: '0.85rem',
                     resize: 'vertical'
                   }} 
                   required 
-                  placeholder={'Format: Height (Length), Width OR Label, Height (Length), Width\nExample:\n24, 18\nArt 2, 30, 20\n40, 30'}
+                  placeholder={'Format: Width, Height OR Label, Width, Height\nExample:\n18, 24\nArt 2, 20, 30\n30, 40'}
                 />
                 <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                  Note: Use commas to separate dimensions. Always enter Height (Length) first, then Width (inches).
+                  Note: Use commas to separate dimensions. Always enter Width first, then Height/Length (inches).
                 </span>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Artwork Length / Height (inches)</label>
-                  <input type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} required={!isBulk} placeholder="e.g. 24" />
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Artwork Width (inches)</label>
+                  <input type="number" step="0.1" value={width} onChange={(e) => setWidth(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} required={!isBulk} placeholder="e.g. 18" />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Artwork Width (inches)</label>
-                  <input type="number" step="0.1" value={width} onChange={(e) => setWidth(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} required={!isBulk} placeholder="e.g. 18" />
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Artwork Length / Height (inches)</label>
+                  <input type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} required={!isBulk} placeholder="e.g. 24" />
                 </div>
               </div>
             )}
@@ -780,7 +819,7 @@ export default function SheetSizerSection() {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.5rem' }}>Artwork Label</th>
-                    <th style={{ padding: '0.5rem' }}>Artwork Size</th>
+                    <th style={{ padding: '0.5rem' }}>Artwork Size (W x H)</th>
                     <th style={{ padding: '0.5rem' }}>Glass Preset Recommendation</th>
                     <th style={{ padding: '0.5rem', textAlign: 'right' }}>Cost (PKR)</th>
                     <th style={{ padding: '0.5rem', textAlign: 'center' }}>Remaining (%)</th>
@@ -791,7 +830,7 @@ export default function SheetSizerSection() {
                   {bulkResults.map((row, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                       <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--accent-gold)' }}>{row.label}</td>
-                      <td style={{ padding: '0.75rem 0.5rem' }}>{row.length}" x {row.width}"</td>
+                      <td style={{ padding: '0.75rem 0.5rem' }}>{row.width}" x {row.length}"</td>
                       {row.fit_found ? (
                         <>
                           <td style={{ padding: '0.75rem 0.5rem', color: '#fff' }}>{row.best_fit.name} ({row.best_fit.width}" x {row.best_fit.length}")</td>
@@ -836,7 +875,7 @@ export default function SheetSizerSection() {
                   background: 'var(--bg-input)', 
                   border: '1px solid var(--border-color)', 
                   borderRadius: '8px', 
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
@@ -859,7 +898,7 @@ export default function SheetSizerSection() {
                     step="0.1" 
                     value={customSheetLength} 
                     onChange={(e) => setCustomSheetLength(e.target.value)} 
-                    style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} 
+                    style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} 
                     required={selectedSheetId === 'custom'} 
                     placeholder="e.g. 96" 
                   />
@@ -871,7 +910,7 @@ export default function SheetSizerSection() {
                     step="0.1" 
                     value={customSheetWidth} 
                     onChange={(e) => setCustomSheetWidth(e.target.value)} 
-                    style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} 
+                    style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} 
                     required={selectedSheetId === 'custom'} 
                     placeholder="e.g. 60" 
                   />
@@ -883,27 +922,35 @@ export default function SheetSizerSection() {
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 600 }}>Cuts List (Specify Target Dimensions & Quantities)</label>
               
+              {/* Table Headers */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.2fr 1fr 1fr 1fr 2.5rem', gap: '0.75rem', alignItems: 'center', marginBottom: '0.35rem', paddingLeft: '0.25rem' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Painting Name / Label</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Width (in)</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Height (in)</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Qty</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'center' }}>Delete</span>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {mixedCuts.map((cut, idx) => (
-                  <div key={cut.id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 1fr 1fr 2.5rem', gap: '0.75rem', alignItems: 'center' }}>
+                  <div key={cut.id} style={{ display: 'grid', gridTemplateColumns: '2rem 2.2fr 1fr 1fr 1fr 2.5rem', gap: '0.75rem', alignItems: 'center' }}>
                     {/* Index Label */}
                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
                       {String.fromCharCode(65 + idx)}
                     </span>
                     
-                    {/* Length/Height Input */}
+                    {/* Label Input */}
                     <div>
                       <input 
-                        type="number" 
-                        step="0.1" 
-                        value={cut.length} 
-                        onChange={(e) => handleMixedRowChange(cut.id, 'length', e.target.value)} 
-                        placeholder="Height (in)" 
-                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }} 
-                        required 
+                        type="text" 
+                        value={cut.label || ''} 
+                        onChange={(e) => handleMixedRowChange(cut.id, 'label', e.target.value)} 
+                        placeholder="Artwork Name (e.g. Flower)" 
+                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
                       />
                     </div>
-
+                    
                     {/* Width Input */}
                     <div>
                       <input 
@@ -912,7 +959,20 @@ export default function SheetSizerSection() {
                         value={cut.width} 
                         onChange={(e) => handleMixedRowChange(cut.id, 'width', e.target.value)} 
                         placeholder="Width (in)" 
-                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }} 
+                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                        required 
+                      />
+                    </div>
+
+                    {/* Length/Height Input */}
+                    <div>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        value={cut.length} 
+                        onChange={(e) => handleMixedRowChange(cut.id, 'length', e.target.value)} 
+                        placeholder="Height (in)" 
+                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
                         required 
                       />
                     </div>
@@ -925,7 +985,7 @@ export default function SheetSizerSection() {
                         value={cut.qty} 
                         onChange={(e) => handleMixedRowChange(cut.id, 'qty', e.target.value)} 
                         placeholder="Qty" 
-                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }} 
+                        style={{ width: '100%', padding: '0.5rem 0.65rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
                         required 
                       />
                     </div>
@@ -976,19 +1036,7 @@ export default function SheetSizerSection() {
               </button>
             </div>
 
-            {/* Include Margin Checkbox */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input 
-                type="checkbox" 
-                id="mixedIncludeMarginCheckbox"
-                checked={includeMargin} 
-                onChange={(e) => setIncludeMargin(e.target.checked)} 
-                style={{ width: '16px', height: '16px', accentColor: 'var(--accent-gold)', cursor: 'pointer' }}
-              />
-              <label htmlFor="mixedIncludeMarginCheckbox" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
-                Include 1.5" framing margin on all sides (adds 3" to dimensions)
-              </label>
-            </div>
+
 
             <button type="submit" className="btn-primary" style={{ padding: '0.8rem' }}>
               Generate Visual Cutting Plan
@@ -1054,7 +1102,7 @@ export default function SheetSizerSection() {
                       width: '100%', 
                       height: 'auto', 
                       background: 'rgba(0,0,0,0.2)', 
-                      border: '2px solid var(--border-color)',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
                       overflow: 'visible'
                     }}
@@ -1077,35 +1125,35 @@ export default function SheetSizerSection() {
                           height={rect.h}
                           fill={rect.color}
                           stroke="rgba(0, 0, 0, 0.6)"
-                          strokeWidth="0.5"
+                          strokeWidth="0.1"
                           style={{ transition: 'all 0.3s ease' }}
                         />
-                        {/* Text Dimensions Label */}
+                         {/* Text Dimensions Label */}
                         {rect.w > 4 && rect.h > 3 ? (
                           <>
                             <text
                               x={rect.x + rect.w / 2}
-                              y={rect.y + rect.h / 2 - 1.5}
+                              y={rect.y + rect.h / 2 - (getFontSizeForBox(rect.label, rect.w, rect.h) * 0.35)}
                               dominantBaseline="middle"
                               textAnchor="middle"
                               fill="#fff"
-                              fontSize="3.5"
-                              fontWeight="bold"
+                              fontSize={getFontSizeForBox(rect.label, rect.w, rect.h) * 0.75}
+                              fontWeight="300"
                               style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                             >
-                              {rect.label.split(' ')[0] + ' ' + rect.label.split(' ')[1]}
+                              {fitTextToBox(rect.label, rect.w, rect.h)}
                             </text>
                             <text
                               x={rect.x + rect.w / 2}
-                              y={rect.y + rect.h / 2 + 2}
+                              y={rect.y + rect.h / 2 + (getFontSizeForBox(rect.label, rect.w, rect.h) * 0.45)}
                               dominantBaseline="middle"
                               textAnchor="middle"
                               fill="var(--accent-gold)"
-                              fontSize="3"
-                              fontWeight="bold"
+                              fontSize={Math.min(2.8, getFontSizeForBox(rect.label, rect.w, rect.h) * 0.75)}
+                              fontWeight="300"
                               style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                             >
-                              {rect.origH}"x{rect.origW}"{rect.rotated ? ' (R)' : ''}
+                              {rect.origW}"x{rect.origH}"{rect.rotated ? ' (R)' : ''}
                             </text>
                           </>
                         ) : (
@@ -1123,6 +1171,61 @@ export default function SheetSizerSection() {
                         )}
                       </g>
                     ))}
+
+                    {/* Render Free Rectangles (Remaining Space) */}
+                    {mixedResult.free && mixedResult.free.map((rect, idx) => {
+                      const label = `${rect.w}" x ${rect.h}" Left`;
+                      const isRotated = rect.h > rect.w && rect.w < 6;
+                      const textW = isRotated ? rect.h : rect.w;
+                      const textH = isRotated ? rect.w : rect.h;
+                      const fs = Math.max(0.6, Math.min(1.8, getFontSizeForBox(label, textW, textH) * 0.85));
+                      const canShowText = rect.w >= 1 && rect.h >= 1;
+                      
+                      return (
+                        <g key={`free-${idx}`}>
+                          <rect
+                            x={rect.x}
+                            y={rect.y}
+                            width={rect.w}
+                            height={rect.h}
+                            fill="rgba(255, 255, 255, 0.02)"
+                            stroke="rgba(255, 255, 255, 0.2)"
+                            strokeWidth="0.1"
+                            strokeDasharray="1,1"
+                          />
+                          {canShowText ? (
+                            isRotated ? (
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2}
+                                transform={`rotate(-90, ${rect.x + rect.w / 2}, ${rect.y + rect.h / 2})`}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="rgba(255, 255, 255, 0.35)"
+                                fontSize={fs}
+                                fontWeight="300"
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                {fitTextToBox(label, rect.h, rect.w)}
+                              </text>
+                            ) : (
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="rgba(255, 255, 255, 0.35)"
+                                fontSize={fs}
+                                fontWeight="300"
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                {fitTextToBox(label, rect.w, rect.h)}
+                              </text>
+                            )
+                          ) : null}
+                        </g>
+                      );
+                    })}
                   </svg>
                 </div>
                 
@@ -1137,7 +1240,7 @@ export default function SheetSizerSection() {
                     <span>Rotated Cut to Fit</span>
                   </div>
                   <div style={{ width: '100%', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Note: Cut boundaries show final sizes including the 1.5" framing margins (if selected). Scale is normalized for fitting in the UI.
+                    Note: Cut boundaries show final sizes. Scale is normalized for fitting in the UI.
                   </div>
                 </div>
               </div>

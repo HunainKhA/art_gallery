@@ -14,6 +14,7 @@ import VideosSection from './components/VideosSection';
 import ContactSection from './components/ContactSection';
 import ArtworkDetail from './components/ArtworkDetail';
 import Cart from './components/Cart';
+import GuestAuthModal from './components/GuestAuthModal';
 
 export default function App() {
   const state = useGalleryState();
@@ -65,6 +66,9 @@ export default function App() {
           viewArtworkDetail={state.viewArtworkDetail}
           currency={state.currency}
           exchangeRates={state.exchangeRates}
+          websiteSettings={state.websiteSettings}
+          guestSession={state.guestSession}
+          setIsGuestModalOpen={state.setIsGuestModalOpen}
         />
       )}
 
@@ -79,6 +83,9 @@ export default function App() {
           viewArtworkDetail={state.viewArtworkDetail}
           currency={state.currency}
           exchangeRates={state.exchangeRates}
+          websiteSettings={state.websiteSettings}
+          guestSession={state.guestSession}
+          setIsGuestModalOpen={state.setIsGuestModalOpen}
         />
       )}
 
@@ -87,11 +94,17 @@ export default function App() {
         <ExhibitionsSection 
           activeTab={state.exhibitionFilter} 
           setActiveTab={state.setExhibitionFilter} 
+          selectedExhibition={state.selectedExhibition}
+          setSelectedExhibition={state.setSelectedExhibition}
           viewArtworkDetail={state.viewArtworkDetail}
           handleAddToCart={state.handleAddToCart}
           cartItems={state.cartItems}
           currency={state.currency}
           exchangeRates={state.exchangeRates}
+          websiteSettings={state.websiteSettings}
+          guestSession={state.guestSession}
+          setIsGuestModalOpen={state.setIsGuestModalOpen}
+          artists={state.artists}
         />
       )}
 
@@ -100,6 +113,11 @@ export default function App() {
         <CataloguesSection 
           currency={state.currency}
           exchangeRates={state.exchangeRates}
+          viewArtworkDetail={state.viewArtworkDetail}
+          setIsInquiryModalOpen={state.setIsInquiryModalOpen}
+          setSelectedArtworkForInquiry={state.setSelectedArtworkForInquiry}
+          handleAddToCart={state.handleAddToCart}
+          cartItems={state.cartItems}
         />
       )}
 
@@ -122,12 +140,17 @@ export default function App() {
       {state.activeTab === 'detail' && state.selectedArtworkId && (
         <ArtworkDetail 
           artworkId={state.selectedArtworkId} 
-          onBack={() => { state.setActiveTab('collections'); state.setSelectedArtworkId(null); }} 
+          onBack={() => { state.setActiveTab(state.previousTab || 'collections'); state.setSelectedArtworkId(null); }} 
           onAddToCart={state.handleAddToCart}
           cartItems={state.cartItems}
           currency={state.currency}
           setCurrency={state.setCurrency}
           exchangeRates={state.exchangeRates}
+          websiteSettings={state.websiteSettings}
+          guestSession={state.guestSession}
+          setIsGuestModalOpen={state.setIsGuestModalOpen}
+          artworks={state.detailViewArtworksScope || state.artworks}
+          setSelectedArtworkId={state.setSelectedArtworkId}
         />
       )}
 
@@ -142,6 +165,13 @@ export default function App() {
           exchangeRates={state.exchangeRates}
         />
       )}
+      <GuestAuthModal 
+        isOpen={state.isGuestModalOpen}
+        onClose={() => state.setIsGuestModalOpen(false)}
+        guestSession={state.guestSession}
+        onLoginSuccess={state.handleGuestLoginSuccess}
+        onLogout={state.handleGuestLogout}
+      />
     </MainLayout>
   );
 }

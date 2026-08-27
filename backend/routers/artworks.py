@@ -30,6 +30,10 @@ class ArtworkRequest(BaseModel):
 class ArtworkImportList(BaseModel):
     artworks: list[ArtworkRequest]
 
+class ArtworkStatusRequest(BaseModel):
+    status: str
+
+
 @router.get("/categories")
 def get_artwork_categories():
     """
@@ -104,7 +108,10 @@ def get_all_artworks(category: str = None, artist_id: str = None, code: str = No
             t.id AS category_id,
             t.name AS category_name,
             m.id AS medium_id,
-            m.name AS medium_name
+            m.name AS medium_name,
+            (SELECT IF(COUNT(*) > 0, 1, 0) 
+             FROM art_exhibitions_art_collections_1_c 
+             WHERE art_exhibitions_art_collections_1art_collections_idb = c.id AND deleted = 0) AS is_exhibited
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         LEFT JOIN art_artists_art_collections_c rel 
@@ -206,15 +213,70 @@ def get_mainframe_logo():
 @router.get("/signature")
 def get_mainframe_signature():
     """
-    Serves the owner's signature image from the assets folder.
+    Serves the owner's signature image.
     """
-    from fastapi.responses import HTMLResponse
     import os
-    sig_path = os.path.join(Config.WORKSPACE_ROOT, "karachi", "karachi", "assets", "global", "images", "signature.jpg")
-    if os.path.exists(sig_path):
-        with open(sig_path, "rb") as f:
-            return Response(content=f.read(), media_type="image/jpeg")
+    search_paths = [
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.svg"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.jpg"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.svg"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.jpg")
+    ]
+    
+    for sig_path in search_paths:
+        if os.path.exists(sig_path):
+            media_type = (
+                "image/svg+xml" if sig_path.endswith(".svg") 
+                else "image/png" if sig_path.endswith(".png") 
+                else "image/jpeg"
+            )
+            with open(sig_path, "rb") as f:
+                return Response(content=f.read(), media_type=media_type)
+                
     return HTMLResponse(content="<h1>Signature not found</h1>", status_code=404)
+
+@router.post("/upload-signature")
+def upload_mainframe_signature(file: UploadFile = File(...)):
+    """
+    Uploads the owner's signature image file and saves it in website/public/signature.png.
+    """
+    import os
+    import shutil
+    
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".svg"}
+    filename = file.filename
+    ext = os.path.splitext(filename)[1].lower()
+    
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, PNG, and SVG signature images are allowed.")
+        
+    try:
+        target_dirs = [
+            os.path.join(Config.WORKSPACE_ROOT, "website", "public"),
+            os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public")
+        ]
+        
+        for d in target_dirs:
+            os.makedirs(d, exist_ok=True)
+            
+        for d in target_dirs:
+            for existing_ext in allowed_extensions:
+                old_file = os.path.join(d, f"signature{existing_ext}")
+                if os.path.exists(old_file):
+                    os.remove(old_file)
+                    
+        main_target = os.path.join(target_dirs[0], f"signature{ext}")
+        with open(main_target, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        dashboard_target = os.path.join(target_dirs[1], f"signature{ext}")
+        shutil.copyfile(main_target, dashboard_target)
+        
+        return {"success": True, "message": "Signature uploaded successfully.", "filename": f"signature{ext}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save signature: {str(e)}")
 
 @router.get("/{artwork_id}")
 def get_artwork_by_id(artwork_id: str):
@@ -300,8 +362,19 @@ def get_artwork_image(artwork_id: str):
     upload_dir = Config.UPLOAD_DIR
     file_path = os.path.join(upload_dir, artwork_id)
     if os.path.exists(file_path):
+        ext = os.path.splitext(file_path)[1].lower()
+        media_type = "image/jpeg"
+        if ext == ".png":
+            media_type = "image/png"
+        elif ext == ".webp":
+            media_type = "image/webp"
+        elif ext == ".gif":
+            media_type = "image/gif"
+        elif ext == ".pdf":
+            media_type = "application/pdf"
+            
         with open(file_path, "rb") as f:
-            return Response(content=f.read(), media_type="image/jpeg")
+            return Response(content=f.read(), media_type=media_type)
         
     try:
         query = "SELECT filename FROM art_collections WHERE id = %s AND deleted = 0;"
@@ -310,8 +383,19 @@ def get_artwork_image(artwork_id: str):
             orig_filename = res["filename"]
             alt_path = os.path.join(upload_dir, orig_filename)
             if os.path.exists(alt_path):
+                alt_ext = os.path.splitext(alt_path)[1].lower()
+                alt_media_type = "image/jpeg"
+                if alt_ext == ".png":
+                    alt_media_type = "image/png"
+                elif alt_ext == ".webp":
+                    alt_media_type = "image/webp"
+                elif alt_ext == ".gif":
+                    alt_media_type = "image/gif"
+                elif alt_ext == ".pdf":
+                    alt_media_type = "application/pdf"
+                    
                 with open(alt_path, "rb") as f:
-                    return Response(content=f.read(), media_type="image/jpeg")
+                    return Response(content=f.read(), media_type=alt_media_type)
     except Exception as e:
         print(f"Database query failed in get_artwork_image: {e}")
         
@@ -617,11 +701,63 @@ async def preview_pdf_catalog(
         
         # Render page
         page = doc.load_page(page_num)
+        
+        # Try to parse dimensions from page text (e.g. 28" x 34" or 28x34)
+        extracted_length = 0.0
+        extracted_width = 0.0
+        try:
+            page_text = page.get_text()
+            # Match formats like 28 x 34, 28" x 34", 28.5x34.2
+            dim_match = re.search(r"(\d+(?:\.\d+)?)\s*\"?\s*(?:x|X|\*)\s*(\d+(?:\.\d+)?)\s*\"?", page_text)
+            if dim_match:
+                len_val = float(dim_match.group(1))
+                wid_val = float(dim_match.group(2))
+                # Validate that they look like real painting dimensions (both > 2 inches)
+                if len_val >= 2.0 and wid_val >= 2.0:
+                    extracted_length = len_val
+                    extracted_width = wid_val
+        except Exception as txt_err:
+            print(f"Failed to extract dimensions on page {page_num + 1}: {txt_err}")
         zoom = 150 / 72
         mat = fitz.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=mat, alpha=False)
         img_bytes = pix.tobytes("jpeg")
         
+        # Auto-crop extra white borders around the painting
+        try:
+            from PIL import Image, ImageChops
+            import io
+            
+            image = Image.open(io.BytesIO(img_bytes))
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+                
+            # Create a comparison background image (pure white)
+            bg = Image.new("RGB", image.size, (255, 255, 255))
+            diff = ImageChops.difference(image, bg)
+            
+            # Convert difference to grayscale and threshold compression noise
+            gray_diff = diff.convert("L")
+            thresholded = gray_diff.point(lambda p: 255 if p > 15 else 0)
+            bbox = thresholded.getbbox()
+            
+            if bbox:
+                # Add a safe margin of 12 pixels around the artwork content
+                pad = 12
+                left = max(0, bbox[0] - pad)
+                top = max(0, bbox[1] - pad)
+                right = min(image.width, bbox[2] + pad)
+                bottom = min(image.height, bbox[3] + pad)
+                
+                # Check that cropped region is valid size to avoid cropping blank pages
+                if (right - left) > 50 and (bottom - top) > 50:
+                    cropped_image = image.crop((left, top, right, bottom))
+                    out_io = io.BytesIO()
+                    cropped_image.save(out_io, format="JPEG", quality=95)
+                    img_bytes = out_io.getvalue()
+        except Exception as crop_err:
+            print(f"Failed to auto-crop page {page_num + 1}: {crop_err}")
+            
         # Save temp file
         temp_file_path = os.path.join(temp_dir, temp_image_id)
         with open(temp_file_path, "wb") as f:
@@ -633,8 +769,8 @@ async def preview_pdf_catalog(
             "title": suggested_title,
             "code": suggested_code,
             "price": 0.0,
-            "length": 0.0,
-            "width": 0.0,
+            "length": extracted_length,
+            "width": extracted_width,
             "deal_type": "Sale_Basis",
             "purchase_price": 0.0
         })
@@ -832,6 +968,32 @@ def upload_global_template(file: UploadFile = File(...)):
 
 
 
+@router.put("/{artwork_id}/status")
+def update_artwork_status(artwork_id: str, data: ArtworkStatusRequest):
+    """
+    Updates the status of an artwork.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    update_query = """
+        UPDATE art_collections
+        SET date_modified = %s, collection_status = %s
+        WHERE id = %s AND deleted = 0;
+    """
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(update_query, (now, data.status, artwork_id))
+            connection.commit()
+            return {"success": True, "message": "Artwork status updated successfully."}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update artwork status: {str(e)}")
+    finally:
+        connection.close()
+
+
+
+
 @router.put("/{artwork_id}/toggle-letter")
 def toggle_authenticity_letter(artwork_id: str):
     """
@@ -1007,7 +1169,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     height: 297mm;
                     margin: 20px auto;
                     background-color: #fff;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    box-shadow: none;
+                    border: none;
                     position: relative;
                     box-sizing: border-box;
                     padding: 0.6in 0.8in 0.6in 0.8in;
@@ -1049,13 +1212,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 .cert-table {{
                     width: 100%;
                     border-collapse: collapse;
-                    border: 2px solid #000;
+                    border: 0.5px solid #000;
                     font-family: 'Montserrat', sans-serif;
                     margin-bottom: 0.15in;
                 }}
                 
                 .cert-table td {{
-                    border: 1px solid #000;
+                    border: 0.5px solid #000;
                     padding: 10px 15px;
                     vertical-align: middle;
                     color: #000;
@@ -1066,7 +1229,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     font-weight: 700;
                     text-align: left;
                     font-size: 14px;
-                    border-right: 2px solid #000;
+                    border-right: 0.5px solid #000;
                 }}
                 
                 .cell-val {{
@@ -1366,109 +1529,189 @@ def get_artwork_tag(artwork_id: str):
         else:
             price_formatted = ""
             
-        code_val = artwork["code"] or ""
-        if code_val and price_formatted:
-            code_price = f"{code_val}-{price_formatted}"
-        elif code_val:
-            code_price = code_val
-        elif price_formatted:
-            code_price = price_formatted
+        # Format code and price separately (price at the bottom)
+        code_val = (artwork["code"] or "").strip()
+        price_val = artwork["price"]
+        if price_val is not None and str(price_val).strip() != "":
+            try:
+                price_float = float(price_val)
+                price_formatted = f"{int(price_float):,}" if price_float.is_integer() else f"{price_float:,}"
+            except:
+                price_formatted = str(price_val)
         else:
-            code_price = "N/A"
+            price_formatted = ""
+
+        # Safe file name using ONLY the painting code
+        file_base_name = (code_val or title or "Artwork").replace("'", "").replace('"', "").replace('/', '-').replace('\\', '-').strip()
+        show_title = bool(title and title.lower() != "untitled" and title != code_val)
 
         # HTML template
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
             <meta charset="utf-8">
-            <title>Artwork Tag - {title}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+            <title>{file_base_name}</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
                 
-                body {{
+                * {{
+                    box-sizing: border-box;
                     margin: 0;
                     padding: 0;
-                    background-color: #f5f5f5;
-                    font-family: 'Montserrat', sans-serif;
+                }}
+
+                body {{
+                    background-color: #f1f3f5;
+                    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    color: #111;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    padding: 10px 15px 30px;
                 }}
                 
                 .print-controls {{
-                    max-width: 297mm;
-                    margin: 15px auto;
-                    padding: 12px 20px;
-                    background: rgba(255, 255, 255, 0.85);
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: 12px;
-                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                    width: 100%;
+                    max-width: 1050px;
+                    margin: 10px auto 18px;
+                    padding: 10px 18px;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
                     display: flex;
                     justify-content: flex-end;
-                    box-sizing: border-box;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
                 }}
                 
                 .btn {{
-                    padding: 10px 20px;
-                    font-family: sans-serif;
-                    font-size: 14px;
+                    padding: 8px 16px;
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 13px;
                     font-weight: 600;
-                    border: none;
+                    border: 1px solid transparent;
                     border-radius: 6px;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    text-decoration: none;
+                    transition: all 0.2s ease;
                 }}
                 
                 .btn-print {{
-                    background-color: #111;
-                    color: #fff;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                    background-color: #111827;
+                    color: #ffffff;
+                    border-color: #111827;
                 }}
-                
                 .btn-print:hover {{
-                    background-color: #333;
+                    background-color: #374151;
                     transform: translateY(-1px);
                 }}
                 
-                .certificate-container {{
-                    width: 297mm;
-                    height: 210mm;
-                    margin: 20px auto;
-                    background-color: #fff;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-                    box-sizing: border-box;
-                    padding: 0.75in 0.85in;
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: space-between;
-                    align-items: stretch;
+                .btn-pdf {{
+                    background-color: #cfa15c;
+                    color: #ffffff;
+                    border-color: #cfa15c;
+                }}
+                .btn-pdf:hover {{
+                    background-color: #b58943;
+                    transform: translateY(-1px);
+                }}
+
+                .btn-image-tag {{
+                    background-color: #ffffff;
+                    color: #1f2937;
+                    border-color: #d1d5db;
+                }}
+                .btn-image-tag:hover {{
+                    background-color: #f3f4f6;
+                    border-color: #9ca3af;
+                    transform: translateY(-1px);
                 }}
                 
+                .btn-raw-img {{
+                    background-color: #4b5563;
+                    color: #ffffff;
+                    border-color: #4b5563;
+                }}
+                .btn-raw-img:hover {{
+                    background-color: #374151;
+                    transform: translateY(-1px);
+                }}
+
+                /* Certificate / Tag Card - iPad & Screen Layout */
+                .certificate-container {{
+                    width: 100%;
+                    max-width: 1050px;
+                    min-height: 520px;
+                    aspect-ratio: 297 / 210;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border-radius: 6px;
+                    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+                    padding: 35px 45px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }}
+                
+                .tag-content-row {{
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: 100%;
+                    height: 100%;
+                    gap: 35px;
+                }}
+
                 .left-col {{
-                    width: 50%;
+                    flex: 1.1;
                     height: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    min-width: 0;
                 }}
                 
-                .painting-image {{
+                .painting-wrapper {{
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
                     max-width: 100%;
                     max-height: 100%;
+                }}
+
+                .painting-image {{
+                    max-width: 100%;
+                    max-height: 430px;
+                    width: auto;
+                    height: auto;
                     object-fit: contain;
-                    box-shadow: 15px 15px 30px rgba(0,0,0,0.15);
+                    box-shadow: 10px 12px 28px rgba(0, 0, 0, 0.18);
+                    border: 1px solid rgba(0, 0, 0, 0.08);
                     border-radius: 2px;
+                    display: block;
                 }}
                 
                 .right-col {{
-                    width: 45%;
-                    height: 100%;
+                    flex: 0.9;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
                     align-items: flex-end;
                     box-sizing: border-box;
-                    padding-left: 0.2in;
+                    min-width: 0;
+                    padding-left: 10px;
                 }}
                 
                 .logo-container {{
@@ -1476,56 +1719,140 @@ def get_artwork_tag(artwork_id: str):
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
-                    height: 1.2in;
+                    margin-bottom: auto;
                 }}
                 
                 .logo {{
-                    height: 90px;
+                    height: 75px;
+                    width: auto;
+                    max-width: 180px;
                     object-fit: contain;
+                    display: block;
                 }}
                 
                 .details-container {{
                     width: 100%;
                     text-align: left;
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 17px;
-                    color: #000;
-                    line-height: 2.0;
-                    margin-bottom: 0.2in;
+                    margin-top: auto;
                 }}
                 
                 .detail-line {{
-                    margin-bottom: 12px;
+                    display: flex;
+                    align-items: baseline;
+                    gap: 8px;
+                    margin-bottom: 7px;
+                    font-size: 14.5px;
+                    line-height: 1.45;
+                }}
+
+                .detail-line:last-child {{
+                    margin-bottom: 0;
                 }}
                 
                 .detail-label {{
                     font-weight: 400;
-                    color: #555;
+                    color: #555555;
+                    white-space: nowrap;
+                    font-size: 14px;
+                    min-width: 90px;
                 }}
                 
                 .detail-value {{
                     font-weight: 600;
-                    color: #000;
+                    color: #111111;
+                    font-size: 14.5px;
+                    word-break: break-word;
                 }}
-                
+
+                .detail-line.price-line .detail-label {{
+                    font-weight: 500;
+                    color: #333333;
+                }}
+
+                .detail-line.price-line .detail-value {{
+                    font-weight: 700;
+                    color: #000000;
+                    font-size: 15.5px;
+                }}
+
+                /* iPad / Tablet Responsiveness */
+                @media screen and (max-width: 1024px) {{
+                    .certificate-container {{
+                        padding: 25px 30px;
+                        min-height: 460px;
+                    }}
+                    .painting-image {{
+                        max-height: 380px;
+                    }}
+                    .logo {{
+                        height: 65px;
+                    }}
+                    .detail-line {{
+                        font-size: 13.5px;
+                        margin-bottom: 6px;
+                    }}
+                    .detail-label {{
+                        font-size: 13px;
+                        min-width: 80px;
+                    }}
+                    .detail-value {{
+                        font-size: 13.5px;
+                    }}
+                    .detail-line.price-line .detail-value {{
+                        font-size: 14.5px;
+                    }}
+                }}
+
+                /* Print Styles for A4 Landscape */
                 @media print {{
-                    body {{
-                        background-color: #fff;
-                        margin: 0;
-                        padding: 0;
+                    html, body {{
+                        background-color: #ffffff !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
                     }}
                     
                     .print-controls {{
-                        display: none;
+                        display: none !important;
                     }}
                     
                     .certificate-container {{
-                        margin: 0;
-                        box-shadow: none;
-                        width: 297mm;
-                        height: 210mm;
-                        page-break-after: avoid;
-                        page-break-before: avoid;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        max-width: 297mm !important;
+                        min-height: 210mm !important;
+                        aspect-ratio: auto !important;
+                        padding: 0.6in 0.8in !important;
+                        page-break-after: avoid !important;
+                        page-break-before: avoid !important;
+                        page-break-inside: avoid !important;
+                    }}
+
+                    .painting-image {{
+                        max-height: 140mm !important;
+                    }}
+
+                    .logo {{
+                        height: 22mm !important;
+                    }}
+
+                    .detail-line {{
+                        font-size: 11pt !important;
+                        margin-bottom: 3mm !important;
+                    }}
+                    .detail-label {{
+                        font-size: 10.5pt !important;
+                    }}
+                    .detail-value {{
+                        font-size: 11pt !important;
+                    }}
+                    .detail-line.price-line .detail-value {{
+                        font-size: 12pt !important;
                     }}
                     
                     @page {{
@@ -1534,27 +1861,85 @@ def get_artwork_tag(artwork_id: str):
                     }}
                 }}
             </style>
+            <!-- Libraries for high quality PDF and Image export -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+            <script>
+                // Align right column precisely with picture rendered height and bottom
+                function alignRightColToPicture() {{
+                    const img = document.getElementById('artworkImg');
+                    const rightCol = document.getElementById('rightCol');
+                    const leftCol = document.getElementById('leftCol');
+                    if (img && rightCol && leftCol) {{
+                        const imgHeight = img.clientHeight || img.offsetHeight;
+                        if (imgHeight > 50) {{
+                            rightCol.style.height = imgHeight + 'px';
+                            rightCol.style.maxHeight = imgHeight + 'px';
+                        }}
+                    }}
+                }}
+
+                window.addEventListener('load', function() {{
+                    alignRightColToPicture();
+                    setTimeout(alignRightColToPicture, 150);
+                    setTimeout(alignRightColToPicture, 500);
+                }});
+
+                window.addEventListener('resize', alignRightColToPicture);
+
+                // Download high quality PDF
+                function downloadPDF() {{
+                    const element = document.getElementById('tagCard');
+                    const opt = {{
+                        margin:       0,
+                        filename:     '{file_base_name}.pdf',
+                        image:        {{ type: 'jpeg', quality: 0.98 }},
+                        html2canvas:  {{ scale: 2.5, useCORS: true, logging: false }},
+                        jsPDF:        {{ unit: 'mm', format: 'a4', orientation: 'landscape' }}
+                    }};
+                    html2pdf().from(element).set(opt).save();
+                }}
+
+                // Download high-res Tag Image (PNG)
+                function downloadTagImage() {{
+                    const element = document.getElementById('tagCard');
+                    html2canvas(element, {{ scale: 2.5, useCORS: true, backgroundColor: '#ffffff' }}).then(canvas => {{
+                        const link = document.createElement('a');
+                        link.download = '{file_base_name}.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }});
+                }}
+            </script>
         </head>
         <body>
             <div class="print-controls">
-                <button class="btn btn-print" onclick="window.print()">Print Tag</button>
+                <a href="/api/artworks/image/{artwork_id}" download="{file_base_name}.jpg" class="btn btn-raw-img">Download</a>
+                <button class="btn btn-pdf" onclick="downloadPDF()">Download In PDF</button>
+                <button class="btn btn-print" onclick="window.print()">Print</button>
             </div>
             
-            <div class="certificate-container">
-                <div class="left-col">
-                    <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
-                </div>
-                
-                <div class="right-col">
-                    <div class="logo-container">
-                        <img class="logo" src="/api/artworks/logo" alt="Mainframe Logo">
+            <div class="certificate-container" id="tagCard">
+                <div class="tag-content-row">
+                    <div class="left-col" id="leftCol">
+                        <div class="painting-wrapper">
+                            <img id="artworkImg" class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}" onload="alignRightColToPicture()">
+                        </div>
                     </div>
                     
-                    <div class="details-container">
-                        <div class="detail-line"><span class="detail-label">Artist Name:</span> <span class="detail-value">{artist}</span></div>
-                        <div class="detail-line"><span class="detail-label">Medium:</span> <span class="detail-value">{medium}</span></div>
-                        <div class="detail-line"><span class="detail-label">Size:</span> <span class="detail-value">{dimensions}</span></div>
-                        <div class="detail-line"><span class="detail-label">Code:</span> <span class="detail-value">{code_price}</span></div>
+                    <div class="right-col" id="rightCol">
+                        <div class="logo-container">
+                            <img class="logo" src="/api/artworks/logo" alt="Mainframe The Gallery">
+                        </div>
+                        
+                        <div class="details-container">
+                            <div class="detail-line"><span class="detail-label">Artist Name:</span> <span class="detail-value">{artist}</span></div>
+                            {f'<div class="detail-line"><span class="detail-label">Title:</span> <span class="detail-value">{title}</span></div>' if show_title else ''}
+                            <div class="detail-line"><span class="detail-label">Medium:</span> <span class="detail-value">{medium}</span></div>
+                            <div class="detail-line"><span class="detail-label">Size:</span> <span class="detail-value">{dimensions}</span></div>
+                            {f'<div class="detail-line"><span class="detail-label">Code:</span> <span class="detail-value">{code_val}</span></div>' if code_val else ''}
+                            {f'<div class="detail-line price-line"><span class="detail-label">Price:</span> <span class="detail-value">{price_formatted}</span></div>' if price_formatted else ''}
+                        </div>
                     </div>
                 </div>
             </div>

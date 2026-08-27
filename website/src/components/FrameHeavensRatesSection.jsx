@@ -254,9 +254,9 @@ export default function FrameHeavensRatesSection({ frames, onRefresh }) {
                     setCurrentPage(1);
                   }}
                   style={{
-                    background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
-                    color: '#fff',
-                    border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '4px',
                     padding: '0.25rem 0.5rem',
                     fontSize: '0.85rem',
@@ -276,9 +276,9 @@ export default function FrameHeavensRatesSection({ frames, onRefresh }) {
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={activePage === 1}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    color: activePage === 1 ? 'rgba(255, 255, 255, 0.2)' : '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-input)',
+                    color: activePage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.4rem 0.8rem',
                     borderRadius: '4px',
                     cursor: activePage === 1 ? 'not-allowed' : 'pointer',
@@ -301,9 +301,9 @@ export default function FrameHeavensRatesSection({ frames, onRefresh }) {
                         <button
                           onClick={() => setCurrentPage(page)}
                           style={{
-                            background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
-                            color: activePage === page ? '#000' : '#fff',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
+                            color: activePage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
                             fontWeight: activePage === page ? '600' : 'normal',
                             padding: '0.4rem 0.8rem',
                             minWidth: '2rem',
@@ -323,9 +323,9 @@ export default function FrameHeavensRatesSection({ frames, onRefresh }) {
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={activePage === totalPages}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    color: activePage === totalPages ? 'rgba(255, 255, 255, 0.2)' : '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-input)',
+                    color: activePage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.4rem 0.8rem',
                     borderRadius: '4px',
                     cursor: activePage === totalPages ? 'not-allowed' : 'pointer',

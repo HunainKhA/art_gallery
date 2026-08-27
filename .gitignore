@@ -27,4 +27,6 @@ Thumbs.db
 # Ignore user media uploads
 uploads/
 **/uploads/
-
+# Logs and backups
+*.log
+*.bak

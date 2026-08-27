@@ -3,8 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import Config
 
+# Touch to reload server after clean routers update
 # Import separate route modules
-from routers import artworks, artists, calculator, payments, customers, sales, frames, fittings, collection_types, mediums, crm_documents, invoices
+from routers import artworks, artists, calculator, payments, customers, sales, frames, fittings, collection_types, mediums, crm_documents, invoices, settings, guest_auth
 
 app = FastAPI(
     title="Mainframe Art Gallery API",
@@ -35,6 +36,16 @@ app.include_router(collection_types.router)
 app.include_router(mediums.router)
 app.include_router(crm_documents.router)
 app.include_router(invoices.router)
+app.include_router(settings.router)
+app.include_router(guest_auth.router)
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        from create_guest_tables import create_guest_tables
+        create_guest_tables()
+    except Exception as e:
+        print("Error running guest tables startup check:", e)
 
 @app.get("/")
 def home():

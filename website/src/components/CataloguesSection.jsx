@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { getApiUrl } from '../services/api';
-import { formatPrice } from '../services/currency';
+import { formatPrice, renderDimensions } from '../services/currency';
 import { FileText, Download, Eye, ArrowLeft, Loader } from 'lucide-react';
 
-export default function CataloguesSection({ currency, exchangeRates }) {
+export default function CataloguesSection({
+  currency,
+  exchangeRates,
+  viewArtworkDetail,
+  setIsInquiryModalOpen,
+  setSelectedArtworkForInquiry,
+  handleAddToCart,
+  cartItems
+}) {
   const [exhibitions, setExhibitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedExhibition, setSelectedExhibition] = useState(null);
@@ -16,28 +24,42 @@ export default function CataloguesSection({ currency, exchangeRates }) {
   const itemsPerPage = 6;
   const artworksPerPage = 12;
 
-  // Fetch all exhibitions
+  // Helper to dynamically resolve the catalog cover image url (or first artwork's image)
+  const getCatalogCoverUrl = (item) => {
+    if (item?.filename) {
+      return getApiUrl(`/api/artworks/image/${item.filename}`);
+    }
+    if (item?.artwork_ids) {
+      const firstId = item.artwork_ids.split(',')[0]?.trim();
+      if (firstId) {
+        return getApiUrl(`/api/artworks/image/${firstId}`);
+      }
+    }
+    return '';
+  };
+
+  // Fetch all catalogues
   useEffect(() => {
     setLoading(true);
-    fetch(getApiUrl('/api/crm/exhibitions'))
+    fetch(getApiUrl('/api/crm/catalogues'))
       .then(res => res.json())
       .then(data => {
         setExhibitions(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching exhibitions:", err);
+        console.error("Error fetching catalogues:", err);
         setExhibitions([]);
         setLoading(false);
       });
   }, []);
 
-  // Fetch artworks when an exhibition is selected for preview
+  // Fetch artworks when a catalogue is selected for preview
   useEffect(() => {
     if (selectedExhibition) {
       setLoadingArtworks(true);
       setArtworksPage(1);
-      fetch(getApiUrl(`/api/crm/exhibitions/${selectedExhibition.id}/artworks`))
+      fetch(getApiUrl(`/api/crm/catalogues/${selectedExhibition.id}/artworks`))
         .then(res => res.json())
         .then(data => {
           setExhibitionArtworks(Array.isArray(data) ? data : []);
@@ -62,9 +84,9 @@ export default function CataloguesSection({ currency, exchangeRates }) {
   // Utility to fetch artworks data inline for downloading
   const fetchArtworksForExhibition = async (exhibitionId) => {
     try {
-      const res = await fetch(getApiUrl(`/api/crm/exhibitions/${exhibitionId}/artworks`));
+      const res = await fetch(getApiUrl(`/api/crm/catalogues/${exhibitionId}/artworks`));
       const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? data.filter(art => art.status !== 'Return') : [];
     } catch (err) {
       console.error("Error fetching artworks for download:", err);
       return [];
@@ -80,16 +102,48 @@ export default function CataloguesSection({ currency, exchangeRates }) {
     return chunks;
   };
 
-  // Download Catalog PDF Compiler
+  // Helper to convert image URL to base64 Data URL for robust PDF generation
+  const toDataUrl = async (url) => {
+    if (!url) return '';
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return '';
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result || '');
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn("Failed to fetch image for PDF:", url, e);
+      return '';
+    }
+  };
+
+  // Download Catalog PDF Compiler (No Banner - Direct Catalog Only)
   const handleDownloadCatalog = async (exhibition) => {
     setDownloadingCatalogId(exhibition.id);
     const artworks = await fetchArtworksForExhibition(exhibition.id);
-    setDownloadingCatalogId(null);
 
     if (!artworks || artworks.length === 0) {
-      alert("No artworks found for this exhibition to compile a catalog.");
+      setDownloadingCatalogId(null);
+      alert("No artworks found for this catalogue to compile.");
       return;
     }
+
+    // Preload all Artwork Images as Base64 in parallel
+    const artworksWithImages = await Promise.all(
+      artworks.map(async (art) => {
+        const imgBase64 = await toDataUrl(getApiUrl(`/api/artworks/image/${art.id}`));
+        return {
+          ...art,
+          imgSrc: imgBase64 || getApiUrl(`/api/artworks/image/${art.id}`)
+        };
+      })
+    );
+
+    setDownloadingCatalogId(null);
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -97,9 +151,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
       return;
     }
 
-    const exhibitionImageCover = getApiUrl(`/api/artworks/image/${exhibition.id}`);
-
-    // Print template layout
+    // Print template layout (Direct Artworks Catalog - No Banner)
     const htmlContent = `
       <html>
         <head>
@@ -118,76 +170,19 @@ export default function CataloguesSection({ currency, exchangeRates }) {
             .page {
               width: 210mm;
               height: 297mm;
-              padding: 20mm;
+              max-height: 297mm;
+              padding: 12mm 16mm;
               box-sizing: border-box;
               page-break-after: always;
+              break-after: page;
+              page-break-inside: avoid;
+              break-inside: avoid;
               position: relative;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
               background: #fff;
-            }
-            .title-page {
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-            }
-            .logo-placeholder {
-              font-size: 26px;
-              font-weight: 800;
-              letter-spacing: 0.12em;
-              text-transform: uppercase;
-              margin-bottom: 60px;
-              color: #000;
-            }
-            .logo-placeholder span {
-              color: #cfa15c;
-            }
-            .cover-image-container {
-              width: 140mm;
-              height: 90mm;
-              margin-bottom: 40px;
-              border: 1px solid #eaeaea;
-              padding: 10px;
-              background: #fafafa;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            .cover-image {
-              max-width: 100%;
-              max-height: 100%;
-              object-fit: contain;
-            }
-            .exhibition-title {
-              font-size: 34px;
-              font-weight: 800;
-              margin-bottom: 15px;
-              text-transform: uppercase;
-              color: #000;
-              letter-spacing: -0.01em;
-            }
-            .exhibition-date {
-              font-size: 16px;
-              color: #666;
-              margin-bottom: 40px;
-              font-weight: 500;
-            }
-            .exhibition-desc {
-              font-size: 13px;
-              line-height: 1.8;
-              color: #444;
-              max-width: 600px;
-              margin: 0 auto 50px auto;
-            }
-            .footer-note {
-              font-size: 11px;
-              color: #999;
-              position: absolute;
-              bottom: 20mm;
-              left: 0;
-              right: 0;
-              text-align: center;
+              overflow: hidden;
             }
             .artworks-container {
               display: grid;
@@ -198,11 +193,11 @@ export default function CataloguesSection({ currency, exchangeRates }) {
             }
             .artwork-card {
               border-bottom: 1px solid #eee;
-              padding-bottom: 25px;
+              padding-bottom: 20px;
               display: flex;
               gap: 30px;
               box-sizing: border-box;
-              height: 110mm;
+              height: 112mm;
               align-items: center;
             }
             .artwork-card:last-child {
@@ -230,7 +225,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               justify-content: center;
             }
             .artwork-artist {
-              font-size: 13px;
+              font-size: 14px;
               color: #cfa15c;
               font-weight: 700;
               margin: 0 0 8px 0;
@@ -238,21 +233,16 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               letter-spacing: 0.05em;
             }
             .artwork-title {
-              font-size: 20px;
+              font-size: 18px;
               font-weight: 700;
               color: #000;
               margin: 0 0 10px 0;
             }
             .artwork-meta {
-              font-size: 13px;
-              color: #666;
+              font-size: 12px;
+              color: #555;
               margin: 0 0 15px 0;
-              line-height: 1.6;
-            }
-            .artwork-price {
-              font-size: 18px;
-              font-weight: 700;
-              color: #000;
+              line-height: 1.7;
             }
             .page-header {
               display: flex;
@@ -260,7 +250,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               align-items: center;
               border-bottom: 1px solid #eee;
               padding-bottom: 10px;
-              margin-bottom: 20px;
+              margin-bottom: 15px;
               font-size: 11px;
               color: #888;
               text-transform: uppercase;
@@ -273,7 +263,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               justify-content: space-between;
               font-size: 11px;
               color: #888;
-              margin-top: 20px;
+              margin-top: 15px;
             }
             @media print {
               body {
@@ -284,31 +274,50 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               }
             }
           </style>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         </head>
         <body>
-          <!-- COVER TITLE PAGE -->
-          <div class="page title-page">
-            <div class="logo-placeholder">MAINFRAME <span>THE GALLERY</span></div>
-            <div class="cover-image-container">
-              <img 
-                class="cover-image" 
-                src="${exhibitionImageCover}" 
-                alt="${exhibition.document_name}"
-                onerror="this.src='https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=500';"
-              />
-            </div>
-            <div class="exhibition-title">${exhibition.document_name}</div>
-            <div class="exhibition-date">${formatDate(exhibition.active_date)} - ${formatDate(exhibition.exp_date) || 'Ongoing'}</div>
-            <div class="exhibition-desc">${exhibition.description || 'Complete catalog portfolio of the master artworks showcased.'}</div>
-            <div class="footer-note">© 2026 Mainframe The Gallery. All Rights Reserved.</div>
+          <!-- LOADING OVERLAY -->
+          <div id="loading-overlay" data-html2canvas-ignore="true" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            font-family: 'Montserrat', sans-serif;
+            transition: opacity 0.5s ease;
+          ">
+            <div style="
+              border: 4px solid #f3f3f3;
+              border-top: 4px solid #cfa15c;
+              border-radius: 50%;
+              width: 50px;
+              height: 50px;
+              animation: spin 1s linear infinite;
+              margin-bottom: 20px;
+            "></div>
+            <div style="font-size: 18px; font-weight: 600; color: #111;">Compiling PDF Catalog...</div>
+            <div style="font-size: 14px; color: #666; margin-top: 8px;">Please wait while the artworks catalog is being compiled.</div>
           </div>
-          
+          <style>
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+
           <!-- ARTWORK DETAILS PAGES (2 per page) -->
-          ${chunkArray(artworks, 2).map((chunk, pageIndex) => `
+          ${chunkArray(artworksWithImages, 2).map((chunk, pageIndex) => `
             <div class="page">
               <div>
                 <div class="page-header">
-                  <span>${exhibition.document_name} — Exhibition Catalog</span>
+                  <span>${exhibition.document_name} — Art Catalog</span>
                   <span>Mainframe The Gallery</span>
                 </div>
                 <div class="artworks-container">
@@ -317,9 +326,8 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                       <div class="artwork-image-container">
                         <img 
                           class="artwork-image" 
-                          src="${getApiUrl(`/api/artworks/image/${art.id}`)}" 
+                          src="${art.imgSrc}" 
                           alt="${art.title}"
-                          onerror="this.src='https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';"
                         />
                       </div>
                       <div class="artwork-info">
@@ -327,13 +335,12 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                         <p class="artwork-title">${art.title}</p>
                         <p class="artwork-meta">
                           <strong>Code:</strong> ${art.code || 'N/A'}<br/>
-                          ${art.length ? `<strong>Dimensions:</strong> ${art.length} x ${art.width} in<br/>` : ''}
+                          ${(() => {
+        const dims = renderDimensions(art.width, art.length);
+        return `<strong>Dimensions:</strong> ${dims.inStr} (${dims.cmStr})<br/>`;
+      })()}
+                          <strong>Medium:</strong> ${art.medium_name || 'Oil on Canvas'}<br/>
                           <strong>Status:</strong> ${art.status === 'Available' || art.status === 'not_sold' ? 'Available' : 'Sold Out'}
-                        </p>
-                        <p class="artwork-price">
-                          ${art.status === 'Available' || art.status === 'not_sold' 
-                            ? formatPrice(art.price, currency, exchangeRates) 
-                            : 'Sold Out'}
                         </p>
                       </div>
                     </div>
@@ -341,17 +348,61 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                 </div>
               </div>
               <div class="page-footer">
-                <span>mainframegallery.com</span>
-                <span>Page ${pageIndex + 1} of ${Math.ceil(artworks.length / 2)}</span>
+                <span>mainframethegallery.com</span>
+                <span style="font-weight: 100; font-size: 12px;">Page ${pageIndex + 1} of ${Math.ceil(artworksWithImages.length / 2)}</span>
               </div>
             </div>
           `).join('')}
           
           <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 1200);
+            function waitForAllImages() {
+              var imgs = Array.from(document.querySelectorAll('img'));
+              var promises = imgs.map(function(img) {
+                if (img.complete && img.naturalHeight !== 0) {
+                  return Promise.resolve();
+                }
+                return new Promise(function(resolve) {
+                  img.onload = function() { resolve(); };
+                  img.onerror = function() { resolve(); };
+                });
+              });
+              return Promise.all(promises);
+            }
+
+            function startGeneration() {
+              waitForAllImages().then(function() {
+                setTimeout(function() {
+                  var element = document.body;
+                  var opt = {
+                    margin:       0,
+                    filename:     'Catalog - ${exhibition.document_name.replace(/'/g, "\\'")}.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: 'css' }
+                  };
+                  
+                  html2pdf().set(opt).from(element).save().then(function() {
+                    var loader = document.getElementById('loading-overlay');
+                    if (loader) loader.style.opacity = '0';
+                    setTimeout(function() {
+                      window.close();
+                    }, 800);
+                  }).catch(function(err) {
+                    console.error("PDF generation failed:", err);
+                    var loader = document.getElementById('loading-overlay');
+                    if (loader) {
+                      loader.innerHTML = '<div style="color: red; font-weight: bold; font-family: sans-serif; text-align: center; padding: 20px;">Failed to generate PDF. Please close this window and try again.</div>';
+                    }
+                  });
+                }, 500);
+              });
+            }
+
+            if (document.readyState === 'complete') {
+              startGeneration();
+            } else {
+              window.addEventListener('load', startGeneration);
             }
           </script>
         </body>
@@ -386,16 +437,15 @@ export default function CataloguesSection({ currency, exchangeRates }) {
     );
   }
 
-  // --- SUB-VIEW: Exhibition Artworks Grid ---
   if (selectedExhibition) {
-    const coverImage = getApiUrl(`/api/artworks/image/${selectedExhibition.id}`);
+    const coverImage = getCatalogCoverUrl(selectedExhibition);
     const isDownloading = downloadingCatalogId === selectedExhibition.id;
 
     return (
-      <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
-        
+      <div className="page-content catalogues-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
+
         {/* Back navigation */}
-        <button 
+        <button
           onClick={() => setSelectedExhibition(null)}
           style={{
             display: 'inline-flex',
@@ -407,7 +457,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
             borderRadius: '20px',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
-            fontSize: '0.9rem',
+            fontSize: '12px',
             marginBottom: '2rem',
             transition: 'all 0.3s'
           }}
@@ -417,11 +467,11 @@ export default function CataloguesSection({ currency, exchangeRates }) {
         </button>
 
         {/* Selected Exhibition Header Detail Card */}
-        <div 
-          className="glass-card" 
-          style={{ 
-            padding: '2.5rem', 
-            marginBottom: '3rem', 
+        <div
+          className="glass-card"
+          style={{
+            padding: '2.5rem',
+            marginBottom: '3rem',
             borderLeft: '4px solid var(--accent-gold)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -431,108 +481,197 @@ export default function CataloguesSection({ currency, exchangeRates }) {
           }}
         >
           <div style={{ flex: '1 1 500px' }}>
-            <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-gold)', padding: '0.25rem 0.65rem', borderRadius: '4px', fontWeight: 600 }}>
-              Exhibition Catalog
-            </span>
-            <h1 style={{ fontSize: '2.2rem', marginTop: '0.75rem', marginBottom: '0.5rem', color: '#fff', fontWeight: 800 }}>
+
+            <h1 style={{ fontSize: '18px', marginTop: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: 100 }}>
               {selectedExhibition.document_name}
             </h1>
-            <p style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 500, marginBottom: '1.25rem' }}>
-              {formatDate(selectedExhibition.active_date)} - {formatDate(selectedExhibition.exp_date) || 'Ongoing'}
+            <p style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 100, marginBottom: '1.25rem' }}>
+              {selectedExhibition.active_date
+                ? `${formatDate(selectedExhibition.active_date)} - ${formatDate(selectedExhibition.exp_date) || 'Ongoing'}`
+                : `Published on ${formatDate(selectedExhibition.date_entered)}`}
             </p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.7', margin: 0 }}>
-              {selectedExhibition.description || 'Discover premium works from master artists presented in this exhibition.'}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.7', margin: 0 }}>
+              {selectedExhibition.description || `Discover premium works from master artists compiled in this catalogue.`}
             </p>
           </div>
-          
+
           <button
             className="btn-primary"
-            style={{ padding: '0.85rem 1.75rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px' }}
+            style={{ padding: '0.85rem 1.75rem', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none' }}
             disabled={isDownloading}
             onClick={() => handleDownloadCatalog(selectedExhibition)}
           >
-            {isDownloading ? <Loader className="animate-spin" size={16} /> : <Download size={16} />}
-            {isDownloading ? 'Compiling PDF...' : 'Download Full PDF Catalog'}
+            {isDownloading ? <Loader className="animate-spin" size={10} /> : <Download size={10} />}
+            {isDownloading ? 'Compiling PDF...' : 'Download Catalog'}
           </button>
         </div>
 
         {/* Artworks List */}
-        <h2 style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '1.5rem', fontWeight: 700 }}>
-          Exhibition Artworks ({exhibitionArtworks.length})
+        <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '1.5rem', fontWeight: 400 }}>
+          Catalogue ({exhibitionArtworks.length})
         </h2>
 
         {loadingArtworks ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: 'var(--accent-gold)', fontSize: '1.1rem' }}>
-            Loading artworks gallery...
+            Loading catalogue artworks...
           </div>
         ) : (
           <>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(4, 1fr)', 
-              gap: '2.5rem' 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '2.5rem'
             }} className="catalog-artworks-pics-grid">
               {currentArtworks.map((art) => (
-                <div 
-                  key={art.id} 
-                  className="glass-card"
-                  style={{ 
-                    borderRadius: '16px', 
-                    overflow: 'hidden', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
+                <div
+                  key={art.id}
+                  className="glass-card art-card-interactive"
+                  style={{
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
                     border: '1px solid var(--border-color)',
-                    position: 'relative'
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease'
                   }}
+                  onClick={() => viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks)}
                 >
-                  {/* Artwork Image */}
-                  <div style={{ height: '240px', overflow: 'hidden', backgroundColor: '#111' }}>
-                    <img 
-                      src={getApiUrl(`/api/artworks/image/${art.id}`)} 
-                      alt={art.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  {/* Artwork Image with Hover Overlay */}
+                  <div style={{ height: '260px', overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                    <img
+                      src={getApiUrl(`/api/artworks/image/${art.id}`)}
+                      alt={art.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                      className="art-grid-image"
                       onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                        e.target.onerror = null;
+                        e.target.style.opacity = '0';
                       }}
                     />
+                    {/* Hover Overlay Button to View details */}
+                    <div className="art-hover-overlay" style={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease'
+                    }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks); }}
+                        className="btn-primary"
+                        style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Artwork Details */}
-                  <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', margin: '0 0 0.25rem 0', fontWeight: 600 }}>
-                        {art.artist_name || 'Unknown Artist'}
-                      </p>
-                      <h3 style={{ fontSize: '1.05rem', color: '#fff', margin: '0 0 0.5rem 0', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {art.title}
-                      </h3>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0' }}>
-                        Code: {art.code || 'N/A'}
-                      </p>
-                      {art.length ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.15rem 0 0 0' }}>
-                          Dimensions: {art.length}x{art.width} in
-                        </p>
-                      ) : null}
-                    </div>
-                    
-                    {/* Price & Status */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: art.status === 'Available' || art.status === 'not_sold' ? 'var(--accent-gold)' : 'var(--accent-red)' }}>
-                        {art.status === 'Available' || art.status === 'not_sold' 
-                          ? formatPrice(art.price, currency, exchangeRates) 
-                          : 'Sold Out'}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.7rem', 
-                        backgroundColor: art.status === 'Available' || art.status === 'not_sold' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
-                        color: art.status === 'Available' || art.status === 'not_sold' ? 'var(--accent-green)' : 'var(--accent-red)', 
-                        padding: '0.2rem 0.55rem', 
-                        borderRadius: '4px', 
-                        fontWeight: 600 
-                      }}>
-                        {art.status === 'Available' || art.status === 'not_sold' ? 'Available' : 'Sold'}
-                      </span>
+                  {/* Artwork details text */}
+                  <div style={{
+                    padding: '1.25rem',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    fontFamily: 'Montserrat, sans-serif'
+                  }}>
+                    {/* Heading: Artist Name (Thin font, black/text-primary) */}
+                    <h3 className="artist-name" style={{
+                      fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      margin: '0 0 0.55rem 0',
+                      fontWeight: 100,
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.3',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {art.artist_name || 'Unknown Artist'}
+                    </h3>
+
+                    {/* Medium (12px) */}
+                    <p style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      margin: '0 0 0.45rem 0',
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.4'
+                    }}>
+                      {art.medium_name || 'Oil on Canvas'}
+                    </p>
+
+                    {/* Dimensions (12px) */}
+                    {(() => {
+                      const dims = renderDimensions(art.width, art.length);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.45rem' }}>
+                          {dims.cmStr && (
+                            <p style={{
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              margin: 0,
+                              fontFamily: 'Montserrat, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {dims.cmStr}
+                            </p>
+                          )}
+                          {dims.inStr && (
+                            <p style={{
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              margin: 0,
+                              fontFamily: 'Montserrat, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {dims.inStr}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Code / Title (12px - Placed at the bottom, matches text above) */}
+                    <p style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      margin: '0 0 0.85rem 0',
+                      fontFamily: 'Montserrat, sans-serif',
+                      lineHeight: '1.4',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {art.title}
+                    </p>
+
+                    {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 'auto',
+                      borderTop: '1px solid var(--border-color)',
+                      paddingTop: '0.85rem'
+                    }}>
+                      {art.status === 'Available' || art.status === 'not_sold' ? (
+                        <>
+                          <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
+                            Inquiry
+                          </span>
+                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 100, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            Available
+                          </span>
+                        </>
+                      ) : (
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          Sold
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -541,7 +680,7 @@ export default function CataloguesSection({ currency, exchangeRates }) {
 
             {exhibitionArtworks.length === 0 && (
               <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                No artworks catalogued for this exhibition yet.
+                No artworks catalogued for this catalogue yet.
               </div>
             )}
 
@@ -558,9 +697,9 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                   onClick={() => setArtworksPage(prev => Math.max(1, prev - 1))}
                   disabled={activeArtworksPage === 1}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    color: activeArtworksPage === 1 ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-input)',
+                    color: activeArtworksPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.55rem 1.1rem',
                     borderRadius: '6px',
                     cursor: activeArtworksPage === 1 ? 'not-allowed' : 'pointer',
@@ -581,10 +720,11 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                         )}
                         <button
                           onClick={() => setArtworksPage(page)}
+                          className={`pagination-page-btn ${activeArtworksPage === page ? 'active' : ''}`}
                           style={{
-                            background: activeArtworksPage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
-                            color: activeArtworksPage === page ? '#000' : '#fff',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            background: activeArtworksPage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
+                            color: activeArtworksPage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
                             fontWeight: activeArtworksPage === page ? '700' : '500',
                             padding: '0.55rem 1.1rem',
                             minWidth: '2.6rem',
@@ -603,9 +743,9 @@ export default function CataloguesSection({ currency, exchangeRates }) {
                   onClick={() => setArtworksPage(prev => Math.min(totalArtworksPages, prev + 1))}
                   disabled={activeArtworksPage === totalArtworksPages}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    color: activeArtworksPage === totalArtworksPages ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-input)',
+                    color: activeArtworksPage === totalArtworksPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.55rem 1.1rem',
                     borderRadius: '6px',
                     cursor: activeArtworksPage === totalArtworksPages ? 'not-allowed' : 'pointer',
@@ -652,64 +792,95 @@ export default function CataloguesSection({ currency, exchangeRates }) {
 
   // --- MAIN VIEW: Catalog Directory of Exhibition Cards ---
   return (
-    <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
-      
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-        <h1 className="gradient-title">
-          Art Catalogues
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-          Browse premium exhibition portfolios and download printable high-definition catalogs.
-        </p>
-      </div>
+    <div className="page-content catalogues-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
 
       {/* Exhibitions Catalog Cards Grid */}
       <div className="catalog-grid">
         {currentExhibitions.map((ex) => {
-          const coverImage = getApiUrl(`/api/artworks/image/${ex.id}`);
+          const coverImage = getCatalogCoverUrl(ex);
           const isDownloading = downloadingCatalogId === ex.id;
 
           return (
-            <div key={ex.id} className="glass-card catalog-card">
+            <div
+              key={ex.id}
+              className="glass-card catalog-card"
+              onClick={() => setSelectedExhibition(ex)}
+              style={{ cursor: 'pointer' }}
+            >
               {/* Cover Image */}
               <div className="catalog-card-image-container">
-                <img 
-                  src={coverImage} 
+                <img
+                  src={coverImage}
                   alt={ex.document_name}
                   className="catalog-card-image"
                   onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=500';
+                    e.target.onerror = null;
+                    e.target.src = '';
                   }}
                 />
               </div>
 
               {/* Title, date & info */}
               <div className="catalog-card-body">
-                <h3 className="catalog-card-title">{ex.document_name}</h3>
-                <p className="catalog-card-date">
-                  {formatDate(ex.active_date)} - {formatDate(ex.exp_date) || 'Ongoing'}
-                </p>
-                <p className="catalog-card-desc">
-                  {ex.description || 'Complete catalog portfolio of the master artworks showcased in this show.'}
+                <h3 className="catalog-card-title" style={{ color: 'var(--text-primary)' }}>{ex.document_name}</h3>
+                <p className="catalog-card-date" style={{ color: 'var(--text-primary)' }}>
+                  {ex.active_date
+                    ? `${formatDate(ex.active_date)} - ${formatDate(ex.exp_date) || 'Ongoing'}`
+                    : `Published ${formatDate(ex.date_entered)}`}
                 </p>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons (Borderless & Solid Black) */}
               <div className="catalog-card-footer">
-                <button 
-                  className="btn-secondary" 
-                  style={{ flex: 1, padding: '0.55rem 0', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', borderRadius: '8px' }}
-                  onClick={() => setSelectedExhibition(ex)}
+                <button
+                  className="exhibit-btn-noborder"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    color: 'var(--text-primary)',
+                    flex: 1,
+                    padding: '0.55rem 0',
+                    fontSize: '12px',
+                    fontWeight: 400,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedExhibition(ex);
+                  }}
                 >
-                  <Eye size={14} /> Browse Pics
+                  Images
                 </button>
 
-                <button 
-                  className="btn-primary" 
-                  style={{ flex: 1.3, padding: '0.55rem 0', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', borderRadius: '8px' }}
+                <button
+                  className="exhibit-btn-noborder"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    color: 'var(--text-primary)',
+                    flex: 1.3,
+                    padding: '0.55rem 0',
+                    fontSize: '12px',
+                    fontWeight: 400,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: 'pointer'
+                  }}
                   disabled={isDownloading}
-                  onClick={() => handleDownloadCatalog(ex)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadCatalog(ex);
+                  }}
                 >
                   {isDownloading ? <Loader className="animate-spin" size={14} /> : <Download size={14} />}
                   {isDownloading ? 'Compiling...' : 'Download PDF'}
@@ -739,9 +910,9 @@ export default function CataloguesSection({ currency, exchangeRates }) {
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={activePage === 1}
             style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              color: activePage === 1 ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'var(--bg-input)',
+              color: activePage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
               padding: '0.55rem 1.1rem',
               borderRadius: '6px',
               cursor: activePage === 1 ? 'not-allowed' : 'pointer',
@@ -758,14 +929,15 @@ export default function CataloguesSection({ currency, exchangeRates }) {
               return (
                 <React.Fragment key={page}>
                   {showEllipsis && (
-                    <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
+                    <span style={{ fontWeight: 100, fontSize: '12px', color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
                   )}
                   <button
                     onClick={() => setCurrentPage(page)}
+                    className={`pagination-page-btn ${activePage === page ? 'active' : ''}`}
                     style={{
-                      background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'rgba(255, 255, 255, 0.03)',
-                      color: activePage === page ? '#000' : '#fff',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
+                      color: activePage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
                       fontWeight: activePage === page ? '700' : '500',
                       padding: '0.55rem 1.1rem',
                       minWidth: '2.6rem',
@@ -784,9 +956,9 @@ export default function CataloguesSection({ currency, exchangeRates }) {
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={activePage === totalPages}
             style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              color: activePage === totalPages ? 'rgba(255, 255, 255, 0.15)' : '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'var(--bg-input)',
+              color: activePage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
               padding: '0.55rem 1.1rem',
               borderRadius: '6px',
               cursor: activePage === totalPages ? 'not-allowed' : 'pointer',
@@ -845,27 +1017,28 @@ export default function CataloguesSection({ currency, exchangeRates }) {
           transform: scale(1.04);
         }
         .catalog-card-body {
-          padding: 1.5rem;
+          padding: 12px;
           flex: 1;
           display: flex;
           flex-direction: column;
+         background-color: 'Black' ;
         }
         .catalog-card-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #fff;
-          margin: 0 0 0.5rem 0;
+          font-size: 14px;
+          font-weight: 100;
+          color: var(--text-primary);
+          margin: 0 0 12px 0;
           line-height: 1.4;
         }
         .catalog-card-date {
-          font-size: 0.8rem;
-          color: var(--accent-gold);
-          font-weight: 600;
+          font-size: 12px;
+          color: var(--text-primary) !important;
+          font-weight: 400;
           margin: 0 0 1rem 0;
         }
         .catalog-card-desc {
           color: var(--text-secondary);
-          font-size: 0.85rem;
+          font-size: 12px;
           line-height: 1.6;
           margin: 0;
           display: -webkit-box;
@@ -876,10 +1049,21 @@ export default function CataloguesSection({ currency, exchangeRates }) {
         }
         .catalog-card-footer {
           display: flex;
-          gap: 0.75rem;
-          padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+          gap: 12px;
+          padding: 12px 12px 12px 12px;
           border-top: 1px solid var(--border-color);
-          background-color: rgba(0, 0, 0, 0.1);
+          background-color: 'white';
+        }
+        .art-card-interactive:hover {
+          transform: translateY(-5px);
+          border-color: var(--accent-gold) !important;
+          box-shadow: var(--shadow-gold), var(--shadow-premium);
+        }
+        .art-card-interactive:hover .art-grid-image {
+          transform: scale(1.04);
+        }
+        .art-card-interactive:hover .art-hover-overlay {
+          opacity: 1 !important;
         }
         .animate-spin {
           animation: spin 1s linear infinite;

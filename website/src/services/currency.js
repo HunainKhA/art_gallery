@@ -53,15 +53,114 @@ export const formatPrice = (pricePKR, currency = 'PKR', rates = FALLBACK_RATES) 
   // Formatting rules for each currency
   switch (currency.toUpperCase()) {
     case 'USD':
-      return `$${Math.round(convertedPrice).toLocaleString()}`;
+      return `$${convertedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case 'EUR':
-      return `€${Math.round(convertedPrice).toLocaleString()}`;
+      return `€${convertedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case 'GBP':
-      return `£${Math.round(convertedPrice).toLocaleString()}`;
+      return `£${convertedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case 'AED':
-      return `AED ${Math.round(convertedPrice).toLocaleString()}`;
+      return `AED ${convertedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case 'PKR':
     default:
-      return `Rs. ${Math.round(numericPrice).toLocaleString()}`;
+      return `Rs. ${numericPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }
+};
+
+/**
+ * Helper to parse dimensions from database string/number fields
+ * handles simple numbers, units, compound strings like "H 70\" x W10\" x D3\""
+ */
+function parseDimensionField(str) {
+  if (!str) return null;
+  const s = String(str);
+  const hMatch = s.match(/(?:H|Height|L|Length)\s*:?\s*(\d+(?:\.\d+)?)/i);
+  const wMatch = s.match(/(?:W|Width)\s*:?\s*(\d+(?:\.\d+)?)/i);
+  const dMatch = s.match(/(?:D|Depth)\s*:?\s*(\d+(?:\.\d+)?)/i);
+  
+  if (hMatch || wMatch || dMatch) {
+    return {
+      height: hMatch ? parseFloat(hMatch[1]) : null,
+      width: wMatch ? parseFloat(wMatch[1]) : null,
+      depth: dMatch ? parseFloat(dMatch[1]) : null
+    };
+  }
+  return null;
+}
+
+export const renderDimensions = (width, length) => {
+  const wStr = String(width || '').trim();
+  const lStr = String(length || '').trim();
+
+  // Try parsing compound string in length or width
+  let data = parseDimensionField(lStr) || parseDimensionField(wStr);
+  
+  if (!data) {
+    // Try parsing plain numbers or simple x separator
+    const combined = `${lStr} x ${wStr}`;
+    const parts = combined.split(/\s*x\s*|\s*\*\s*/i).map(p => p.replace(/"/g, '').trim());
+    const numbers = parts.map(p => parseFloat(p)).filter(n => !isNaN(n) && n > 0);
+
+    if (numbers.length >= 2) {
+      data = {
+        height: numbers[0],
+        width: numbers[1],
+        depth: numbers[2] || null
+      };
+    } else if (numbers.length === 1) {
+      data = {
+        height: numbers[0],
+        width: null,
+        depth: null
+      };
+    } else {
+      data = {
+        height: parseFloat(lStr) || null,
+        width: parseFloat(wStr) || null,
+        depth: null
+      };
+    }
+  }
+
+  // Format inches
+  let inStr = '';
+  if (data.height !== null && data.width !== null) {
+    if (data.depth !== null) {
+      inStr = `H ${data.height}" x W ${data.width}" x D ${data.depth}" in`;
+    } else {
+      inStr = `${data.height} x ${data.width} in`;
+    }
+  } else if (data.height !== null) {
+    inStr = `${data.height} in`;
+  } else if (data.width !== null) {
+    inStr = `${data.width} in`;
+  } else {
+    if (length || width) {
+      inStr = `${length || 0} x ${width || 0} in`;
+    } else {
+      inStr = '0 x 0 in';
+    }
+  }
+
+  // Format cm
+  let cmStr = '';
+  const toCm = (val) => val ? (val * 2.54).toFixed(2) : null;
+  const hCm = toCm(data.height);
+  const wCm = toCm(data.width);
+  const dCm = toCm(data.depth);
+
+  if (hCm !== null && wCm !== null) {
+    if (dCm !== null) {
+      cmStr = `H ${hCm} x W ${wCm} x D ${dCm} cm`;
+    } else {
+      cmStr = `${hCm} x ${wCm} cm`;
+    }
+  } else if (hCm !== null) {
+    cmStr = `${hCm} cm`;
+  } else if (wCm !== null) {
+    cmStr = `${wCm} cm`;
+  } else {
+    cmStr = '0.00 x 0.00 cm';
+  }
+
+  return { inStr, cmStr };
 };
