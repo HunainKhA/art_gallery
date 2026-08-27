@@ -1007,11 +1007,12 @@ body.light-theme .marquee-content {
 /* Slide Down Navigation Menu Overlay */
 .slide-down-menu {
   position: fixed;
-  top: 95px;
+.slide-down-menu {
+  position: fixed;
+  top: 90px;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: transparent;
+  background: var(--bg-card);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   z-index: 1050;
@@ -1019,7 +1020,9 @@ body.light-theme .marquee-content {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding: 3rem 2rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   transform: translateY(-100%);
   opacity: 0;
   pointer-events: none;
@@ -1028,11 +1031,13 @@ body.light-theme .marquee-content {
 }
 
 .app-wrapper.has-marquee .slide-down-menu {
-  top: 130px;
+  top: 125px;
 }
 
 body.light-theme .slide-down-menu {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
 }
 
 .slide-down-menu.is-open {
@@ -1041,55 +1046,68 @@ body.light-theme .slide-down-menu {
   pointer-events: auto;
 }
 
-/* Overlay Navigation List */
+/* Overlay Navigation List - Sleek Single Row Layout */
 .overlay-nav {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 1.25rem;
-  margin-bottom: 2rem;
+  gap: 1.15rem;
+  margin: 0 auto;
   width: 100%;
-  max-width: 400px;
+  max-width: 900px;
 }
 
 .overlay-nav-btn {
   background: none;
   border: none;
-  color: var(--text-secondary);
-  font-size: 1.35rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   text-align: center;
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.25rem;
   cursor: pointer;
+  width: auto;
+  position: relative;
   transition: var(--transition-smooth);
-  width: 100%;
 }
 
 .overlay-nav-btn:hover {
   color: var(--accent-gold);
-  transform: scale(1.05);
 }
 
 .overlay-nav-btn.active {
   color: var(--accent-gold);
   font-weight: 400;
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
 }
 
-.overlay-nav-group {
-  width: 100%;
-  text-align: center;
+.overlay-nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-gold);
+  border-radius: 2px;
 }
 
 /* Overlay Submenu */
 .overlay-submenu {
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-color);
+  width: 100%;
+  max-width: 600px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -1097,11 +1115,12 @@ body.light-theme .slide-down-menu {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 400;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
+  padding: 0.2rem 0.4rem;
   transition: var(--transition-smooth);
 }
 
