@@ -852,7 +852,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
               <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <Layout size={20} color="var(--accent-gold)" /> Room Wall Preview
                 <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
-                  — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} | {artwork.width || 36}" x {artwork.length || 24}"
+                  — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} | {artwork.width || 36}" × {artwork.length || 24}" (Scale: 16ft × 11ft Wall)
                 </span>
               </h3>
               <button
@@ -894,46 +894,85 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '76%', backgroundColor: wallColor, opacity: 0.55, pointerEvents: 'none', zIndex: 1, transition: 'background-color 0.4s ease' }} />
                   </div>
 
-                  {/* Scale Girl — rendered as bg-image div to avoid showing large transparent PNG canvas */}
+                  {/* Scale Reference Girl: Accurately proportioned to 11ft wall (~5.4 ft height = 50% of 11ft wall height) */}
                   <div
                     style={{
                       position: 'absolute',
-                      bottom: '11.5%',
-                      left: '2%',
-                      width: '18%',
-                      height: '65%',
-                      backgroundImage: `url(${galleryGirlOverlay}?v=12)`,
-                      backgroundSize: '60% auto',
-                      backgroundPosition: 'left bottom',
-                      backgroundRepeat: 'no-repeat',
+                      bottom: '9%',
+                      left: '4%',
+                      height: '50%',
                       pointerEvents: 'none',
-                      zIndex: 2,
-                      marginLeft: '150px'
+                      zIndex: 4,
+                      display: 'flex',
+                      alignItems: 'flex-end'
                     }}
-                  />
-                  {/* Hanging Painting */}
+                  >
+                    <img
+                      src={galleryGirlOverlay}
+                      alt="Human Scale Reference (5.4 ft)"
+                      style={{
+                        height: '100%',
+                        width: 'auto',
+                        objectFit: 'contain',
+                        display: 'block',
+                        filter: 'drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45))'
+                      }}
+                    />
+                  </div>
+
+                  {/* Hanging Painting (True Proportional Scale for 16ft Width x 11ft Height Wall) */}
                   {(() => {
-                    const scaleW = 0.95;
-                    const scaleH = 1.35;
-                    const w = Math.min((artwork.width || 36) * scaleW, 60);
-                    const h = Math.min((artwork.length || 24) * scaleH, 60);
-                    const centerY = 40;
+                    // Standard Room Wall Dimensions in Inches: 16ft wide x 11ft tall
+                    const WALL_WIDTH_INCHES = 192;  // 16 ft * 12
+                    const WALL_HEIGHT_INCHES = 132; // 11 ft * 12
+                    const WALL_CANVAS_PORTION = 0.76; // The wall surface occupies top 76% of canvas height
+
+                    const rawW = parseFloat(artwork.width) || 36;
+                    const rawH = parseFloat(artwork.length || artwork.height) || 24;
+
+                    // Calculate proportional % relative to the 16ft x 11ft wall
+                    let widthPct = (rawW / WALL_WIDTH_INCHES) * 100;
+                    let heightPct = (rawH / WALL_HEIGHT_INCHES) * (WALL_CANVAS_PORTION * 100);
+
+                    // Ensure monumental / giant paintings fit smoothly without clipping
+                    const maxAllowedWidth = 65;
+                    const maxAllowedHeight = 54;
+                    if (widthPct > maxAllowedWidth || heightPct > maxAllowedHeight) {
+                      const scaleFactor = Math.min(maxAllowedWidth / widthPct, maxAllowedHeight / heightPct);
+                      widthPct = widthPct * scaleFactor;
+                      heightPct = heightPct * scaleFactor;
+                    }
+
+                    // Ensure tiny miniature paintings stay visible
+                    const minAllowedWidth = 7;
+                    const minAllowedHeight = 9;
+                    if (widthPct < minAllowedWidth || heightPct < minAllowedHeight) {
+                      const scaleFactor = Math.max(minAllowedWidth / widthPct, minAllowedHeight / heightPct);
+                      widthPct = widthPct * scaleFactor;
+                      heightPct = heightPct * scaleFactor;
+                    }
+
+                    // Gallery eye-level hanging center (~58-60 inches from floor, centered in open wall space)
+                    const centerY = 38;
+                    const centerX = 54;
+
                     return (
                       <div
                         className={`visualizer-artwork-wrapper frame-${frameStyle}`}
                         style={{
                           position: 'absolute',
                           top: `${centerY}%`,
-                          left: '50%',
-                          width: `${w}%`,
-                          height: `${h}%`,
+                          left: `${centerX}%`,
+                          width: `${widthPct}%`,
+                          height: `${heightPct}%`,
                           transform: 'translate(-50%, -50%)',
                           backgroundImage: `url(${artwork.id ? `${API_BASE}/api/artworks/image/${artwork.id}` : (artwork.image || '')})`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           zIndex: 3,
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                          borderImageSlice: '12'
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                          borderImageSlice: '12',
+                          transition: 'width 0.4s ease, height 0.4s ease'
                         }}
                       >
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 25%, rgba(255,255,255,0.12), transparent 70%)', pointerEvents: 'none' }} />
