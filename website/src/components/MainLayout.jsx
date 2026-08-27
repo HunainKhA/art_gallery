@@ -292,7 +292,7 @@ export default function MainLayout({ children, state }) {
       {/* 📂 SLIDE-DOWN TRANSPARENT NAVIGATION OVERLAY */}
       <div className={`slide-down-menu ${isMenuOpen ? 'is-open' : ''}`}>
 
-        {/* Overlay Navigation Links in a Single Row */}
+        {/* Overlay Navigation Links */}
         <nav className="overlay-nav">
           <button
             onClick={() => { setActiveTab('home'); setSelectedArtist(null); setSelectedArtworkId(null); setIsMenuOpen(false); }}
@@ -322,12 +322,37 @@ export default function MainLayout({ children, state }) {
             Artists
           </button>
 
-          <button
-            onClick={() => { setActiveTab('exhibitions'); setExhibitionFilter && setExhibitionFilter('previous'); setSelectedArtist(null); setSelectedArtworkId(null); setSelectedExhibition(null); setIsMenuOpen(false); }}
-            className={`overlay-nav-btn ${activeTab === 'exhibitions' ? 'active' : ''}`}
-          >
-            Exhibitions
-          </button>
+          {/* Exhibitions Accordion Option */}
+          <div className="overlay-nav-group">
+            <button
+              onClick={() => { setActiveTab('exhibitions'); setExhibitionFilter && setExhibitionFilter('previous'); setSelectedArtist(null); setSelectedArtworkId(null); setSelectedExhibition(null); }}
+              className={`overlay-nav-btn ${activeTab === 'exhibitions' ? 'active' : ''}`}
+            >
+              Exhibitions
+            </button>
+            {activeTab === 'exhibitions' && (
+              <div className="overlay-submenu">
+                <button
+                  onClick={() => { setExhibitionFilter('previous'); setSelectedExhibition(null); setIsMenuOpen(false); }}
+                  className={`overlay-submenu-btn ${exhibitionFilter === 'previous' ? 'active' : ''}`}
+                >
+                  Previous Shows
+                </button>
+                <button
+                  onClick={() => { setExhibitionFilter('current'); setSelectedExhibition(null); setIsMenuOpen(false); }}
+                  className={`overlay-submenu-btn ${exhibitionFilter === 'current' ? 'active' : ''}`}
+                >
+                  Current Shows
+                </button>
+                <button
+                  onClick={() => { setExhibitionFilter('upcoming'); setSelectedExhibition(null); setIsMenuOpen(false); }}
+                  className={`overlay-submenu-btn ${exhibitionFilter === 'upcoming' ? 'active' : ''}`}
+                >
+                  Upcoming Shows
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => { setActiveTab('catalogues'); setSelectedArtist(null); setSelectedArtworkId(null); setIsMenuOpen(false); }}
@@ -336,12 +361,31 @@ export default function MainLayout({ children, state }) {
             Catalogues
           </button>
 
-          <button
-            onClick={() => { setActiveTab('framer_heaven'); setSelectedArtist(null); setSelectedArtworkId(null); setIsMenuOpen(false); }}
-            className={`overlay-nav-btn ${activeTab === 'framer_heaven' ? 'active' : ''}`}
-          >
-            Framer's Heaven
-          </button>
+          {/* Framer's Heaven Accordion Option */}
+          <div className="overlay-nav-group">
+            <button
+              onClick={() => { setActiveTab('framer_heaven'); setSelectedArtist(null); setSelectedArtworkId(null); }}
+              className={`overlay-nav-btn ${activeTab === 'framer_heaven' ? 'active' : ''}`}
+            >
+              Framer's Heaven
+            </button>
+            {activeTab === 'framer_heaven' && (
+              <div className="overlay-submenu">
+                <button
+                  onClick={() => { setFramerHeavenTab('Product'); setIsMenuOpen(false); }}
+                  className={`overlay-submenu-btn ${framerHeavenTab === 'Product' ? 'active' : ''}`}
+                >
+                  • Products
+                </button>
+                <button
+                  onClick={() => { setFramerHeavenTab('Service'); setIsMenuOpen(false); }}
+                  className={`overlay-submenu-btn ${framerHeavenTab === 'Service' ? 'active' : ''}`}
+                >
+                  • Services
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => { setActiveTab('contact'); setSelectedArtist(null); setSelectedArtworkId(null); setIsMenuOpen(false); }}
@@ -350,48 +394,6 @@ export default function MainLayout({ children, state }) {
             Contact Us
           </button>
         </nav>
-
-        {/* Submenu for active Exhibitions */}
-        {activeTab === 'exhibitions' && (
-          <div className="overlay-submenu">
-            <button
-              onClick={() => { setExhibitionFilter('previous'); setSelectedExhibition(null); setIsMenuOpen(false); }}
-              className={`overlay-submenu-btn ${exhibitionFilter === 'previous' ? 'active' : ''}`}
-            >
-              Previous Shows
-            </button>
-            <button
-              onClick={() => { setExhibitionFilter('current'); setSelectedExhibition(null); setIsMenuOpen(false); }}
-              className={`overlay-submenu-btn ${exhibitionFilter === 'current' ? 'active' : ''}`}
-            >
-              Current Shows
-            </button>
-            <button
-              onClick={() => { setExhibitionFilter('upcoming'); setSelectedExhibition(null); setIsMenuOpen(false); }}
-              className={`overlay-submenu-btn ${exhibitionFilter === 'upcoming' ? 'active' : ''}`}
-            >
-              Upcoming Shows
-            </button>
-          </div>
-        )}
-
-        {/* Submenu for active Framer's Heaven */}
-        {activeTab === 'framer_heaven' && (
-          <div className="overlay-submenu">
-            <button
-              onClick={() => { setFramerHeavenTab('Product'); setIsMenuOpen(false); }}
-              className={`overlay-submenu-btn ${framerHeavenTab === 'Product' ? 'active' : ''}`}
-            >
-              • Products
-            </button>
-            <button
-              onClick={() => { setFramerHeavenTab('Service'); setIsMenuOpen(false); }}
-              className={`overlay-submenu-btn ${framerHeavenTab === 'Service' ? 'active' : ''}`}
-            >
-              • Services
-            </button>
-          </div>
-        )}
 
       </div>
 
