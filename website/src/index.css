@@ -1474,19 +1474,14 @@ body.light-theme .footer-search-input::placeholder {
 }
 
 /* ====================================================
-   Artist Biography Text & Tables Formatting
+   Artist Biography Text & Tables Formatting (Permanent)
    ==================================================== */
-.artist-bio-rendered,
-.artist-bio-rendered * {
-  font-weight: 100 !important;
-}
-
 .artist-bio-rendered {
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.75;
   padding-right: 0.5rem;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
 }
 
 .artist-bio-rendered table {
@@ -1504,7 +1499,7 @@ body.light-theme .footer-search-input::placeholder {
   vertical-align: top !important;
   color: var(--text-secondary) !important;
   line-height: 1.75 !important;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
 }
 
 .artist-bio-rendered tr td:first-child,
@@ -1512,24 +1507,27 @@ body.light-theme .footer-search-input::placeholder {
   width: 25% !important;
   min-width: 140px !important;
   color: var(--text-primary) !important;
-  font-weight: 100 !important;
+  font-weight: 500 !important;
   padding: 1.15rem 1.4rem !important;
   background: transparent !important;
 }
 
 .artist-bio-rendered p,
+.artist-bio-rendered span,
+.artist-bio-rendered div {
+  font-weight: 400 !important;
+}
+
 .artist-bio-rendered strong,
 .artist-bio-rendered b,
 .artist-bio-rendered h1,
 .artist-bio-rendered h2,
 .artist-bio-rendered h3,
-.artist-bio-rendered h4,
-.artist-bio-rendered span,
-.artist-bio-rendered div {
-  font-weight: 100 !important;
+.artist-bio-rendered h4 {
+  font-weight: 600 !important;
 }
 
-/* Light Theme: Pure White Background & Crisp 100 Weight Black Text */
+/* Light Theme: Permanent Pure White Background & Solid Pure Black Text */
 body.light-theme .artist-bio-modal-card {
   background: #ffffff !important;
   background-color: #ffffff !important;
@@ -1550,7 +1548,6 @@ body.light-theme .artist-bio-rendered * {
   background-color: #ffffff !important;
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
-  font-weight: 100 !important;
   opacity: 1 !important;
 }
 
@@ -1569,7 +1566,7 @@ body.light-theme .artist-bio-rendered td * {
   border-color: rgba(0, 0, 0, 0.15) !important;
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
   opacity: 1 !important;
 }
 
@@ -1581,7 +1578,7 @@ body.light-theme .artist-bio-rendered tr th:first-child * {
   background-color: #ffffff !important;
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
-  font-weight: 100 !important;
+  font-weight: 500 !important;
   opacity: 1 !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
 }
@@ -1591,7 +1588,7 @@ body.light-theme .artist-bio-empty-box {
   background-color: #ffffff !important;
   border: 1px dashed rgba(0, 0, 0, 0.2) !important;
   color: #000000 !important;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
 }
 
 @media (max-width: 768px) {

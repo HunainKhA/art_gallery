@@ -2643,16 +2643,12 @@ export default function ExhibitionsSection({
           }
 
           /* Artist Biography Text and Table Formatting */
-          .artist-bio-rendered,
-          .artist-bio-rendered * {
-            font-weight: 100 !important;
-          }
           .artist-bio-rendered {
             color: var(--text-secondary);
             font-size: 13px;
             line-height: 1.75;
             padding-right: 0.5rem;
-            font-weight: 100 !important;
+            font-weight: 400 !important;
           }
           .artist-bio-rendered table {
             width: 100% !important;
@@ -2668,30 +2664,32 @@ export default function ExhibitionsSection({
             vertical-align: top !important;
             color: var(--text-secondary) !important;
             line-height: 1.7 !important;
-            font-weight: 100 !important;
+            font-weight: 400 !important;
           }
           .artist-bio-rendered tr td:first-child,
           .artist-bio-rendered tr th:first-child {
             width: 25% !important;
             min-width: 140px !important;
             color: var(--text-primary) !important;
-            font-weight: 100 !important;
+            font-weight: 500 !important;
             padding: 1.15rem 1.4rem !important;
             background: transparent !important;
           }
           .artist-bio-rendered p,
+          .artist-bio-rendered span,
+          .artist-bio-rendered div {
+            font-weight: 400 !important;
+          }
           .artist-bio-rendered strong,
           .artist-bio-rendered b,
           .artist-bio-rendered h1,
           .artist-bio-rendered h2,
           .artist-bio-rendered h3,
-          .artist-bio-rendered h4,
-          .artist-bio-rendered span,
-          .artist-bio-rendered div {
-            font-weight: 100 !important;
+          .artist-bio-rendered h4 {
+            font-weight: 600 !important;
           }
 
-          /* Light Theme: Pure White Background & Crisp Pure Black / 100 Weight */
+          /* Light Theme: Pure White Background & Crisp Solid Black Text */
           body.light-theme .artist-bio-modal-card {
             background: #ffffff !important;
             border-color: rgba(0, 0, 0, 0.12) !important;
@@ -2709,7 +2707,6 @@ export default function ExhibitionsSection({
             background-color: #ffffff !important;
             color: #000000 !important;
             -webkit-text-fill-color: #000000 !important;
-            font-weight: 100 !important;
             opacity: 1 !important;
           }
           body.light-theme .artist-bio-rendered table {
@@ -2726,7 +2723,7 @@ export default function ExhibitionsSection({
             border-color: rgba(0, 0, 0, 0.15) !important;
             color: #000000 !important;
             -webkit-text-fill-color: #000000 !important;
-            font-weight: 100 !important;
+            font-weight: 400 !important;
             opacity: 1 !important;
           }
           body.light-theme .artist-bio-rendered tr td:first-child,
@@ -2737,7 +2734,7 @@ export default function ExhibitionsSection({
             background-color: #ffffff !important;
             color: #000000 !important;
             -webkit-text-fill-color: #000000 !important;
-            font-weight: 100 !important;
+            font-weight: 500 !important;
             opacity: 1 !important;
             border-color: rgba(0, 0, 0, 0.15) !important;
           }
@@ -2746,7 +2743,7 @@ export default function ExhibitionsSection({
             background-color: #ffffff !important;
             border: 1px dashed rgba(0, 0, 0, 0.2) !important;
             color: #000000 !important;
-            font-weight: 100 !important;
+            font-weight: 400 !important;
           }
 
           .bio-slides-column {
