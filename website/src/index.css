@@ -1763,6 +1763,16 @@ body.light-theme .floating-socials {
 }
 
 /* Fullscreen Home View Adjustments */
+.app-wrapper.is-home-view {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow: hidden !important;
+  position: relative;
+}
+
 .app-wrapper.is-home-view .top-navbar {
   background: transparent !important;
   backdrop-filter: none !important;
@@ -1772,10 +1782,20 @@ body.light-theme .floating-socials {
 }
 
 .app-wrapper.is-home-view .global-footer {
-  border-top: none !important;
+  display: none !important;
 }
 
-.app-wrapper.is-home-view .main-content,
+.app-wrapper.is-home-view .main-content {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: hidden !important;
+}
+
 .app-wrapper.is-about-view .main-content {
   padding-top: 0 !important;
 }
@@ -1813,14 +1833,29 @@ body.light-theme .floating-socials {
   color: var(--accent-gold, #d4af37) !important;
 }
 
-/* Fullscreen Background Slider */
+/* Fullscreen Background Slider - Flawless Fit on iPhone / Android / Desktop */
 .home-fullscreen-slider {
-  position: relative;
-  width: 100%;
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: -webkit-fill-available !important;
   z-index: 1;
   overflow: hidden;
   background-color: #000;
+}
+
+.home-fullscreen-slider img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  display: block !important;
 }
 
 .home-fullscreen-slider::after {
