@@ -657,7 +657,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
               padding: '2rem',
               boxShadow: 'var(--shadow-premium)',
               border: '1px solid var(--border-color)',
-              borderRadius: '12px',
+              borderRadius: '12px'
             }}
           >
             {/* Header */}
@@ -899,7 +899,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     style={{
                       position: 'absolute',
                       bottom: '9%',
-                      left: '4%',
+                      left: '12%',
                       height: '50%',
                       pointerEvents: 'none',
                       zIndex: 4,
@@ -935,7 +935,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     let heightPct = (rawH / WALL_HEIGHT_INCHES) * (WALL_CANVAS_PORTION * 100);
 
                     // Ensure monumental / giant paintings fit smoothly without clipping
-                    const maxAllowedWidth = 65;
+                    const maxAllowedWidth = 62;
                     const maxAllowedHeight = 54;
                     if (widthPct > maxAllowedWidth || heightPct > maxAllowedHeight) {
                       const scaleFactor = Math.min(maxAllowedWidth / widthPct, maxAllowedHeight / heightPct);
@@ -954,7 +954,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
 
                     // Gallery eye-level hanging center (~58-60 inches from floor, centered in open wall space)
                     const centerY = 38;
-                    const centerX = 54;
+                    const centerX = 56;
 
                     return (
                       <div
