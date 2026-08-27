@@ -921,6 +921,7 @@ export default function MainLayout({ children, state }) {
           align-items: center;
           width: 260px;
           margin-left: auto;
+          margin-right: 5.5rem;
           transition: all 0.3s ease;
         }
 

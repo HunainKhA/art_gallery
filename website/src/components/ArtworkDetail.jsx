@@ -845,13 +845,14 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            position: 'relative'
+            position: 'relative',
+
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Layout size={20} color="var(--accent-gold)" /> Room Wall Preview
-                <span className="modal-header-subtitle" style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 500, marginLeft: '0.5rem', opacity: 1 }}>
+              <h3 style={{ margin: 0, fontWeight: 100, fontSize: '14px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <Layout color="var(--accent-gold)" /> Room Wall Preview
+                <span className="modal-header-subtitle" style={{ fontSize: '12px', color: '#ffffff', fontWeight: 100, marginLeft: '0.5rem' }}>
                   — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} | {artwork.width || 36}" × {artwork.length || 24}" (Scale: 16ft × 11ft Wall)
                 </span>
               </h3>

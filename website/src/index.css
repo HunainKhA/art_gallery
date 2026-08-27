@@ -1435,6 +1435,17 @@ body.light-theme .zoom-slider {
   display: none !important;
 }
 
+/* Global Footer Search Position */
+.footer-search {
+  margin-right: 5.5rem !important;
+}
+
+@media (max-width: 768px) {
+  .footer-search {
+    margin-right: auto !important;
+  }
+}
+
 /* ====================================================
    Floating Bottom-Left Social Media Bar
    ==================================================== */
