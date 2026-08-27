@@ -464,14 +464,13 @@ body.light-theme a:not(.whatsapp-fab):not(.social-icon-btn):not(.btn-primary):no
 /* ====================================================
    Light Theme - Text Boxes (Inputs, Textareas, Selects)
    ==================================================== */
-body.light-theme input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+body.light-theme input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not(.footer-search-input),
 body.light-theme textarea,
 body.light-theme select,
 body.light-theme .form-control,
 body.light-theme .input-field,
 body.light-theme .sidebar-search-input,
-body.light-theme .footer-search-input,
-body.light-theme .search-input {
+body.light-theme .search-input:not(.footer-search-input) {
   background-color: #ffffff !important;
   background: #ffffff !important;
   color: #000000 !important;
@@ -1438,6 +1437,34 @@ body.light-theme .zoom-slider {
 /* Global Footer Search Position */
 .footer-search {
   margin-right: 5.5rem !important;
+}
+
+.footer-search-input,
+body.light-theme .footer-search-input {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.4) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0.4rem 2rem 0.4rem 0 !important;
+}
+
+body.light-theme .footer-search-input {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.35) !important;
+  color: #000000 !important;
+}
+
+.footer-search-input:focus,
+body.light-theme .footer-search-input:focus {
+  border-bottom: 1px solid var(--accent-gold) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 @media (max-width: 768px) {
