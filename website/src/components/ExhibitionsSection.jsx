@@ -50,6 +50,7 @@ export default function ExhibitionsSection({
   const [loadingBioArtist, setLoadingBioArtist] = useState(false);
   const [bioArtistsList, setBioArtistsList] = useState([]);
   const [bioArtistIndex, setBioArtistIndex] = useState(0);
+  const bioBodyRef = useRef(null);
 
   const formatBioHtml = (bioHtml) => {
     if (!bioHtml) return '';
@@ -91,12 +92,14 @@ export default function ExhibitionsSection({
         setSelectedBioArtist(artistOrId);
         setShowBioModal(true);
         setLoadingBioArtist(false);
+        if (bioBodyRef.current) bioBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       const fullArtist = await fetchArtistDetail(artistId);
       if (fullArtist) {
         setSelectedBioArtist(fullArtist);
         setShowBioModal(true);
+        if (bioBodyRef.current) bioBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
       console.error("Failed to load artist biography:", err);
@@ -109,6 +112,7 @@ export default function ExhibitionsSection({
     if (!bioArtistsList || bioArtistsList.length <= 1) return;
     const nextIdx = (bioArtistIndex + 1) % bioArtistsList.length;
     setBioArtistIndex(nextIdx);
+    if (bioBodyRef.current) bioBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     handleOpenArtistBio(bioArtistsList[nextIdx], nextIdx, bioArtistsList);
   };
 
@@ -116,6 +120,7 @@ export default function ExhibitionsSection({
     if (!bioArtistsList || bioArtistsList.length <= 1) return;
     const prevIdx = (bioArtistIndex - 1 + bioArtistsList.length) % bioArtistsList.length;
     setBioArtistIndex(prevIdx);
+    if (bioBodyRef.current) bioBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     handleOpenArtistBio(bioArtistsList[prevIdx], prevIdx, bioArtistsList);
   };
 
@@ -2349,6 +2354,8 @@ export default function ExhibitionsSection({
               style={{
                 width: '100%',
                 maxWidth: '1100px',
+                height: '75vh',
+                minHeight: '540px',
                 maxHeight: '85vh',
                 display: 'flex',
                 flexDirection: 'column',
@@ -2482,6 +2489,7 @@ export default function ExhibitionsSection({
 
               {/* Content */}
               <div
+                ref={bioBodyRef}
                 style={{
                   padding: '2rem',
                   overflowY: 'auto',
@@ -2489,11 +2497,14 @@ export default function ExhibitionsSection({
                   color: 'var(--text-secondary)',
                   fontSize: '12px',
                   lineHeight: '1.7',
-                  maxHeight: '60vh'
+                  scrollBehavior: 'smooth'
                 }}
                 className="custom-scrollbar"
               >
-                <div className="bio-modal-layout">
+                <div
+                  key={selectedBioArtist?.id || bioArtistIndex}
+                  className="bio-modal-layout bio-fade-in"
+                >
                   {/* Left Side: Biography text */}
                   {(selectedBioArtist.bio && selectedBioArtist.bio.trim()) || (selectedBioArtist.artist_biography && selectedBioArtist.artist_biography.trim()) ? (
                     <div
@@ -2618,6 +2629,20 @@ export default function ExhibitionsSection({
 
         <style>{`
           /* Biography Modal Layout */
+          @keyframes bioFadeIn {
+            0% {
+              opacity: 0;
+              transform: translateY(6px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .bio-fade-in {
+            animation: bioFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+
           .bio-modal-layout {
             display: grid;
             grid-template-columns: 1.5fr 1fr;
