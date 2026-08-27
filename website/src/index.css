@@ -206,18 +206,17 @@ body.light-theme .artists-section-wrapper .artist-card-name,
 body.light-theme .artists-section-wrapper .artist-card-title,
 body.light-theme .artists-section-wrapper .artist-card-bio,
 body.light-theme .artists-section-wrapper .artist-card-link-text,
-body.light-theme .artists-section-wrapper .alphabet-filter-btn:not(.active),
 body.light-theme .artists-section-wrapper .status-inquiry {
   color: #000000 !important;
   font-weight: 400 !important;
 }
 
+.artists-section-wrapper .alphabet-filter-btn,
+.artists-section-wrapper .alphabet-filter-btn.active,
+.artists-section-wrapper .alphabet-filter-btn:hover,
+body.light-theme .artists-section-wrapper .alphabet-filter-btn,
 body.light-theme .artists-section-wrapper .alphabet-filter-btn.active {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: 1.5px solid #000000 !important;
-  font-weight: 700 !important;
+  font-weight: 100 !important;
 }
 
 body.light-theme .artists-section-wrapper .status-available {
