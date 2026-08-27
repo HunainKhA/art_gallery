@@ -881,15 +881,6 @@ export default function MainLayout({ children, state }) {
           -webkit-backdrop-filter: none !important;
           color: var(--accent-gold) !important;
         }
-        
-        /* Hover visibility guarantee for all buttons and links */
-        .floating-header-group:hover .nav-link,
-        .top-navbar:hover .nav-link,
-        .floating-header-group:hover .navbar-actions,
-        .top-navbar:hover .navbar-actions {
-          opacity: 1 !important;
-          visibility: visible !important;
-        }
 
         /* Home View overrides to maintain dark backdrop contrast on top of slider */
         .app-wrapper.is-home-view .theme-switch-floating, 
