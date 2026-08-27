@@ -662,7 +662,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
           >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#333333', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 100, margin: 0, color: '#333333', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 Inquiry
               </h2>
               <button
