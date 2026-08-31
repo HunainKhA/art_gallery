@@ -87,13 +87,13 @@ export default function AboutSection() {
 
   return (
     <div className="about-page-wrapper">
-      {/* Scoped CSS for 100% width image banners and centered typography */}
+      {/* Scoped CSS for 100% width image banners and flush left typography */}
       <style>{`
         .about-page-wrapper {
           width: 100% !important;
           max-width: 100% !important;
           margin: 0 !important;
-          padding: 0 0 5rem 0 !important;
+          padding: 0 0 4rem 0 !important;
           box-sizing: border-box !important;
         }
         .about-hero-container {
@@ -106,28 +106,32 @@ export default function AboutSection() {
           justify-content: center !important;
           margin: 0 !important;
           padding: 0 !important;
-          background: #0a0a0a !important;
+          background: transparent !important;
         }
         .about-hero-img {
           width: 100% !important;
           max-width: 100% !important;
           height: auto !important;
-          max-height: 80vh !important;
+          max-height: 85vh !important;
           object-fit: cover !important;
           display: block !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         .about-content-section {
           width: 100% !important;
-          padding: 2.5rem 2rem !important;
+          max-width: 100% !important;
+          padding: 2.25rem 2rem !important;
+          margin: 0 !important;
           box-sizing: border-box !important;
-          display: flex !important;
-          justify-content: center !important;
+          display: block !important;
+          text-align: left !important;
         }
         .about-content-inner {
           width: 100% !important;
-          max-width: 1100px !important;
-          margin: 0 auto !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
           text-align: left !important;
           box-sizing: border-box !important;
         }
@@ -138,9 +142,10 @@ export default function AboutSection() {
           letter-spacing: 0.05em !important;
           text-transform: uppercase !important;
           color: #000000 !important;
-          margin: 0 0 0.75rem 0 !important;
+          margin: 0 0 0.65rem 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
+          display: block !important;
         }
         .about-paragraph {
           font-size: 12px !important;
@@ -148,6 +153,7 @@ export default function AboutSection() {
           line-height: 1.85 !important;
           color: #000000 !important;
           margin: 0 !important;
+          padding: 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
           letter-spacing: 0.02em !important;
@@ -160,10 +166,11 @@ export default function AboutSection() {
           display: grid !important;
           grid-template-columns: 1fr 1fr !important;
           gap: 3.5rem !important;
-          margin-top: 0.5rem !important;
+          margin: 0 !important;
           padding-top: 1.5rem !important;
           border-top: 1px solid var(--border-color) !important;
           text-align: left !important;
+          width: 100% !important;
         }
         .about-location-col {
           text-align: left !important;
@@ -196,7 +203,7 @@ export default function AboutSection() {
 
         @media (max-width: 768px) {
           .about-content-section {
-            padding: 2rem 1rem !important;
+            padding: 1.75rem 1.25rem !important;
           }
           .about-hero-img {
             max-height: 50vh !important;

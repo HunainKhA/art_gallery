@@ -488,7 +488,7 @@ export default function MainLayout({ children, state }) {
       </div>
 
       {/*  MAIN CONTENT AREA */}
-      <main className="main-content">
+      <main className={`main-content ${activeTab === 'about' ? 'is-about-view' : ''}`} style={activeTab === 'about' ? { paddingTop: 0 } : {}}>
 
         {children}
 
