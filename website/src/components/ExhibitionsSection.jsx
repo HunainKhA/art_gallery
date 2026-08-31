@@ -53,6 +53,9 @@ export default function ExhibitionsSection({
   const [bioArtistIndex, setBioArtistIndex] = useState(0);
   const bioBodyRef = useRef(null);
 
+  // Guest Photos Lightbox Modal state
+  const [activeGuestPicIndex, setActiveGuestPicIndex] = useState(null);
+
   const formatBioHtml = (bioHtml) => {
     if (!bioHtml) return '';
     let formatted = bioHtml;
@@ -146,6 +149,28 @@ export default function ExhibitionsSection({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showBioModal, bioArtistIndex, bioArtistsList]);
+
+  // Keyboard navigation for Guest Photos lightbox
+  useEffect(() => {
+    if (activeGuestPicIndex === null || !selectedExhibition || !selectedExhibition.guest_pics) return;
+    const guestPicsList = selectedExhibition.guest_pics.split(',').map(s => s.trim()).filter(Boolean);
+    if (guestPicsList.length === 0) return;
+
+    const handleGuestKey = (e) => {
+      if (e.key === 'Escape') {
+        setActiveGuestPicIndex(null);
+      } else if (e.key === 'ArrowRight' && guestPicsList.length > 1) {
+        e.preventDefault();
+        setActiveGuestPicIndex(prev => (prev + 1) % guestPicsList.length);
+      } else if (e.key === 'ArrowLeft' && guestPicsList.length > 1) {
+        e.preventDefault();
+        setActiveGuestPicIndex(prev => (prev - 1 + guestPicsList.length) % guestPicsList.length);
+      }
+    };
+
+    window.addEventListener('keydown', handleGuestKey);
+    return () => window.removeEventListener('keydown', handleGuestKey);
+  }, [activeGuestPicIndex, selectedExhibition]);
 
   const [activeSubSec, setActiveSubSec] = useState('overview');
 
@@ -1360,48 +1385,213 @@ export default function ExhibitionsSection({
         </div>
 
         {/* 4. GUEST GALLERY SECTION */}
-        {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (
-          <div id="exhibition-sec-video" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
-            <h2 style={{ fontSize: '14px', color: 'black', marginBottom: '1.5rem', fontWeight: 100, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span> Photographs  </span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 100 }}>
-                ({selectedExhibition.guest_pics.split(',').filter(Boolean).length} photos)
-              </span>
-            </h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '1.5rem'
-            }} className="guest-pics-grid">
-              {selectedExhibition.guest_pics.split(',').filter(Boolean).map((filename, idx) => {
-                const guestImgUrl = getApiUrl(`/api/crm/exhibitions/guest-pic/${filename}`);
-                return (
-                  <div
-                    key={idx}
-                    className="glass-card guest-pic-card"
-                    style={{
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      border: '1px solid var(--border-color)',
-                      height: '240px',
-                      background: '#111',
-                      cursor: 'zoom-in',
-                      transition: 'all 0.3s'
+        {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (() => {
+          const guestPicsList = selectedExhibition.guest_pics.split(',').map(s => s.trim()).filter(Boolean);
+          return (
+            <div id="exhibition-sec-video" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
+              <h2 style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '1.5rem', fontWeight: 100, display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span>Photographs</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 100 }}>
+                  ({guestPicsList.length} photos)
+                </span>
+              </h2>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '1.5rem'
+              }} className="guest-pics-grid">
+                {guestPicsList.map((filename, idx) => {
+                  const guestImgUrl = getApiUrl(`/api/crm/exhibitions/guest-pic/${filename}`);
+                  return (
+                    <div
+                      key={idx}
+                      className="glass-card guest-pic-card"
+                      style={{
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border-color)',
+                        height: '240px',
+                        background: '#0c0d10',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        position: 'relative'
+                      }}
+                      onClick={() => setActiveGuestPicIndex(idx)}
+                      title="Click to view full photo"
+                    >
+                      <img
+                        src={guestImgUrl}
+                        alt={`Photograph ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                        className="guest-grid-image"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Guest Photo Lightbox Modal */}
+              {activeGuestPicIndex !== null && guestPicsList.length > 0 && (
+                <div
+                  className="guest-lightbox-backdrop"
+                  onClick={() => setActiveGuestPicIndex(null)}
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(12px)',
+                    animation: 'fadeIn 0.25s ease'
+                  }}
+                >
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveGuestPicIndex(null);
                     }}
-                    onClick={() => window.open(guestImgUrl, '_blank')}
+                    style={{
+                      position: 'absolute',
+                      top: '24px',
+                      right: '28px',
+                      background: 'rgba(255, 255, 255, 0.12)',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      borderRadius: '50%',
+                      width: '46px',
+                      height: '46px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      zIndex: 10
+                    }}
+                    className="guest-lightbox-btn"
+                    title="Close (Esc)"
+                  >
+                    <X size={24} />
+                  </button>
+
+                  {/* Photo Counter */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '30px',
+                      left: '32px',
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '14px',
+                      fontWeight: 100,
+                      letterSpacing: '0.05em',
+                      fontFamily: 'Montserrat, sans-serif'
+                    }}
+                  >
+                    Photograph {activeGuestPicIndex + 1} of {guestPicsList.length}
+                  </div>
+
+                  {/* Previous Button */}
+                  {guestPicsList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveGuestPicIndex(prev => (prev - 1 + guestPicsList.length) % guestPicsList.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: '24px',
+                        background: 'rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        borderRadius: '50%',
+                        width: '54px',
+                        height: '54px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        zIndex: 10
+                      }}
+                      className="guest-lightbox-btn"
+                      title="Previous Photo (Left Arrow)"
+                    >
+                      <ChevronLeft size={32} />
+                    </button>
+                  )}
+
+                  {/* Main Lightbox Image Container */}
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'relative',
+                      maxWidth: '88vw',
+                      maxHeight: '82vh',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     <img
-                      src={guestImgUrl}
-                      alt={`Guest ${idx + 1}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                      className="guest-grid-image"
+                      key={activeGuestPicIndex}
+                      src={getApiUrl(`/api/crm/exhibitions/guest-pic/${guestPicsList[activeGuestPicIndex]}`)}
+                      alt={`Photograph ${activeGuestPicIndex + 1}`}
+                      style={{
+                        maxWidth: '88vw',
+                        maxHeight: '82vh',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        borderRadius: '10px',
+                        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+                        animation: 'fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }}
                     />
                   </div>
-                );
-              })}
+
+                  {/* Next Button */}
+                  {guestPicsList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveGuestPicIndex(prev => (prev + 1) % guestPicsList.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '24px',
+                        background: 'rgba(255, 255, 255, 0.12)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        borderRadius: '50%',
+                        width: '54px',
+                        height: '54px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        zIndex: 10
+                      }}
+                      className="guest-lightbox-btn"
+                      title="Next Photo (Right Arrow)"
+                    >
+                      <ChevronRight size={32} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 5. VIDEO SECTION */}
         {selectedExhibition.video_url && (
@@ -3063,6 +3253,25 @@ export default function ExhibitionsSection({
           .banner-illustration-container {
             height: 110px !important;
             align-self: center !important;
+          }
+        .guest-pic-card:hover {
+          transform: translateY(-4px);
+          border-color: var(--accent-gold) !important;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        .guest-pic-card:hover .guest-grid-image {
+          transform: scale(1.05);
+        }
+        .guest-lightbox-btn:hover {
+          background: rgba(212, 175, 55, 0.25) !important;
+          border-color: var(--accent-gold) !important;
+          color: var(--accent-gold) !important;
+          transform: scale(1.08);
+        }
+        @media (max-width: 768px) {
+          .guest-lightbox-btn {
+            width: 42px !important;
+            height: 42px !important;
           }
         }
       `}</style>
