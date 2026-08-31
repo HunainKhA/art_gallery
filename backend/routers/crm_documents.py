@@ -184,7 +184,7 @@ def get_crm_documents(module: str):
 @router.get("/exhibitions/{exhibition_id}/artworks")
 def get_exhibition_artworks(exhibition_id: str):
     """
-    Fetches all artworks associated with a specific exhibition.
+    Fetches all artworks associated with a specific exhibition (Active, Upcoming, or Past).
     """
     query = """
         SELECT 
@@ -217,6 +217,78 @@ def get_exhibition_artworks(exhibition_id: str):
     """
     try:
         artworks = execute_query(query, (exhibition_id,))
+        
+        # Fallback 1: Check artwork_ids_c CSV in art_exhibitions_cstm (e.g. newly created upcoming shows)
+        if not artworks:
+            cstm_res = execute_query("SELECT artwork_ids_c FROM art_exhibitions_cstm WHERE id_c = %s;", (exhibition_id,), fetch="one")
+            if cstm_res and cstm_res.get("artwork_ids_c"):
+                csv_ids = [aid.strip() for aid in cstm_res["artwork_ids_c"].split(",") if aid.strip()]
+                if csv_ids:
+                    placeholders = ', '.join(['%s'] * len(csv_ids))
+                    fallback_query = f"""
+                        SELECT 
+                            c.id AS id,
+                            c.document_name AS title,
+                            c.filename AS image,
+                            c.description AS description,
+                            c.collection_status AS status,
+                            cstm.sale_gallery_price_c AS price,
+                            cstm.collection_size_length_c AS length,
+                            cstm.collection_size_width_c AS width,
+                            cstm.code_c AS code,
+                            m.name AS medium_name,
+                            a.id AS artist_id,
+                            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+                        FROM art_collections c
+                        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+                        LEFT JOIN art_artists_art_collections_c art_rel 
+                            ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
+                        LEFT JOIN art_artists a 
+                            ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                        LEFT JOIN art_medium_art_collections_c med_rel
+                            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+                        LEFT JOIN art_medium m
+                            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                        WHERE c.id IN ({placeholders}) AND c.deleted = 0
+                        ORDER BY FIELD(c.id, {placeholders});
+                    """
+                    artworks = execute_query(fallback_query, tuple(csv_ids + csv_ids))
+        
+        # Fallback 2: Check artist_id_c if solo exhibition
+        if not artworks:
+            ex_cstm = execute_query("SELECT artist_id_c FROM art_exhibitions_cstm WHERE id_c = %s;", (exhibition_id,), fetch="one")
+            if ex_cstm and ex_cstm.get("artist_id_c"):
+                artist_id = ex_cstm["artist_id_c"]
+                artist_query = """
+                    SELECT 
+                        c.id AS id,
+                        c.document_name AS title,
+                        c.filename AS image,
+                        c.description AS description,
+                        c.collection_status AS status,
+                        cstm.sale_gallery_price_c AS price,
+                        cstm.collection_size_length_c AS length,
+                        cstm.collection_size_width_c AS width,
+                        cstm.code_c AS code,
+                        m.name AS medium_name,
+                        a.id AS artist_id,
+                        CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+                    FROM art_collections c
+                    LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+                    INNER JOIN art_artists_art_collections_c art_rel 
+                        ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
+                    INNER JOIN art_artists a 
+                        ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                    LEFT JOIN art_medium_art_collections_c med_rel
+                        ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+                    LEFT JOIN art_medium m
+                        ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                    WHERE a.id = %s AND c.deleted = 0
+                    ORDER BY c.date_entered DESC
+                    LIMIT 50;
+                """
+                artworks = execute_query(artist_query, (artist_id,))
+
         for art in artworks:
             try:
                 art["price"] = float(art["price"]) if art["price"] else 0.0
