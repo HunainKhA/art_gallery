@@ -459,76 +459,81 @@ export default function ExhibitionsSection({
             }
           </style>
 
-          <!-- COVER TITLE PAGE -->
-          <div class="page title-page">
-            <div class="logo-placeholder">MAINFRAME <span>THE GALLERY</span></div>
-            ${coverBase64 ? `
-              <div class="cover-image-container">
-                <img 
-                  class="cover-image" 
-                  src="${coverBase64}" 
-                  alt="${exhibition.document_name}"
-                />
-              </div>
-            ` : ''}
-            <div class="exhibition-title">${exhibition.document_name}</div>
-            <div class="exhibition-date">${formatDate(exhibition.active_date)} - ${formatDate(exhibition.exp_date) || 'Ongoing'}</div>
-            <div class="exhibition-desc">${exhibition.description || 'Complete catalog portfolio of the master artworks showcased.'}</div>
-            <div class="footer-note">© 2026 Mainframe The Gallery. All Rights Reserved.</div>
-          </div>
-          
-          <!-- SINGLE ARTWORK PAGES (1 per page) -->
-          ${artworksWithImages.map((art, pageIndex) => {
-            const dims = renderDimensions(art.width, art.length);
-            let inchPart = '';
-            let cmPart = '';
-            if (art.width && art.length) {
-              const w = parseFloat(art.width);
-              const l = parseFloat(art.length);
-              if (!isNaN(w) && !isNaN(l)) {
-                inchPart = `${w}" x ${l}"`;
-                cmPart = `${Math.round(w * 2.54)}x${Math.round(l * 2.54)} cm`;
-              }
-            }
-            if (!inchPart && dims.inStr) {
-              inchPart = dims.inStr.replace(/\s*in$/i, '"');
-            }
-            if (!cmPart && dims.cmStr) {
-              cmPart = dims.cmStr;
-            }
-
-            const captionParts = [
-              `<strong>${art.title || 'Untitled'}</strong>`,
-              art.artist_name && art.artist_name.trim() ? art.artist_name.trim() : '',
-              art.medium_name ? art.medium_name : '',
-              inchPart ? inchPart : '',
-              cmPart ? cmPart : ''
-            ].filter(Boolean);
-
-            const pageNum = String(pageIndex + 1).padStart(2, '0');
-
-            return `
-              <div class="page">
-                <div class="artwork-page-content">
-                  <div class="artwork-img-box">
-                    <img 
-                      class="artwork-main-img" 
-                      src="${art.imgSrc}" 
-                      alt="${art.title || 'Artwork'}"
-                    />
-                  </div>
-                  <div class="artwork-caption">
-                    ${captionParts.join(' | ')}
-                  </div>
+          <!-- CATALOG ROOT CONTAINER -->
+          <div id="catalog-container">
+            <!-- COVER TITLE PAGE -->
+            <div class="page title-page">
+              <div class="logo-placeholder">MAINFRAME <span>THE GALLERY</span></div>
+              ${coverBase64 ? `
+                <div class="cover-image-container">
+                  <img 
+                    class="cover-image" 
+                    src="${coverBase64}" 
+                    crossorigin="anonymous"
+                    alt="${exhibition.document_name}"
+                  />
                 </div>
-                <div class="page-num-badge">${pageNum}</div>
-              </div>
-            `;
-          }).join('')}
+              ` : ''}
+              <div class="exhibition-title">${exhibition.document_name}</div>
+              <div class="exhibition-date">${formatDate(exhibition.active_date)} - ${formatDate(exhibition.exp_date) || 'Ongoing'}</div>
+              <div class="exhibition-desc">${exhibition.description || 'Complete catalog portfolio of the master artworks showcased.'}</div>
+              <div class="footer-note">© 2026 Mainframe The Gallery. All Rights Reserved.</div>
+            </div>
+            
+            <!-- SINGLE ARTWORK PAGES (1 per page) -->
+            ${artworksWithImages.map((art, pageIndex) => {
+              const dims = renderDimensions(art.width, art.length);
+              let inchPart = '';
+              let cmPart = '';
+              if (art.width && art.length) {
+                const w = parseFloat(art.width);
+                const l = parseFloat(art.length);
+                if (!isNaN(w) && !isNaN(l)) {
+                  inchPart = `${w}" x ${l}"`;
+                  cmPart = `${Math.round(w * 2.54)}x${Math.round(l * 2.54)} cm`;
+                }
+              }
+              if (!inchPart && dims.inStr) {
+                inchPart = dims.inStr.replace(/\s*in$/i, '"');
+              }
+              if (!cmPart && dims.cmStr) {
+                cmPart = dims.cmStr;
+              }
+
+              const captionParts = [
+                `<strong>${art.title || 'Untitled'}</strong>`,
+                art.artist_name && art.artist_name.trim() ? art.artist_name.trim() : '',
+                art.medium_name ? art.medium_name : '',
+                inchPart ? inchPart : '',
+                cmPart ? cmPart : ''
+              ].filter(Boolean);
+
+              const pageNum = String(pageIndex + 1).padStart(2, '0');
+
+              return `
+                <div class="page">
+                  <div class="artwork-page-content">
+                    <div class="artwork-img-box">
+                      <img 
+                        class="artwork-main-img" 
+                        src="${art.imgSrc}" 
+                        crossorigin="anonymous"
+                        alt="${art.title || 'Artwork'}"
+                      />
+                    </div>
+                    <div class="artwork-caption">
+                      ${captionParts.join(' | ')}
+                    </div>
+                  </div>
+                  <div class="page-num-badge">${pageNum}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
           
           <script>
             function waitForAllImages() {
-              var imgs = Array.from(document.querySelectorAll('img'));
+              var imgs = Array.from(document.querySelectorAll('#catalog-container img'));
               var promises = imgs.map(function(img) {
                 if (img.complete && img.naturalHeight !== 0) {
                   return Promise.resolve();
@@ -544,30 +549,31 @@ export default function ExhibitionsSection({
             function startGeneration() {
               waitForAllImages().then(function() {
                 setTimeout(function() {
-                  var element = document.body;
+                  var loader = document.getElementById('loading-overlay');
+                  if (loader) loader.style.display = 'none';
+
+                  var element = document.getElementById('catalog-container');
                   var opt = {
                     margin:       0,
                     filename:     'Catalog - ${exhibition.document_name.replace(/'/g, "\\'")}.pdf',
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false },
+                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false, scrollY: 0 },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                     pagebreak:    { mode: ['css', 'legacy'] }
                   };
                   
                   html2pdf().set(opt).from(element).save().then(function() {
-                    var loader = document.getElementById('loading-overlay');
-                    if (loader) loader.style.opacity = '0';
                     setTimeout(function() {
                       window.close();
                     }, 800);
                   }).catch(function(err) {
                     console.error("PDF generation failed:", err);
-                    var loader = document.getElementById('loading-overlay');
                     if (loader) {
+                      loader.style.display = 'flex';
                       loader.innerHTML = '<div style="color: red; font-weight: bold; font-family: sans-serif; text-align: center; padding: 20px;">Failed to generate PDF. Please close this window and try again.</div>';
                     }
                   });
-                }, 500);
+                }, 400);
               });
             }
 
