@@ -141,7 +141,7 @@ export default function AboutSection() {
           font-weight: 100 !important;
           letter-spacing: 0.05em !important;
           text-transform: uppercase !important;
-          color: #000000 !important;
+          color: var(--text-primary) !important;
           margin: 0 0 0.65rem 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
@@ -151,7 +151,7 @@ export default function AboutSection() {
           font-size: 12px !important;
           font-weight: 100 !important;
           line-height: 1.85 !important;
-          color: #000000 !important;
+          color: var(--text-primary) !important;
           margin: 0 !important;
           padding: 0 !important;
           text-align: left !important;
@@ -176,15 +176,15 @@ export default function AboutSection() {
           text-align: left !important;
         }
 
-        /* Dark Theme colors */
-        body.dark-theme .about-heading,
-        body.dark-theme .about-location-title,
-        body.dark-theme .about-paragraph,
-        [data-theme="dark"] .about-heading,
-        [data-theme="dark"] .about-location-title,
-        [data-theme="dark"] .about-paragraph {
-          color: #ffffff !important;
-          -webkit-text-fill-color: #ffffff !important;
+        /* Dark Theme colors (Matching Our Story in dark theme) */
+        body:not(.light-theme) .about-heading,
+        body:not(.light-theme) .about-location-title,
+        body:not(.light-theme) .about-story-heading,
+        body:not(.light-theme) .about-paragraph,
+        body:not(.light-theme) .about-content-inner,
+        body:not(.light-theme) .about-content-inner * {
+          color: var(--text-primary) !important;
+          -webkit-text-fill-color: var(--text-primary) !important;
         }
 
         /* Light Theme pure black typography matching footer */
