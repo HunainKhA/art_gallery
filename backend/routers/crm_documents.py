@@ -161,20 +161,6 @@ def get_crm_documents(module: str):
                 r["exp_date"] = str(r["exp_date"])
             if r.get("is_featured_c") is not None:
                 # Convert tinyint/boolean to integer 0/1 for response consistency
-                r["is_featured_c"] = 1 if r["is_featured_c"] else 0
-                
-            if module.lower() == "flashimages":
-                fid = r.get("id")
-                fname = r.get("filename")
-                file_exists = False
-                if fname and os.path.exists(os.path.join(upload_dir, fname)):
-                    file_exists = True
-                elif fid and os.path.exists(os.path.join(upload_dir, fid)):
-                    file_exists = True
-                
-                if not file_exists:
-                    continue
-                    
             filtered_results.append(r)
             
         return filtered_results

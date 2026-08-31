@@ -43,7 +43,12 @@ export default function App() {
     <MainLayout state={state}>
       {/* 1. HOME TAB */}
       {state.activeTab === 'home' && (
-        <HomeSection setActiveTab={state.setActiveTab} flashImages={state.flashImages} />
+        <HomeSection 
+          setActiveTab={state.setActiveTab} 
+          flashImages={state.flashImages} 
+          exhibitions={state.exhibitions}
+          artworks={state.artworks}
+        />
       )}
 
       {/* 2. ABOUT US TAB */}

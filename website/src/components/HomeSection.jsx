@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getArtworkImageUrl } from '../services/api';
+import { getArtworkImageUrl, getApiUrl } from '../services/api';
 
-export default function HomeSection({ flashImages }) {
-  // Default fallback premium art images
-  const defaultImages = useMemo(() => [], []);
-
-  // Get image sources (prioritize actual Flash Images uploaded in Control Panel)
-  const images = useMemo(() => (flashImages && flashImages.length > 0)
-    ? flashImages.map(flash => getArtworkImageUrl(flash.filename || flash.id))
-    : defaultImages, [flashImages, defaultImages]);
+export default function HomeSection({ flashImages = [], exhibitions = [], artworks = [] }) {
+  // Get image sources (prioritize actual Flash Images, fallback to exhibitions or latest artworks)
+  const images = useMemo(() => {
+    if (flashImages && flashImages.length > 0) {
+      return flashImages.map(flash => getArtworkImageUrl(flash.filename || flash.id));
+    }
+    if (exhibitions && exhibitions.length > 0) {
+      return exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
+    }
+    if (artworks && artworks.length > 0) {
+      return artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
+    }
+    return [];
+  }, [flashImages, exhibitions, artworks]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 

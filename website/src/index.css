@@ -468,7 +468,7 @@ body.light-theme button.pagination-page-btn:not(.active):hover {
 .desktop-nav .nav-link,
 .nav-link {
   color: #ffffff !important;
-  font-weight: 400;
+  font-weight: 100;
 }
 
 .top-navbar .nav-link:hover,
@@ -523,7 +523,7 @@ body.light-theme .navbar-actions svg,
 body.light-theme .guest-btn-floating,
 body.light-theme .shop-btn-floating {
   color: #000000 !important;
-  border-color: rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(0, 0, 0, 0) !important;
 }
 
 body.light-theme a:not(.whatsapp-fab):not(.social-icon-btn):not(.btn-primary):not(.btn-gold) {
@@ -543,7 +543,7 @@ body.light-theme .footer-socials svg {
   -webkit-text-fill-color: #000000 !important;
   opacity: 1 !important;
   stroke: #000000 !important;
-  font-weight: 400 !important;
+  font-weight: 100 !important;
 }
 
 /* ====================================================
