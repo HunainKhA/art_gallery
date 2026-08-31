@@ -119,25 +119,26 @@ export default function AboutSection() {
         }
         .about-content-section {
           width: 100% !important;
-          padding: 4rem 1.5rem !important;
+          padding: 3rem 2rem !important;
           box-sizing: border-box !important;
           display: flex !important;
           justify-content: center !important;
         }
         .about-content-inner {
           width: 100% !important;
-          max-width: 860px !important;
+          max-width: 1100px !important;
           margin: 0 auto !important;
-          text-align: center !important;
+          text-align: left !important;
           box-sizing: border-box !important;
         }
         .about-heading {
-          font-size: 18px !important;
+          font-size: 16px !important;
           font-weight: 400 !important;
-          letter-spacing: 0.12em !important;
+          letter-spacing: 0.1em !important;
           text-transform: uppercase !important;
           color: var(--text-primary) !important;
-          margin: 0 0 1.25rem 0 !important;
+          margin: 0 0 1rem 0 !important;
+          text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
         }
         .about-paragraph {
@@ -145,22 +146,26 @@ export default function AboutSection() {
           font-weight: 300 !important;
           line-height: 1.9 !important;
           color: var(--text-secondary) !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
+          text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
           letter-spacing: 0.02em !important;
-          max-width: 780px !important;
+          max-width: 100% !important;
         }
         .about-location-section {
-          padding-top: 2rem !important;
+          padding-top: 1.5rem !important;
         }
         .about-location-grid {
           display: grid !important;
           grid-template-columns: 1fr 1fr !important;
           gap: 3.5rem !important;
-          margin-top: 1rem !important;
-          padding-top: 2.5rem !important;
+          margin-top: 0.5rem !important;
+          padding-top: 2rem !important;
           border-top: 1px solid var(--border-color) !important;
-          text-align: center !important;
+          text-align: left !important;
+        }
+        .about-location-col {
+          text-align: left !important;
         }
         .about-location-title {
           font-size: 13px !important;
@@ -170,6 +175,7 @@ export default function AboutSection() {
           letter-spacing: 0.08em !important;
           display: block !important;
           margin-bottom: 0.6rem !important;
+          text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
         }
         @media (max-width: 768px) {
