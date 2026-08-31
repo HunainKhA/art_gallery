@@ -223,10 +223,15 @@ export default function CataloguesSection({
           <title>Catalog - ${exhibition.document_name}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
             body {
               font-family: 'Montserrat', sans-serif;
               color: #111;
-              background: #fff;
+              background: #ffffff;
               margin: 0;
               padding: 0;
               -webkit-print-color-adjust: exact;
@@ -234,108 +239,85 @@ export default function CataloguesSection({
             }
             .page {
               width: 210mm;
-              height: 297mm;
-              max-height: 297mm;
-              padding: 12mm 16mm;
+              height: 295mm;
+              max-height: 295mm;
+              padding: 16mm 18mm 16mm 18mm;
               box-sizing: border-box;
               page-break-after: always;
-              break-after: page;
               page-break-inside: avoid;
+              break-after: page;
               break-inside: avoid;
               position: relative;
               display: flex;
               flex-direction: column;
-              justify-content: space-between;
-              background: #fff;
+              justify-content: center;
+              align-items: center;
+              background: #ffffff;
               overflow: hidden;
             }
-            .artworks-container {
-              display: grid;
-              grid-template-columns: 1fr;
-              gap: 25px;
-              margin-top: 10px;
-              flex: 1;
+            .page:last-child {
+              page-break-after: auto;
+              break-after: auto;
             }
-            .artwork-card {
-              border-bottom: 1px solid #eee;
-              padding-bottom: 20px;
+
+            /* Single Artwork Page Layout */
+            .artwork-page-content {
               display: flex;
-              gap: 30px;
-              box-sizing: border-box;
-              height: 112mm;
+              flex-direction: column;
               align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+              text-align: center;
             }
-            .artwork-card:last-child {
-              border-bottom: none;
-            }
-            .artwork-image-container {
-              width: 100mm;
-              height: 90mm;
+            .artwork-img-box {
+              width: 100%;
+              height: 235mm;
               display: flex;
               align-items: center;
               justify-content: center;
-              background: #fbfbfb;
-              border: 1px solid #f0f0f0;
-              padding: 5px;
+              margin-bottom: 8mm;
             }
-            .artwork-image {
+            .artwork-main-img {
               max-width: 100%;
               max-height: 100%;
               object-fit: contain;
+              display: block;
             }
-            .artwork-info {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
+            .artwork-caption {
+              font-size: 11.5px;
+              color: #444;
+              line-height: 1.5;
+              font-family: 'Montserrat', sans-serif;
+              letter-spacing: 0.02em;
+              text-align: center;
+              width: 100%;
             }
-            .artwork-artist {
-              font-size: 14px;
-              color: #cfa15c;
+            .artwork-caption strong {
               font-weight: 700;
-              margin: 0 0 8px 0;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
+              color: #111;
             }
-            .artwork-title {
-              font-size: 18px;
-              font-weight: 700;
-              color: #000;
-              margin: 0 0 10px 0;
-            }
-            .artwork-meta {
-              font-size: 12px;
-              color: #555;
-              margin: 0 0 15px 0;
-              line-height: 1.7;
-            }
-            .page-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 1px solid #eee;
-              padding-bottom: 10px;
-              margin-bottom: 15px;
+            .page-num-badge {
+              position: absolute;
+              bottom: 0;
+              right: 0;
+              background-color: #7d858c;
+              color: #ffffff;
               font-size: 11px;
-              color: #888;
-              text-transform: uppercase;
+              font-weight: 600;
+              padding: 4px 8px;
               letter-spacing: 0.05em;
+              font-family: 'Montserrat', sans-serif;
+              line-height: 1;
             }
-            .page-footer {
-              border-top: 1px solid #eee;
-              padding-top: 10px;
-              display: flex;
-              justify-content: space-between;
-              font-size: 11px;
-              color: #888;
-              margin-top: 15px;
-            }
+
             @media print {
               body {
                 background: #fff;
               }
               .page {
                 page-break-after: always;
+                page-break-inside: avoid;
               }
             }
           </style>
@@ -377,47 +359,53 @@ export default function CataloguesSection({
             }
           </style>
 
-          <!-- ARTWORK DETAILS PAGES (2 per page) -->
-          ${chunkArray(artworksWithImages, 2).map((chunk, pageIndex) => `
-            <div class="page">
-              <div>
-                <div class="page-header">
-                  <span>${exhibition.document_name} — Art Catalog</span>
-                  <span>Mainframe The Gallery</span>
+          <!-- SINGLE ARTWORK PAGES (1 per page) -->
+          ${artworksWithImages.map((art, pageIndex) => {
+            const dims = renderDimensions(art.width, art.length);
+            let inchPart = '';
+            let cmPart = '';
+            if (art.width && art.length) {
+              const w = parseFloat(art.width);
+              const l = parseFloat(art.length);
+              if (!isNaN(w) && !isNaN(l)) {
+                inchPart = `${w}" x ${l}"`;
+                cmPart = `${Math.round(w * 2.54)}x${Math.round(l * 2.54)} cm`;
+              }
+            }
+            if (!inchPart && dims.inStr) {
+              inchPart = dims.inStr.replace(/\s*in$/i, '"');
+            }
+            if (!cmPart && dims.cmStr) {
+              cmPart = dims.cmStr;
+            }
+
+            const captionParts = [
+              `<strong>${art.title || 'Untitled'}</strong>`,
+              art.medium_name ? art.medium_name : '',
+              inchPart ? inchPart : '',
+              cmPart ? cmPart : ''
+            ].filter(Boolean);
+
+            const pageNum = String(pageIndex + 1).padStart(2, '0');
+
+            return `
+              <div class="page">
+                <div class="artwork-page-content">
+                  <div class="artwork-img-box">
+                    <img 
+                      class="artwork-main-img" 
+                      src="${art.imgSrc}" 
+                      alt="${art.title || 'Artwork'}"
+                    />
+                  </div>
+                  <div class="artwork-caption">
+                    ${captionParts.join(' | ')}
+                  </div>
                 </div>
-                <div class="artworks-container">
-                  ${chunk.map(art => `
-                    <div class="artwork-card">
-                      <div class="artwork-image-container">
-                        <img 
-                          class="artwork-image" 
-                          src="${art.imgSrc}" 
-                          alt="${art.title}"
-                        />
-                      </div>
-                      <div class="artwork-info">
-                        <p class="artwork-artist">${art.artist_name || 'Unknown Artist'}</p>
-                        <p class="artwork-title">${art.title}</p>
-                        <p class="artwork-meta">
-                          <strong>Code:</strong> ${art.code || 'N/A'}<br/>
-                          ${(() => {
-        const dims = renderDimensions(art.width, art.length);
-        return `<strong>Dimensions:</strong> ${dims.inStr} (${dims.cmStr})<br/>`;
-      })()}
-                          <strong>Medium:</strong> ${art.medium_name || 'Oil on Canvas'}<br/>
-                          <strong>Status:</strong> ${art.status === 'Available' || art.status === 'not_sold' ? 'Available' : 'Sold Out'}
-                        </p>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
+                <div class="page-num-badge">${pageNum}</div>
               </div>
-              <div class="page-footer">
-                <span>mainframethegallery.com</span>
-                <span style="font-weight: 100; font-size: 12px;">Page ${pageIndex + 1} of ${Math.ceil(artworksWithImages.length / 2)}</span>
-              </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
           
           <script>
             function waitForAllImages() {
@@ -444,7 +432,7 @@ export default function CataloguesSection({
                     image:        { type: 'jpeg', quality: 0.98 },
                     html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak:    { mode: 'css' }
+                    pagebreak:    { mode: ['css', 'legacy'] }
                   };
                   
                   html2pdf().set(opt).from(element).save().then(function() {
