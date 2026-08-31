@@ -79,10 +79,13 @@ export const formatDimensionsString = (art) => {
 };
 
 /**
- * Generates and downloads a luxury Art Gallery Exhibition Catalogue PDF.
- * - Cover page (Title, Dates, Overview)
- * - Artist Biography page (ONLY if artist has bio text; skipped if empty so no blank pages)
- * - Single Artwork per page (Centered, caption below, bottom-right page badge)
+ * Generates and downloads the EXACT square luxury Exhibition Catalogue PDF (Ditto design):
+ * - Square Format: 210mm x 210mm
+ * - Page 1: Full-Bleed Artwork Cover with Title overlay
+ * - Page 2: Fine-Bordered Exhibition Title & Date Card with Mainframe Logo
+ * - Page 3..: Artist Biography & Statement (only when bio exists; skipped if empty so NO blank pages)
+ * - Artworks Pages: Fine-Bordered square page, centered artwork, caption, and bottom-right badge (01, 02...)
+ * - Back Cover: Mainframe Logo, Location / Contact Info and gray footer bar
  */
 export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   if (!artworks || artworks.length === 0) {
@@ -90,9 +93,9 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     return;
   }
 
-  if (onProgress) onProgress("Preloading artwork and artist data...");
+  if (onProgress) onProgress("Preloading high-resolution artworks and assets...");
 
-  // 1. Preload cover image if available
+  // 1. Preload Cover Image
   let coverData = null;
   const coverUrl = getApiUrl(`/api/crm/exhibitions/image/${exhibition.id}`);
   try {
@@ -101,7 +104,18 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     coverData = null;
   }
 
-  // 2. Preload all artwork images in parallel
+  // 2. Preload Logo Image
+  let logoData = null;
+  try {
+    logoData = await loadImageData(getApiUrl('/api/artworks/logo'));
+    if (!logoData) {
+      logoData = await loadImageData('/logo.png');
+    }
+  } catch {
+    logoData = null;
+  }
+
+  // 3. Preload all artwork images in parallel
   const artworksWithData = await Promise.all(
     artworks.map(async (art) => {
       const artImgUrl = getApiUrl(`/api/artworks/image/${art.id}`);
@@ -113,7 +127,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     })
   );
 
-  // 3. Group artworks by Artist (to support both Solo and Group exhibitions seamlessly)
+  // 4. Group artworks by Artist (for Solo / Group exhibitions)
   const artistMap = new Map();
   for (const art of artworksWithData) {
     const artistId = art.artist_id || 'unknown';
@@ -146,216 +160,319 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     }
   }
 
-  if (onProgress) onProgress("Compiling luxury PDF pages...");
+  if (onProgress) onProgress("Rendering luxury square catalogue...");
 
-  // Create jsPDF instance (A4 Portrait: 210mm x 297mm)
+  // Square Page Size: 210mm x 210mm
+  const pageSize = 210;
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4',
+    format: [pageSize, pageSize],
     compress: true
   });
 
-  const pageWidth = 210;
-  const pageHeight = 297;
-  let pageCounter = 0;
+  const exhibitionTitle = (exhibition.document_name || 'EXHIBITION').toUpperCase();
+  const firstArtistName = Array.from(artistMap.values())[0]?.name || '';
+  const isGroupShow = artistMap.size > 1;
+  const showTypeLabel = isGroupShow ? 'Group exhibition' : (firstArtistName ? `Solo show by ${firstArtistName}` : 'Exhibition');
 
-  // Helper to draw bottom right page number box
-  const drawPageNumber = () => {
-    pageCounter += 1;
-    const pageNumText = String(pageCounter).padStart(2, '0');
-    const badgeW = 11;
-    const badgeH = 8;
-    const badgeX = pageWidth - badgeW - 14;
-    const badgeY = pageHeight - badgeH - 12;
-
-    doc.setFillColor(125, 133, 140); // #7d858c
-    doc.rect(badgeX, badgeY, badgeW, badgeH, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text(pageNumText, badgeX + badgeW / 2, badgeY + 5.5, { align: 'center' });
+  // Helper to draw standard outer framing line (12mm inset)
+  const drawPageBorder = () => {
+    doc.setDrawColor(45, 45, 45);
+    doc.setLineWidth(0.35);
+    doc.rect(12, 12, pageSize - 24, pageSize - 24);
   };
 
-  // ==========================================
-  // PAGE 1: COVER TITLE PAGE
-  // ==========================================
-  // Header Branding
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(0, 0, 0);
-  doc.text('MAINFRAME', pageWidth / 2 - 18, 30, { align: 'right' });
+  // Helper to draw Mainframe Logo Square
+  const drawMainframeLogo = (x, y, size = 26) => {
+    if (logoData) {
+      doc.addImage(logoData.dataUrl, 'PNG', x, y, size, size);
+    } else {
+      doc.setFillColor(50, 45, 42); // Dark brown box
+      doc.rect(x, y, size, size, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('MAINFRAME', x + size / 2, y + size / 2, { align: 'center' });
+      doc.setFontSize(5);
+      doc.setTextColor(207, 161, 92);
+      doc.text('THE GALLERY', x + size / 2, y + size / 2 + 5, { align: 'center' });
+    }
+  };
 
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(207, 161, 92); // Gold #cfa15c
-  doc.text('THE GALLERY', pageWidth / 2 - 14, 30, { align: 'left' });
+  // =========================================================================
+  // PAGE 1: FULL-BLEED ARTWORK FRONT COVER
+  // =========================================================================
+  const coverBg = coverData || artworksWithData[0]?.imgData;
+  if (coverBg) {
+    // Calculate aspect fill for 210x210
+    const scale = Math.max(pageSize / coverBg.width, pageSize / coverBg.height);
+    const renderW = coverBg.width * scale;
+    const renderH = coverBg.height * scale;
+    const renderX = (pageSize - renderW) / 2;
+    const renderY = (pageSize - renderH) / 2;
 
-  // Cover Image
-  let nextY = 42;
-  const fallbackCover = coverData || (artworksWithData[0] && artworksWithData[0].imgData);
-  if (fallbackCover) {
-    const maxCoverW = 140;
-    const maxCoverH = 100;
-    const ratio = Math.min(maxCoverW / fallbackCover.width, maxCoverH / fallbackCover.height);
-    const renderW = fallbackCover.width * ratio;
-    const renderH = fallbackCover.height * ratio;
-    const renderX = (pageWidth - renderW) / 2;
-    const renderY = nextY + (maxCoverH - renderH) / 2;
+    doc.addImage(coverBg.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
 
-    doc.addImage(fallbackCover.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
-    nextY += maxCoverH + 12;
+    // Title Overlay
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text(exhibitionTitle, 18, 30);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(showTypeLabel, 18, 42);
   } else {
-    nextY += 30;
+    drawPageBorder();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(34, 51, 102);
+    doc.text(exhibitionTitle, pageSize / 2, 80, { align: 'center' });
+    doc.setFontSize(13);
+    doc.setTextColor(60, 60, 60);
+    doc.text(showTypeLabel, pageSize / 2, 95, { align: 'center' });
   }
 
-  // Exhibition Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(0, 0, 0);
-  const titleText = (exhibition.document_name || 'EXHIBITION CATALOG').toUpperCase();
-  const splitTitle = doc.splitTextToSize(titleText, 170);
-  doc.text(splitTitle, pageWidth / 2, nextY, { align: 'center' });
-  nextY += (splitTitle.length * 8) + 2;
+  // =========================================================================
+  // PAGE 2: INVITATION & EXHIBITION DETAILS PAGE
+  // =========================================================================
+  doc.addPage([pageSize, pageSize], 'portrait');
+  drawPageBorder();
 
-  // Exhibition Dates
-  const startDate = exhibition.active_date ? new Date(exhibition.active_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-  const endDate = exhibition.exp_date ? new Date(exhibition.exp_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing';
-  const dateStr = startDate ? `${startDate} - ${endDate}` : 'Exhibition Collection';
+  // Title in Deep Navy
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(24);
+  doc.setTextColor(34, 51, 102); // #223366
+  doc.text(exhibitionTitle, pageSize - 18, 42, { align: 'right' });
+
+  // Subtitle
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(80, 80, 80);
+  doc.text(showTypeLabel, pageSize - 18, 52, { align: 'right' });
+
+  // Dates & Timings in center
+  const startDateStr = exhibition.active_date 
+    ? new Date(exhibition.active_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Saturday, 29th August, 2026';
+
+  const endDateStr = exhibition.exp_date 
+    ? new Date(exhibition.exp_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '5th Sep, 2026';
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(14);
+  doc.setTextColor(70, 70, 70);
+  doc.text(startDateStr, pageSize - 18, 95, { align: 'right' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(30, 30, 30);
+  doc.text('5 - 8 pm', pageSize - 18, 108, { align: 'right' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  doc.setTextColor(110, 110, 110);
-  doc.text(dateStr, pageWidth / 2, nextY, { align: 'center' });
-  nextY += 10;
+  doc.setTextColor(100, 100, 100);
+  doc.text(`The show will continue till ${endDateStr}`, pageSize - 18, 155, { align: 'right' });
 
-  // Exhibition Description
-  if (exhibition.description) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(80, 80, 80);
-    const splitDesc = doc.splitTextToSize(exhibition.description, 150);
-    doc.text(splitDesc, pageWidth / 2, nextY, { align: 'center' });
-  }
+  // Mainframe Logo at bottom left
+  drawMainframeLogo(18, pageSize - 44, 26);
 
-  // Footer Note
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(150, 150, 150);
-  doc.text('© 2026 Mainframe The Gallery. All Rights Reserved.', pageWidth / 2, pageHeight - 14, { align: 'center' });
+  // =========================================================================
+  // ARTIST BIOGRAPHIES & ARTWORKS PAGES
+  // =========================================================================
+  let artworkCounter = 0;
 
-  // ==========================================
-  // ARTIST BIOGRAPHIES & ARTWORK PAGES
-  // ==========================================
   for (const [_, artistInfo] of artistMap.entries()) {
-    // 1. RENDER ARTIST BIOGRAPHY PAGE (ONLY IF BIO EXISTS AND IS NOT EMPTY)
+    // 1. RENDER ARTIST BIO & STATEMENT (ONLY IF BIO TEXT EXISTS)
     if (artistInfo.bio && artistInfo.bio.trim().length > 15) {
-      doc.addPage('a4', 'portrait');
+      doc.addPage([pageSize, pageSize], 'portrait');
+      drawPageBorder();
 
-      // Top branding
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text('MAINFRAME', pageWidth / 2 - 14, 25, { align: 'right' });
-      doc.setTextColor(207, 161, 92);
-      doc.text('THE GALLERY', pageWidth / 2 - 10, 25, { align: 'left' });
+      let cursorY = 22;
 
-      // Subheader
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(207, 161, 92); // Gold
-      doc.text('ABOUT THE ARTIST', pageWidth / 2, 36, { align: 'center' });
-
-      let bioY = 46;
-
-      // Artist Profile Image (if available)
+      // Profile Image
       if (artistInfo.profileImageData) {
         const pImg = artistInfo.profileImageData;
-        const maxPW = 45;
-        const maxPH = 45;
-        const pRatio = Math.min(maxPW / pImg.width, maxPH / pImg.height);
-        const pW = pImg.width * pRatio;
-        const pH = pImg.height * pRatio;
-        const pX = (pageWidth - pW) / 2;
+        const pSize = 42;
+        doc.addImage(pImg.dataUrl, 'JPEG', 20, cursorY, pSize, pSize);
 
-        doc.addImage(pImg.dataUrl, 'JPEG', pX, bioY, pW, pH);
-        bioY += pH + 10;
+        // Artist Name beside photo
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(20, 20, 20);
+        doc.text(artistInfo.name, 68, cursorY + 25);
+
+        cursorY += pSize + 10;
+      } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(20, 20, 20);
+        doc.text(artistInfo.name, 20, cursorY + 8);
+        cursorY += 16;
       }
 
-      // Artist Name
+      // "Bio" Header
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.setTextColor(0, 0, 0);
-      doc.text(artistInfo.name.toUpperCase(), pageWidth / 2, bioY, { align: 'center' });
-      bioY += 10;
+      doc.setFontSize(11);
+      doc.setTextColor(20, 20, 20);
+      doc.text('Bio', 20, cursorY);
+      cursorY += 6;
 
-      // Thin divider line
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.3);
-      doc.line(pageWidth / 2 - 25, bioY, pageWidth / 2 + 25, bioY);
-      bioY += 10;
-
-      // Biography Text (Cleanly wrapped and formatted)
+      // Bio Text
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
+      doc.setFontSize(8.5);
       doc.setTextColor(50, 50, 50);
 
-      const splitBio = doc.splitTextToSize(artistInfo.bio, 160);
-      doc.text(splitBio, 25, bioY, { align: 'left', lineHeightFactor: 1.5 });
+      const splitBio = doc.splitTextToSize(artistInfo.bio, 170);
+      doc.text(splitBio, 20, cursorY, { align: 'left', lineHeightFactor: 1.4 });
+      cursorY += (splitBio.length * 4.2) + 8;
 
-      drawPageNumber();
+      // Exhibition Statement (if available in exhibition description)
+      if (exhibition.description && cursorY < 165) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(20, 20, 20);
+        doc.text(`On ${exhibition.document_name || 'Exhibition'}`, 20, cursorY);
+        cursorY += 6;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(50, 50, 50);
+        const splitStmt = doc.splitTextToSize(stripHtml(exhibition.description), 170);
+        doc.text(splitStmt, 20, cursorY, { align: 'left', lineHeightFactor: 1.4 });
+      }
     }
 
-    // 2. RENDER ARTWORKS FOR THIS ARTIST (1 PER PAGE)
+    // 2. RENDER ARTWORKS (1 ARTWORK PER PAGE)
     for (const art of artistInfo.artworks) {
-      doc.addPage('a4', 'portrait');
+      artworkCounter += 1;
+      doc.addPage([pageSize, pageSize], 'portrait');
+      drawPageBorder();
 
-      // Available canvas area for centered painting
-      const maxArtW = 165;
-      const maxArtH = 215;
-      const topMargin = 20;
+      // Artwork Image Box (centered inside 186x186 framing)
+      const maxArtW = 168;
+      const maxArtH = 155;
+      const boxX = 21;
+      const boxY = 21;
 
       if (art.imgData) {
         const ratio = Math.min(maxArtW / art.imgData.width, maxArtH / art.imgData.height);
         const renderW = art.imgData.width * ratio;
         const renderH = art.imgData.height * ratio;
-        const renderX = (pageWidth - renderW) / 2;
-        const renderY = topMargin + (maxArtH - renderH) / 2;
+        const renderX = (pageSize - renderW) / 2;
+        const renderY = boxY + (maxArtH - renderH) / 2;
 
         doc.addImage(art.imgData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
       }
 
-      // Single-line caption under painting
+      // Artwork Caption at Bottom (Y ≈ 190mm)
       const { inchPart, cmPart } = formatDimensionsString(art);
-      const parts = [];
-
       const titleStr = art.title || 'Untitled';
-      const artistStr = (art.artist_name || '').trim();
       const mediumStr = (art.medium_name || '').trim();
 
-      if (artistStr && artistStr !== 'Unknown Artist') {
-        parts.push(artistStr);
+      const parts = [];
+      if (isGroupShow && art.artist_name) {
+        parts.push(art.artist_name.trim());
       }
-      parts.push(titleStr);
       if (mediumStr) parts.push(mediumStr);
       if (inchPart) parts.push(inchPart);
       if (cmPart) parts.push(cmPart);
 
-      const captionFullText = parts.join(' | ');
+      const subCaption = parts.join(' | ');
 
-      // Render Caption text centered
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(40, 40, 40);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(20, 20, 20);
 
-      const captionY = topMargin + maxArtH + 12;
-      doc.text(captionFullText, pageWidth / 2, captionY, { align: 'center' });
+      // Measure title width to place separator and subcaption seamlessly
+      const titleW = doc.getTextWidth(titleStr);
+      doc.text(titleStr, 22, 191);
 
-      drawPageNumber();
+      if (subCaption) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(70, 70, 70);
+        doc.text(` | ${subCaption}`, 22 + titleW, 191);
+      }
+
+      // Page Number Badge (Bottom Right Corner: 01, 02...)
+      const pageNumText = String(artworkCounter).padStart(2, '0');
+      const badgeW = 10;
+      const badgeH = 7.5;
+      const badgeX = pageSize - 12 - badgeW;
+      const badgeY = pageSize - 12 - badgeH;
+
+      doc.setFillColor(125, 133, 140); // #7d858c
+      doc.rect(badgeX, badgeY, badgeW, badgeH, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text(pageNumText, badgeX + badgeW / 2, badgeY + 5.2, { align: 'center' });
     }
   }
 
-  // Save the generated PDF file directly to browser
+  // =========================================================================
+  // FINAL PAGE: BACK COVER & LOCATION / CONTACT BANNER
+  // =========================================================================
+  doc.addPage([pageSize, pageSize], 'portrait');
+
+  // Mainframe Logo at top center
+  drawMainframeLogo((pageSize - 36) / 2, 22, 36);
+
+  // Gallery Location Map Card (Rounded outline map container)
+  const mapBoxX = 22;
+  const mapBoxY = 66;
+  const mapBoxW = 166;
+  const mapBoxH = 92;
+
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3, 3);
+
+  // Clean vector road map illustration
+  doc.setDrawColor(120, 120, 120);
+  doc.setLineWidth(0.3);
+
+  // Roads
+  doc.line(mapBoxX + 38, mapBoxY, mapBoxX + 38, mapBoxY + mapBoxH); // Street 1
+  doc.line(mapBoxX + 58, mapBoxY + 18, mapBoxX + 58, mapBoxY + mapBoxH);
+  doc.line(mapBoxX + 78, mapBoxY + 18, mapBoxX + 78, mapBoxY + mapBoxH);
+  doc.line(mapBoxX + 98, mapBoxY + 18, mapBoxX + 98, mapBoxY + mapBoxH);
+  doc.line(mapBoxX, mapBoxY + mapBoxH - 24, mapBoxX + mapBoxW, mapBoxY + mapBoxH - 24); // 26th street
+
+  // Mainframe pinpoint box on map
+  doc.setFillColor(34, 140, 160); // Teal Mainframe location
+  doc.rect(mapBoxX + 58, mapBoxY + 30, 20, 24, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(5.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('MAINFRAME', mapBoxX + 68, mapBoxY + 43, { align: 'center' });
+
+  // Map Road Names
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5);
+  doc.setTextColor(90, 90, 90);
+  doc.text('26th Street', mapBoxX + 80, mapBoxY + mapBoxH - 26, { align: 'center' });
+  doc.text('Shahrah-e-Attar', mapBoxX + 112, mapBoxY + 50);
+
+  // Bottom Gray Banner (#7d858c)
+  const bannerH = 22;
+  const bannerY = pageSize - bannerH;
+
+  doc.setFillColor(125, 133, 140); // #7d858c
+  doc.rect(0, bannerY, pageSize, bannerH, 'F');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('F-73/9, Block 4, Clifton Karachi Pakistan. +92 21 3582 4455 . +92 300 828 5600', pageSize / 2, bannerY + 8, { align: 'center' });
+  doc.text('mainframethegallery@gmail.com | www.mainframethegallery.com', pageSize / 2, bannerY + 15, { align: 'center' });
+
+  // Save PDF file
   const cleanFilename = `Catalog - ${(exhibition.document_name || 'Exhibition').replace(/[^a-zA-Z0-9_-]/g, ' ')}.pdf`;
   doc.save(cleanFilename);
 };
