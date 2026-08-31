@@ -87,6 +87,112 @@ export default function AboutSection() {
 
   return (
     <div className="about-page-wrapper">
+      {/* Scoped CSS for 100% width image banners and centered typography */}
+      <style>{`
+        .about-page-wrapper {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 0 5rem 0 !important;
+          box-sizing: border-box !important;
+        }
+        .about-hero-container {
+          width: 100% !important;
+          max-width: 100% !important;
+          position: relative !important;
+          overflow: hidden !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #0a0a0a !important;
+        }
+        .about-hero-img {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          max-height: 80vh !important;
+          object-fit: cover !important;
+          display: block !important;
+          margin: 0 auto !important;
+        }
+        .about-content-section {
+          width: 100% !important;
+          padding: 4rem 1.5rem !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          justify-content: center !important;
+        }
+        .about-content-inner {
+          width: 100% !important;
+          max-width: 860px !important;
+          margin: 0 auto !important;
+          text-align: center !important;
+          box-sizing: border-box !important;
+        }
+        .about-heading {
+          font-size: 18px !important;
+          font-weight: 400 !important;
+          letter-spacing: 0.12em !important;
+          text-transform: uppercase !important;
+          color: var(--text-primary) !important;
+          margin: 0 0 1.25rem 0 !important;
+          font-family: 'Montserrat', sans-serif !important;
+        }
+        .about-paragraph {
+          font-size: 13px !important;
+          font-weight: 300 !important;
+          line-height: 1.9 !important;
+          color: var(--text-secondary) !important;
+          margin: 0 auto !important;
+          font-family: 'Montserrat', sans-serif !important;
+          letter-spacing: 0.02em !important;
+          max-width: 780px !important;
+        }
+        .about-location-section {
+          padding-top: 2rem !important;
+        }
+        .about-location-grid {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 3.5rem !important;
+          margin-top: 1rem !important;
+          padding-top: 2.5rem !important;
+          border-top: 1px solid var(--border-color) !important;
+          text-align: center !important;
+        }
+        .about-location-title {
+          font-size: 13px !important;
+          font-weight: 500 !important;
+          color: var(--text-primary) !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.08em !important;
+          display: block !important;
+          margin-bottom: 0.6rem !important;
+          font-family: 'Montserrat', sans-serif !important;
+        }
+        @media (max-width: 768px) {
+          .about-content-section {
+            padding: 2.5rem 1rem !important;
+          }
+          .about-hero-img {
+            max-height: 50vh !important;
+          }
+          .about-heading {
+            font-size: 15px !important;
+          }
+          .about-paragraph {
+            font-size: 12px !important;
+            line-height: 1.75 !important;
+          }
+          .about-location-grid {
+            grid-template-columns: 1fr !important;
+            gap: 2rem !important;
+          }
+        }
+      `}</style>
+
       {/* Hero Banner Section */}
       {storyImageUrl && (
         <div className="about-hero-container">
