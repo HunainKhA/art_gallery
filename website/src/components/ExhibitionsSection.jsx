@@ -346,6 +346,21 @@ export default function ExhibitionsSection({
     return () => clearInterval(interval);
   }, [selectedExhibition, exhibitionArtworks, bookIndex, isAutoplayPaused]);
 
+  const getArtworkDisplayCode = (art) => {
+    if (!art) return '';
+    const rawCode = (art.code || '').toString().trim();
+    // If rawCode is a valid artwork code (e.g. FAR-4977, FS-01, 2U0-0101) and not a single digit / dropdown index like '2'
+    if (rawCode && rawCode !== '2' && !/^[0-9]{1,2}$/.test(rawCode)) {
+      return rawCode;
+    }
+    // If rawCode was '2' or empty, the actual painting code/title is in art.title (e.g. FAR-4977)
+    const title = (art.title || '').toString().trim();
+    if (title && title !== '2' && !/^[0-9]{1,2}$/.test(title)) {
+      return title;
+    }
+    return '';
+  };
+
   // Reset page only when tab actually changes (prevents clearing selection on component remount)
   const prevTabRef = useRef(activeTab);
   useEffect(() => {
@@ -894,9 +909,9 @@ export default function ExhibitionsSection({
                               {flipData.left.artist_name}
                             </p>
                           )}
-                          {flipData.left.code && String(flipData.left.code).trim() && (
+                          {getArtworkDisplayCode(flipData.left) && (
                             <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {String(flipData.left.code).trim()}
+                              {getArtworkDisplayCode(flipData.left)}
                             </p>
                           )}
                         </div>
@@ -927,9 +942,9 @@ export default function ExhibitionsSection({
                               {flipData.right.artist_name}
                             </p>
                           )}
-                          {flipData.right.code && String(flipData.right.code).trim() && (
+                          {getArtworkDisplayCode(flipData.right) && (
                             <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {String(flipData.right.code).trim()}
+                              {getArtworkDisplayCode(flipData.right)}
                             </p>
                           )}
                         </div>
@@ -958,9 +973,9 @@ export default function ExhibitionsSection({
                                     {flipData.flipFront.artist_name}
                                   </p>
                                 )}
-                                {flipData.flipFront.code && String(flipData.flipFront.code).trim() && (
+                                {getArtworkDisplayCode(flipData.flipFront) && (
                                   <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    {String(flipData.flipFront.code).trim()}
+                                    {getArtworkDisplayCode(flipData.flipFront)}
                                   </p>
                                 )}
                               </div>
@@ -986,9 +1001,9 @@ export default function ExhibitionsSection({
                                     {flipData.flipBack.artist_name}
                                   </p>
                                 )}
-                                {flipData.flipBack.code && String(flipData.flipBack.code).trim() && (
+                                {getArtworkDisplayCode(flipData.flipBack) && (
                                   <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    {String(flipData.flipBack.code).trim()}
+                                    {getArtworkDisplayCode(flipData.flipBack)}
                                   </p>
                                 )}
                               </div>
