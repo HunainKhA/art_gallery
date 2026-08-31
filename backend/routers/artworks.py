@@ -60,25 +60,10 @@ def get_artwork_categories():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("")
-def get_all_artworks(category: str = None, artist_id: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 10000):
+def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str = None, status: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 10000):
     """
     Fetches artworks from the database with pagination, filtering by category, artist, code, or search term.
     """
-    where_clauses = ["c.deleted = 0"]
-    params = []
-    
-    if category:
-        where_clauses.append("t.name = %s")
-        params.append(category)
-        
-    if artist_id:
-        where_clauses.append("a.id = %s")
-        params.append(artist_id)
-        
-    if code:
-        where_clauses.append("cstm.code_c = %s")
-        params.append(code)
-        
     cache_key = f"{category}_{artist_id}_{medium_id}_{status}_{code}_{search}_{limit}_{page}"
     
     def run_query():
