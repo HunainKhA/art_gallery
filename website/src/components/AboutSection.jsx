@@ -182,8 +182,12 @@ export default function AboutSection() {
         /* Light Theme pure black typography overrides */
         body.light-theme .about-heading,
         body.light-theme .about-location-title,
-        body.light-theme .about-paragraph {
+        body.light-theme .about-story-heading,
+        body.light-theme .about-paragraph,
+        body.light-theme .about-content-inner * {
           color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          opacity: 1 !important;
         }
 
         @media (max-width: 768px) {
