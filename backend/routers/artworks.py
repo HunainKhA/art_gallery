@@ -1700,9 +1700,9 @@ def get_artwork_tag(artwork_id: str):
         else:
             price_formatted = ""
 
-        # Safe file name using ONLY the painting code
-        file_base_name = (code_val or title or "Artwork").replace("'", "").replace('"', "").replace('/', '-').replace('\\', '-').strip()
-        show_title = bool(title and title.lower() != "untitled" and title != code_val)
+        # Safe file name using painting title
+        file_base_name = (title or "Artwork").replace("'", "").replace('"', "").replace('/', '-').replace('\\', '-').strip()
+        show_title = bool(title and title.lower() != "untitled")
 
         # HTML template
         html_content = f"""
@@ -2096,7 +2096,6 @@ def get_artwork_tag(artwork_id: str):
                             {f'<div class="detail-line"><span class="detail-label">Title:</span> <span class="detail-value">{title}</span></div>' if show_title else ''}
                             <div class="detail-line"><span class="detail-label">Medium:</span> <span class="detail-value">{medium}</span></div>
                             <div class="detail-line"><span class="detail-label">Size:</span> <span class="detail-value">{dimensions}</span></div>
-                            {f'<div class="detail-line"><span class="detail-label">Code:</span> <span class="detail-value">{code_val}</span></div>' if code_val else ''}
                             {f'<div class="detail-line price-line"><span class="detail-label">Price:</span> <span class="detail-value">{price_formatted}</span></div>' if price_formatted else ''}
                         </div>
                     </div>

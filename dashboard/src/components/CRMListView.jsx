@@ -1018,11 +1018,6 @@ export default function CRMListView({ module }) {
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  {previewImage.code && (
-                    <span style={{ display: 'inline-block', fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                      Code: {previewImage.code}
-                    </span>
-                  )}
                   {previewImage.price && (
                     <div style={{ fontSize: '1.05rem', color: 'var(--accent-green, #10b981)', fontWeight: 700 }}>
                       {parseFloat(previewImage.price).toLocaleString()} PKR
