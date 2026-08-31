@@ -2163,33 +2163,42 @@ body.light-theme .floating-socials {
   }
 
   /* ====================================================
-   Collections & Artworks Grid Responsive System
+   Collections, Categories & Artworks Grid System (4 Cards Per Row)
    ==================================================== */
-  .artworks-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    width: 100%;
+  .artworks-grid,
+  .categories-grid,
+  .exhibit-artworks-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 2rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   @media (max-width: 1200px) {
-    .artworks-grid {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.75rem;
+    .artworks-grid,
+    .categories-grid,
+    .exhibit-artworks-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 1.75rem !important;
     }
   }
 
   @media (max-width: 868px) {
-    .artworks-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem;
+    .artworks-grid,
+    .categories-grid,
+    .exhibit-artworks-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 1.25rem !important;
     }
   }
 
-  @media (max-width: 480px) {
-    .artworks-grid {
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
+  @media (max-width: 520px) {
+    .artworks-grid,
+    .categories-grid,
+    .exhibit-artworks-grid {
+      grid-template-columns: 1fr !important;
+      gap: 1.25rem !important;
     }
   }
 

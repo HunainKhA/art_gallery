@@ -592,6 +592,34 @@ export default function CollectionsSection({
           {categoryArtworks.length > artworksPerPage && renderPaginationControls(activePage, totalPages)}
         </>
       )}
+
+      {/* Scoped Grid Style for Guaranteed 4 Cards Per Row */}
+      <style>{`
+        .artworks-grid {
+          display: grid !important;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+          gap: 2rem !important;
+          width: 100% !important;
+        }
+        @media (max-width: 1200px) {
+          .artworks-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 1.75rem !important;
+          }
+        }
+        @media (max-width: 868px) {
+          .artworks-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 1.25rem !important;
+          }
+        }
+        @media (max-width: 520px) {
+          .artworks-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.25rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
