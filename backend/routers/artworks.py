@@ -212,8 +212,10 @@ def get_global_template():
             with open(file_path, "rb") as f:
                 return Response(content=f.read(), media_type=media_type)
             
-    # Return transparent 1x1 image fallback if not configured
-    return RedirectResponse(url="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+    # Return transparent 1x1 image fallback directly if not configured
+    import base64
+    transparent_gif = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+    return Response(content=transparent_gif, media_type="image/gif", headers={"Cache-Control": "no-cache, must-revalidate"})
 
 @router.get("/logo")
 def get_mainframe_logo():
