@@ -145,7 +145,7 @@ export default function AboutSection() {
           font-size: 12px !important;
           font-weight: 100 !important;
           line-height: 1.85 !important;
-          color: var(--text-primary) !important;
+          color: var(--text-secondary) !important;
           margin: 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
@@ -179,15 +179,14 @@ export default function AboutSection() {
           font-family: 'Montserrat', sans-serif !important;
         }
 
-        /* Light Theme pure black typography overrides */
+        /* Light Theme typography colors matching gallery theme */
         body.light-theme .about-heading,
         body.light-theme .about-location-title,
-        body.light-theme .about-story-heading,
-        body.light-theme .about-paragraph,
-        body.light-theme .about-content-inner * {
+        body.light-theme .about-story-heading {
           color: #000000 !important;
-          -webkit-text-fill-color: #000000 !important;
-          opacity: 1 !important;
+        }
+        body.light-theme .about-paragraph {
+          color: #374151 !important;
         }
 
         @media (max-width: 768px) {
