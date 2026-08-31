@@ -208,7 +208,18 @@ export default function AboutSection() {
         }
       `}</style>
 
-      {/* Section 1: Our Story */}
+      {/* 1. Our Story Picture (Top) */}
+      {storyImageUrl && (
+        <div className="about-hero-container">
+          <img
+            src={storyImageUrl}
+            alt={storyTitle}
+            className="about-hero-img"
+          />
+        </div>
+      )}
+
+      {/* 1. Our Story Text */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading about-story-heading">
@@ -220,17 +231,18 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {storyImageUrl && (
+      {/* 2. Our Journey Picture */}
+      {framingImageUrl && (
         <div className="about-hero-container">
           <img
-            src={storyImageUrl}
-            alt={storyTitle}
+            src={framingImageUrl}
+            alt={framingTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 2: Our Journey */}
+      {/* 2. Our Journey Text */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -242,17 +254,18 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {framingImageUrl && (
+      {/* 3. Our Vision Picture */}
+      {visionImageUrl && (
         <div className="about-hero-container">
           <img
-            src={framingImageUrl}
-            alt={framingTitle}
+            src={visionImageUrl}
+            alt={visionTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 3: Vision */}
+      {/* 3. Our Vision Text */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -264,17 +277,18 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {visionImageUrl && (
+      {/* 4. Our Mission Picture */}
+      {missionImageUrl && (
         <div className="about-hero-container">
           <img
-            src={visionImageUrl}
-            alt={visionTitle}
+            src={missionImageUrl}
+            alt={missionTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 4: Mission */}
+      {/* 4. Our Mission Text */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -286,17 +300,7 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {missionImageUrl && (
-        <div className="about-hero-container">
-          <img
-            src={missionImageUrl}
-            alt={missionTitle}
-            className="about-hero-img"
-          />
-        </div>
-      )}
-
-      {/* Section 5: Location Details & Hours */}
+      {/* 5. Location Details & Hours */}
       <div className="about-content-section about-location-section">
         <div className="about-content-inner">
           <div className="about-location-grid">
