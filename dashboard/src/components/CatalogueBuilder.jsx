@@ -144,11 +144,11 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: '0.8rem', color: '#fff', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <h4 style={{ fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {art.title}
           </h4>
-          <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
-            Code: {art.code || 'N/A'} • {art.price ? `${art.price.toLocaleString()} PKR` : 'Inquiry'}
+          <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', margin: '0.1rem 0 0 0', fontWeight: 500 }}>
+            {art.price ? `${art.price.toLocaleString()} PKR` : 'Inquiry'}
           </p>
         </div>
       </div>

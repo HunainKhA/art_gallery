@@ -507,8 +507,8 @@ export default function POSBillingSection({ frames, fittings, customers, onSucce
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.75rem 1rem', borderRadius: '8px' }}>
                 <div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Linked Painting</span>
-                  <p style={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem', marginTop: '0.15rem' }}>
-                    {selectedPainting.title} (Code: {selectedPainting.code})
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', marginTop: '0.15rem' }}>
+                    {selectedPainting.title}
                   </p>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     Artist: {selectedPainting.artist_name} | Price: {selectedPainting.price.toLocaleString()} PKR
@@ -751,7 +751,7 @@ export default function POSBillingSection({ frames, fittings, customers, onSucce
                     </h4>
                     {item.painting && (
                       <p style={{ fontSize: '0.9rem', color: 'var(--accent-gold)', fontWeight: 600, marginTop: '0.2rem' }}>
-                        Painting: {item.painting.title} (Code: {item.painting.code}) by {item.painting.artist_name}
+                        Painting: {item.painting.title} by {item.painting.artist_name}
                       </p>
                     )}
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>

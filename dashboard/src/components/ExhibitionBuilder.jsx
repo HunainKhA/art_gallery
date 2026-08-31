@@ -441,7 +441,7 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
             {art.title}
           </h4>
           <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', margin: '0.1rem 0 0 0', fontWeight: 500 }}>
-            Code: {art.code || 'N/A'} • {art.price ? `${art.price.toLocaleString()} PKR` : 'Inquiry'}
+            {art.price ? `${art.price.toLocaleString()} PKR` : 'Inquiry'}
           </p>
         </div>
       </div>
