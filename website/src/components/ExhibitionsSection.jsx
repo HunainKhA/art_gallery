@@ -889,12 +889,14 @@ export default function ExhibitionsSection({
                           />
                         </div>
                         <div className="book-caption">
-                          <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {flipData.left.artist_name || ''}
-                          </p>
-                          {flipData.left.code && String(flipData.left.code).trim() !== '2' && !/^\d+$/.test(String(flipData.left.code).trim()) && (
-                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {flipData.left.code}
+                          {flipData.left.artist_name && (
+                            <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 600, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {flipData.left.artist_name}
+                            </p>
+                          )}
+                          {flipData.left.code && String(flipData.left.code).trim() && (
+                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {String(flipData.left.code).trim()}
                             </p>
                           )}
                         </div>
@@ -920,12 +922,14 @@ export default function ExhibitionsSection({
                           />
                         </div>
                         <div className="book-caption">
-                          <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {flipData.right.artist_name || ''}
-                          </p>
-                          {flipData.right.code && String(flipData.right.code).trim() !== '2' && !/^\d+$/.test(String(flipData.right.code).trim()) && (
-                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              {flipData.right.code}
+                          {flipData.right.artist_name && (
+                            <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 600, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {flipData.right.artist_name}
+                            </p>
+                          )}
+                          {flipData.right.code && String(flipData.right.code).trim() && (
+                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {String(flipData.right.code).trim()}
                             </p>
                           )}
                         </div>
@@ -949,12 +953,14 @@ export default function ExhibitionsSection({
                                 />
                               </div>
                               <div className="book-caption">
-                                <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  {flipData.flipFront.artist_name || ''}
-                                </p>
-                                {flipData.flipFront.code && String(flipData.flipFront.code).trim() !== '2' && !/^\d+$/.test(String(flipData.flipFront.code).trim()) && (
-                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    {flipData.flipFront.code}
+                                {flipData.flipFront.artist_name && (
+                                  <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 600, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {flipData.flipFront.artist_name}
+                                  </p>
+                                )}
+                                {flipData.flipFront.code && String(flipData.flipFront.code).trim() && (
+                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {String(flipData.flipFront.code).trim()}
                                   </p>
                                 )}
                               </div>
@@ -975,12 +981,14 @@ export default function ExhibitionsSection({
                                 />
                               </div>
                               <div className="book-caption">
-                                <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  {flipData.flipBack.artist_name || ''}
-                                </p>
-                                {flipData.flipBack.code && String(flipData.flipBack.code).trim() !== '2' && !/^\d+$/.test(String(flipData.flipBack.code).trim()) && (
-                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    {flipData.flipBack.code}
+                                {flipData.flipBack.artist_name && (
+                                  <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 600, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {flipData.flipBack.artist_name}
+                                  </p>
+                                )}
+                                {flipData.flipBack.code && String(flipData.flipBack.code).trim() && (
+                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 400, color: '#444444', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {String(flipData.flipBack.code).trim()}
                                   </p>
                                 )}
                               </div>
