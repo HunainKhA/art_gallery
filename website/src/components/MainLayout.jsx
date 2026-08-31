@@ -514,8 +514,8 @@ export default function MainLayout({ children, state }) {
               </div>
 
               {/* Try Frames on your Painting Promo */}
-              <div className="try-frames-footer-promo">
-                <span className="try-frames-label">
+              <div className="try-frames-footer-promo" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="try-frames-label" style={{ fontSize: '12px' }}>
                   Try Frames on your Painting
                 </span>
                 <a
@@ -1174,24 +1174,24 @@ export default function MainLayout({ children, state }) {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 0.25rem 0.65rem;
+          padding: 0.35rem 0.85rem;
           font-size: 11px;
-          font-weight: 400;
+          font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.06em;
           border-radius: 4px;
           text-decoration: none;
           transition: all 0.2s ease;
-          border: 1px solid var(--border-color);
-          background: transparent;
-          color: var(--text-primary);
+          border: none !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
           cursor: pointer;
           font-family: 'Montserrat', sans-serif;
         }
         .try-frames-btn:hover {
-          background: var(--text-primary);
-          color: var(--background-color);
-          border-color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.16) !important;
+          color: var(--accent-gold, #d4af37) !important;
+          border: none !important;
         }
 
         /* Light Theme - Deep Solid Black Footer Text */
@@ -1215,12 +1215,13 @@ export default function MainLayout({ children, state }) {
         }
         body.light-theme .try-frames-btn {
           color: #000000 !important;
-          border-color: rgba(0, 0, 0, 0.4) !important;
-          background: transparent !important;
+          border: none !important;
+          background: rgba(0, 0, 0, 0.06) !important;
         }
         body.light-theme .try-frames-btn:hover {
-          background: #000000 !important;
-          color: #ffffff !important;
+          background: rgba(0, 0, 0, 0.12) !important;
+          color: #000000 !important;
+          border: none !important;
         }
         
         /* Minimalist Footer Search Bar - Line only, magnifying glass on the right */
