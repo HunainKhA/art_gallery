@@ -280,10 +280,15 @@ export default function useGalleryState() {
     fetchArtistDetail(artistId)
       .then(data => {
         if (data && Array.isArray(data.artworks)) {
-          // Sort: Available ('Available' or 'not_sold') first, Sold out last
+          // Sort: Available first, Sold / Archive last
           data.artworks.sort((a, b) => {
-            const aAvailable = a.status === 'Available' || a.status === 'not_sold';
-            const bAvailable = b.status === 'Available' || b.status === 'not_sold';
+            const isAvail = (s) => {
+              if (!s) return true;
+              const str = String(s).trim().toLowerCase();
+              return str !== 'sold' && str !== 'soldout' && str !== 'sold_out' && str !== 'return' && str !== 'archive' && str !== 'archived';
+            };
+            const aAvailable = isAvail(a.status);
+            const bAvailable = isAvail(b.status);
             if (aAvailable && !bAvailable) return -1;
             if (!aAvailable && bAvailable) return 1;
             return 0;

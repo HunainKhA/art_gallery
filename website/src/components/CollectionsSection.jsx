@@ -20,6 +20,24 @@ export default function CollectionsSection({
   guestSession,
   setIsGuestModalOpen
 }) {
+  const isArchiveStatus = (s) => {
+    if (!s) return false;
+    const str = String(s).trim().toLowerCase();
+    return str === 'return' || str === 'archive' || str === 'archived';
+  };
+
+  const isSoldStatus = (s) => {
+    if (!s) return false;
+    const str = String(s).trim().toLowerCase();
+    return str === 'sold' || str === 'soldout' || str === 'sold_out';
+  };
+
+  const isAvailableStatus = (s) => {
+    if (!s) return true;
+    if (isArchiveStatus(s) || isSoldStatus(s)) return false;
+    return true;
+  };
+
   // Pagination states for artworks
   const [currentPage, setCurrentPage] = useState(1);
   const [artworksPerPage, setArtworksPerPage] = useState(48); // Default 48 artworks per page
@@ -236,7 +254,7 @@ export default function CollectionsSection({
                       {art.title}
                     </p>
 
-                    {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Archive for Return) */}
+                    {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Archive for Return/Archived) */}
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -245,11 +263,15 @@ export default function CollectionsSection({
                       borderTop: '1px solid var(--border-color)',
                       paddingTop: '0.85rem'
                     }}>
-                      {art.status === 'Return' || art.status === 'archive' || art.status === 'Archive' ? (
+                      {isArchiveStatus(art.status) ? (
                         <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 400, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
                           Archive
                         </span>
-                      ) : art.status === 'Available' || art.status === 'not_sold' ? (
+                      ) : isSoldStatus(art.status) ? (
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          Sold
+                        </span>
+                      ) : (
                         <>
                           <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
                             Inquiry
@@ -258,10 +280,6 @@ export default function CollectionsSection({
                             Available
                           </span>
                         </>
-                      ) : (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                          Sold
-                        </span>
                       )}
                     </div>
                   </div>
@@ -406,12 +424,12 @@ export default function CollectionsSection({
     );
   }
 
-  // Render Artworks Grid for selected category (Unsold/Available first, Sold last)
+  // Render Artworks Grid for selected category (Available first, Sold/Archive last)
   const categoryArtworks = artworks
     .filter(art => art.category_name === selectedCategory)
     .sort((a, b) => {
-      const aAvailable = a.status === 'Available' || a.status === 'not_sold';
-      const bAvailable = b.status === 'Available' || b.status === 'not_sold';
+      const aAvailable = isAvailableStatus(a.status);
+      const bAvailable = isAvailableStatus(b.status);
       if (aAvailable && !bAvailable) return -1;
       if (!aAvailable && bAvailable) return 1;
       return 0;
@@ -557,7 +575,7 @@ export default function CollectionsSection({
                     {art.title}
                   </p>
 
-                  {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Archive for Return) */}
+                  {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Archive for Return/Archived) */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -566,11 +584,15 @@ export default function CollectionsSection({
                     borderTop: '1px solid var(--border-color)',
                     paddingTop: '0.85rem'
                   }}>
-                    {art.status === 'Return' || art.status === 'archive' || art.status === 'Archive' ? (
+                    {isArchiveStatus(art.status) ? (
                       <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 400, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
                         Archive
                       </span>
-                    ) : art.status === 'Available' || art.status === 'not_sold' ? (
+                    ) : isSoldStatus(art.status) ? (
+                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                        Sold
+                      </span>
+                    ) : (
                       <>
                         <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
                           {websiteSettings?.hide_prices ? 'Inquiry' : formatPrice(art.price, currency, exchangeRates)}
@@ -579,10 +601,6 @@ export default function CollectionsSection({
                           Available
                         </span>
                       </>
-                    ) : (
-                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                        Sold
-                      </span>
                     )}
                   </div>
                 </div>

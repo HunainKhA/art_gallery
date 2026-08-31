@@ -412,11 +412,15 @@ export default function CataloguesSection({
                       borderTop: '1px solid var(--border-color)',
                       paddingTop: '0.85rem'
                     }}>
-                      {art.status === 'Return' || art.status === 'archive' || art.status === 'Archive' ? (
+                      {art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
                         <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 100, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
                           Archive
                         </span>
-                      ) : art.status === 'Available' || art.status === 'not_sold' ? (
+                      ) : art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          Sold
+                        </span>
+                      ) : (
                         <>
                           <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                             Inquiry
@@ -425,10 +429,6 @@ export default function CataloguesSection({
                             Available
                           </span>
                         </>
-                      ) : (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                          Sold
-                        </span>
                       )}
                     </div>
                   </div>
