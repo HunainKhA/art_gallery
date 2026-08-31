@@ -199,7 +199,9 @@ def get_exhibition_artworks(exhibition_id: str):
             cstm.code_c AS code,
             m.name AS medium_name,
             a.id AS artist_id,
-            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+            COALESCE(cstm_a.artist_biography_c, a.description) AS artist_bio,
+            a.filename AS artist_profile_image
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         INNER JOIN art_exhibitions_art_collections_1_c rel
@@ -208,6 +210,8 @@ def get_exhibition_artworks(exhibition_id: str):
             ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
         LEFT JOIN art_artists a 
             ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_artists_cstm cstm_a
+            ON a.id = cstm_a.id_c
         LEFT JOIN art_medium_art_collections_c med_rel
             ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m
@@ -238,13 +242,17 @@ def get_exhibition_artworks(exhibition_id: str):
                             cstm.code_c AS code,
                             m.name AS medium_name,
                             a.id AS artist_id,
-                            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+                            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+                            COALESCE(cstm_a.artist_biography_c, a.description) AS artist_bio,
+                            a.filename AS artist_profile_image
                         FROM art_collections c
                         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
                         LEFT JOIN art_artists_art_collections_c art_rel 
                             ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
                         LEFT JOIN art_artists a 
                             ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                        LEFT JOIN art_artists_cstm cstm_a
+                            ON a.id = cstm_a.id_c
                         LEFT JOIN art_medium_art_collections_c med_rel
                             ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
                         LEFT JOIN art_medium m
@@ -272,13 +280,17 @@ def get_exhibition_artworks(exhibition_id: str):
                         cstm.code_c AS code,
                         m.name AS medium_name,
                         a.id AS artist_id,
-                        CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
+                        CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+                        COALESCE(cstm_a.artist_biography_c, a.description) AS artist_bio,
+                        a.filename AS artist_profile_image
                     FROM art_collections c
                     LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
                     INNER JOIN art_artists_art_collections_c art_rel 
                         ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
                     INNER JOIN art_artists a 
                         ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                    LEFT JOIN art_artists_cstm cstm_a
+                        ON a.id = cstm_a.id_c
                     LEFT JOIN art_medium_art_collections_c med_rel
                         ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
                     LEFT JOIN art_medium m
