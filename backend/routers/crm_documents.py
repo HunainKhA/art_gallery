@@ -197,6 +197,7 @@ def get_exhibition_artworks(exhibition_id: str):
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.code_c AS code,
+            m.name AS medium_name,
             a.id AS artist_id,
             CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name
         FROM art_collections c
@@ -207,6 +208,10 @@ def get_exhibition_artworks(exhibition_id: str):
             ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
         LEFT JOIN art_artists a 
             ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel
+            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m
+            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_exhibitions_art_collections_1art_exhibitions_ida = %s AND c.deleted = 0
         ORDER BY c.date_entered DESC;
     """

@@ -499,6 +499,7 @@ export default function ExhibitionsSection({
 
             const captionParts = [
               `<strong>${art.title || 'Untitled'}</strong>`,
+              art.artist_name && art.artist_name.trim() ? art.artist_name.trim() : '',
               art.medium_name ? art.medium_name : '',
               inchPart ? inchPart : '',
               cmPart ? cmPart : ''
