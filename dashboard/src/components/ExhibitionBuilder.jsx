@@ -437,10 +437,10 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: '0.8rem', color: '#fff', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <h4 style={{ fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {art.title}
           </h4>
-          <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
+          <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', margin: '0.1rem 0 0 0', fontWeight: 500 }}>
             Code: {art.code || 'N/A'} • {art.price ? `${art.price.toLocaleString()} PKR` : 'Inquiry'}
           </p>
         </div>
@@ -921,12 +921,12 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
 
                 {/* 1. NEW WORK DIV */}
                 <div>
-                  <h4 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem', paddingBottom: '0.35rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.75rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                     <span>🆕 New Work</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({newArtworks.length} items)</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>({newArtworks.length} items)</span>
                   </h4>
                   {newArtworks.length === 0 ? (
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.5rem 0 1.5rem 0', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.5rem 0 1.5rem 0', fontStyle: 'italic' }}>
                       No new artworks available for this artist.
                     </p>
                   ) : (
@@ -938,12 +938,12 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
 
                 {/* 2. OLD WORK DIV */}
                 <div>
-                  <h4 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem', paddingBottom: '0.35rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.75rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                     <span>🏛️ Old Work (Previously Exhibited)</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({oldArtworks.length} items)</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>({oldArtworks.length} items)</span>
                   </h4>
                   {oldArtworks.length === 0 ? (
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.5rem 0 0 0', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.5rem 0 0 0', fontStyle: 'italic' }}>
                       No previously exhibited artworks found.
                     </p>
                   ) : (
