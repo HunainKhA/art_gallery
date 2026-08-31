@@ -1846,11 +1846,10 @@ def get_artwork_tag(artwork_id: str):
                 
                 .right-col {{
                     flex: 0.9;
-                    height: 100%;
                     display: flex;
                     flex-direction: column;
-                    justify-content: space-between;
-                    align-items: flex-end;
+                    justify-content: flex-end;
+                    align-items: flex-start;
                     box-sizing: border-box;
                     min-width: 0;
                     padding-left: 10px;
@@ -2019,6 +2018,29 @@ def get_artwork_tag(artwork_id: str):
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
             <script>
+                // Align details column bottom precisely with rendered image bottom
+                function alignDetailsWithPainting() {{
+                    const img = document.getElementById('artworkImg');
+                    const rightCol = document.getElementById('rightCol');
+                    const leftCol = document.getElementById('leftCol');
+                    if (img && rightCol && leftCol) {{
+                        const imgRect = img.getBoundingClientRect();
+                        const leftColRect = leftCol.getBoundingClientRect();
+                        const imgBottomRelativeToCol = imgRect.bottom - leftColRect.top;
+                        if (imgBottomRelativeToCol > 50) {{
+                            rightCol.style.height = imgBottomRelativeToCol + 'px';
+                        }}
+                    }}
+                }}
+
+                window.addEventListener('load', function() {{
+                    alignDetailsWithPainting();
+                    setTimeout(alignDetailsWithPainting, 100);
+                    setTimeout(alignDetailsWithPainting, 400);
+                }});
+
+                window.addEventListener('resize', alignDetailsWithPainting);
+
                 // Download high quality PDF
                 function downloadPDF() {{
                     const element = document.getElementById('tagCard');
@@ -2052,18 +2074,18 @@ def get_artwork_tag(artwork_id: str):
             </div>
             
             <div class="certificate-container" id="tagCard">
+                <div class="logo-container">
+                    <img class="logo" src="/api/artworks/logo" alt="Mainframe The Gallery">
+                </div>
+                
                 <div class="tag-content-row">
                     <div class="left-col" id="leftCol">
                         <div class="painting-wrapper">
-                            <img id="artworkImg" class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
+                            <img id="artworkImg" class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}" onload="alignDetailsWithPainting()">
                         </div>
                     </div>
                     
                     <div class="right-col" id="rightCol">
-                        <div class="logo-container">
-                            <img class="logo" src="/api/artworks/logo" alt="Mainframe The Gallery">
-                        </div>
-                        
                         <div class="details-container">
                             <div class="detail-line"><span class="detail-label">Artist Name:</span> <span class="detail-value">{artist}</span></div>
                             {f'<div class="detail-line"><span class="detail-label">Title:</span> <span class="detail-value">{title}</span></div>' if show_title else ''}
