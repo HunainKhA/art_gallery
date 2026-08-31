@@ -1875,12 +1875,13 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .logo-container {{
-                    width: 100%;
+                    position: absolute;
+                    top: 35px;
+                    right: 45px;
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
-                    margin-top: 0;
-                    margin-bottom: auto;
+                    z-index: 5;
                 }}
                 
                 .logo {{
@@ -1946,6 +1947,10 @@ def get_artwork_tag(artwork_id: str):
                     .painting-image {{
                         max-height: 380px;
                     }}
+                    .logo-container {{
+                        top: 25px !important;
+                        right: 30px !important;
+                    }}
                     .logo {{
                         height: 65px;
                     }}
@@ -1997,6 +2002,11 @@ def get_artwork_tag(artwork_id: str):
 
                     .painting-image {{
                         max-height: 140mm !important;
+                    }}
+
+                    .logo-container {{
+                        top: 0.6in !important;
+                        right: 0.8in !important;
                     }}
 
                     .logo {{
