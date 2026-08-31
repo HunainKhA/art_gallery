@@ -171,14 +171,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         return artworks
 
     try:
-        now = time.time()
-        if cache_key in _ARTWORKS_CACHE:
-            data, timestamp = _ARTWORKS_CACHE[cache_key]
-            if now - timestamp < 30: # 30s in-memory cache
-                return data
-        result = run_query()
-        _ARTWORKS_CACHE[cache_key] = (result, now)
-        return result
+        return run_query()
     except Exception as e:
         import traceback
         print(f"[ERROR in get_all_artworks]: {str(e)}\n{traceback.format_exc()}")
