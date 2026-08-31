@@ -180,6 +180,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         _ARTWORKS_CACHE[cache_key] = (result, now)
         return result
     except Exception as e:
+        import traceback
+        print(f"[ERROR in get_all_artworks]: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/global-template")
