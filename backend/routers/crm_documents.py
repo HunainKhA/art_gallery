@@ -299,8 +299,8 @@ def get_exhibition_artworks(exhibition_id: str):
 @router.get("/exhibitions/image/{exhibition_id}")
 def get_exhibition_cover_image(exhibition_id: str):
     """
-    Serves the cover image for an exhibition. Searches by exhibition ID, filename,
-    or falls back to the first artwork's image in the exhibition.
+    Serves the cover image for an exhibition. Searches by saved filename first,
+    then exhibition ID, or falls back to the first artwork's image in the exhibition.
     """
     import os
     from fastapi.responses import RedirectResponse, FileResponse
@@ -336,10 +336,22 @@ def get_exhibition_cover_image(exhibition_id: str):
                 media_type = "image/webp"
             elif ext == ".gif":
                 media_type = "image/gif"
-            return FileResponse(path, media_type=media_type)
+            return FileResponse(path, media_type=media_type, headers={"Cache-Control": "no-cache, must-revalidate"})
         return None
 
-    # 1. Check exhibition ID directly or with extensions
+    ex_res = None
+    # 1. Primary priority: Query the exhibition document to get the explicitly uploaded cover filename
+    try:
+        ex_query = "SELECT filename, document_name FROM art_exhibitions WHERE id = %s AND deleted = 0;"
+        ex_res = execute_query(ex_query, (exhibition_id,), fetch="one")
+        if ex_res and ex_res.get("filename"):
+            match = try_serve(ex_res["filename"])
+            if match:
+                return match
+    except Exception as e:
+        print(f"Error checking exhibition filename: {e}")
+
+    # 2. Check exhibition ID directly or with extensions (legacy sugar storage)
     match = try_serve(exhibition_id)
     if match:
         return match
@@ -348,25 +360,18 @@ def get_exhibition_cover_image(exhibition_id: str):
         if match:
             return match
 
-    # 2. Query the exhibition document to get the uploaded cover filename
+    # 3. Check by document_name
     try:
-        ex_query = "SELECT filename, document_name FROM art_exhibitions WHERE id = %s AND deleted = 0;"
-        ex_res = execute_query(ex_query, (exhibition_id,), fetch="one")
-        if ex_res:
-            if ex_res.get("filename"):
-                match = try_serve(ex_res["filename"])
+        if ex_res and ex_res.get("document_name"):
+            doc_name = ex_res["document_name"].strip()
+            for ext in ['', '.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                match = try_serve(f"{doc_name}{ext}")
                 if match:
                     return match
-            if ex_res.get("document_name"):
-                doc_name = ex_res["document_name"].strip()
-                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
-                    match = try_serve(f"{doc_name}{ext}")
-                    if match:
-                        return match
     except Exception as e:
-        print(f"Error checking exhibition filename: {e}")
+        print(f"Error checking exhibition document_name: {e}")
 
-    # 3. Query linked artworks in this exhibition
+    # 4. Fallback: Query linked artworks in this exhibition
     try:
         art_query = """
             SELECT c.id, c.filename, c.document_name 
@@ -379,6 +384,11 @@ def get_exhibition_cover_image(exhibition_id: str):
         """
         art_rows = execute_query(art_query, (exhibition_id,))
         for art in art_rows:
+            # Try art filename first
+            if art.get("filename"):
+                match = try_serve(art["filename"])
+                if match:
+                    return match
             # Try art id
             match = try_serve(art["id"])
             if match:
@@ -387,15 +397,10 @@ def get_exhibition_cover_image(exhibition_id: str):
                 match = try_serve(f"{art['id']}{ext}")
                 if match:
                     return match
-            # Try art filename
-            if art.get("filename"):
-                match = try_serve(art["filename"])
-                if match:
-                    return match
     except Exception as e:
         print(f"Error checking exhibition artwork filename: {e}")
 
-    # 4. Check custom CSV artwork_ids_c in art_exhibitions_cstm
+    # 5. Check custom CSV artwork_ids_c in art_exhibitions_cstm
     try:
         cstm_query = "SELECT artwork_ids_c FROM art_exhibitions_cstm WHERE id_c = %s;"
         cstm_res = execute_query(cstm_query, (exhibition_id,), fetch="one")
@@ -412,7 +417,7 @@ def get_exhibition_cover_image(exhibition_id: str):
     except Exception as e:
         print(f"Error checking exhibition custom artwork_ids: {e}")
 
-    # 5. Fallback placeholder
+    # 6. Fallback placeholder
     return RedirectResponse(url="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500")
 
 

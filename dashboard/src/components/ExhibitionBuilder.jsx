@@ -393,8 +393,8 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
   };
 
   const coverUrl = formData.filename
-    ? getApiUrl(`/api/artworks/image/${formData.filename}`)
-    : null;
+    ? (formData.filename.startsWith('http') ? formData.filename : getApiUrl(`/api/artworks/image/${formData.filename}`))
+    : (formData.id ? getApiUrl(`/api/crm/exhibitions/image/${formData.id}`) : null);
 
   const renderArtworkCard = (art) => {
     const isChecked = formData.artwork_ids.includes(art.id);
