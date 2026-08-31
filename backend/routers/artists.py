@@ -685,7 +685,7 @@ def get_artist_portfolio_report(artist_id: str):
                         <button class="btn btn-secondary" onclick="selectAll(false)">Deselect All</button>
                         <button class="btn btn-secondary" onclick="selectFirstN(10)">Select First 10</button>
                         <button class="btn btn-gold" onclick="downloadPDF()">Download PDF</button>
-                        <button class="btn btn-print" onclick="window.print()">Print Inventory</button>
+                        <button class="btn btn-print" onclick="triggerPrint()">Print Inventory</button>
                     </div>
                 </div>
                 <div class="controls-bottom-row">
@@ -695,7 +695,7 @@ def get_artist_portfolio_report(artist_id: str):
                         <button class="filter-btn" onclick="setFilter('Sold', this)">Sold ({sold_items})</button>
                         <button class="filter-btn" onclick="setFilter('Return', this)">Return ({return_items})</button>
                     </div>
-                    <div class="selection-counter">Selected: <b id="selectedCountText">{total_items}</b> of {total_items} items (<b id="pagesCountText">0</b> pages @ 10/page)</div>
+                    <div class="selection-counter">Selected: <b id="selectedCountText">{total_items}</b> of <span id="totalVisibleCountText">{total_items}</span> items (<b id="pagesCountText">0</b> pages @ 10/page)</div>
                 </div>
             </div>
 
@@ -714,27 +714,45 @@ def get_artist_portfolio_report(artist_id: str):
                 let selectedIds = new Set(allArtworks.map(a => a.id));
                 let currentStatusFilter = 'all';
 
-                function renderPages() {{
+                function renderPages(forPrintOnly = false) {{
                     const container = document.getElementById('pagesContainer');
                     container.innerHTML = '';
-                    const filtered = allArtworks.filter(a => (currentStatusFilter === 'all' || a.status === currentStatusFilter) && selectedIds.has(a.id));
-                    document.getElementById('selectedCountText').innerText = filtered.length;
-                    if (filtered.length === 0) {{ container.innerHTML = '<div class="report-page" style="text-align: center; padding: 60px 20px;"><h3>No paintings selected</h3></div>'; return; }}
+                    
+                    // On screen, ALWAYS show all paintings matching the status filter so user can see and uncheck/check them.
+                    // Only for Print/PDF export, filter strictly by selectedIds.
+                    const listToRender = forPrintOnly
+                        ? allArtworks.filter(a => (currentStatusFilter === 'all' || a.status === currentStatusFilter) && selectedIds.has(a.id))
+                        : allArtworks.filter(a => (currentStatusFilter === 'all' || a.status === currentStatusFilter));
+
+                    const selectedCount = allArtworks.filter(a => (currentStatusFilter === 'all' || a.status === currentStatusFilter) && selectedIds.has(a.id)).length;
+                    const visibleTotal = allArtworks.filter(a => currentStatusFilter === 'all' || a.status === currentStatusFilter).length;
+                    
+                    const countElem = document.getElementById('selectedCountText');
+                    if (countElem) countElem.innerText = selectedCount;
+                    const totalVisElem = document.getElementById('totalVisibleCountText');
+                    if (totalVisElem) totalVisElem.innerText = visibleTotal;
+
+                    if (listToRender.length === 0) {{
+                        container.innerHTML = '<div class="report-page" style="text-align: center; padding: 60px 20px;"><h3>No paintings found</h3></div>';
+                        return;
+                    }}
 
                     const pageSize = 10;
-                    const totalPages = Math.ceil(filtered.length / pageSize);
-                    document.getElementById('pagesCountText').innerText = totalPages;
+                    const totalPages = Math.ceil(listToRender.length / pageSize);
+                    const pagesElem = document.getElementById('pagesCountText');
+                    if (pagesElem) pagesElem.innerText = totalPages;
 
                     for (let p = 0; p < totalPages; p++) {{
-                        const pageItems = filtered.slice(p * pageSize, (p + 1) * pageSize);
+                        const pageItems = listToRender.slice(p * pageSize, (p + 1) * pageSize);
                         const pageNum = p + 1;
                         let rowsHtml = '';
                         pageItems.forEach((art, idx) => {{
                             const globalIndex = p * pageSize + idx + 1;
                             const statusClass = art.status === 'Sold' ? 'status-sold' : (art.status === 'Return' ? 'status-return' : 'status-available');
+                            const isChecked = selectedIds.has(art.id);
                             rowsHtml += `
-                                <tr>
-                                    <td class="col-select no-print"><input type="checkbox" checked onchange="toggleItem('${{art.id}}', this.checked)" style="cursor:pointer;"></td>
+                                <tr style="${{!isChecked ? 'opacity: 0.4; background-color: #f8fafc;' : ''}}">
+                                    <td class="col-select no-print"><input type="checkbox" ${{isChecked ? 'checked' : ''}} onchange="toggleItem('${{art.id}}', this.checked)" style="cursor:pointer; width: 16px; height: 16px;"></td>
                                     <td class="col-sno">${{globalIndex}}</td>
                                     <td class="col-code"><div class="code-title">${{art.code}}</div><div class="deal-type-badge">${{art.deal_type}}</div></td>
                                     <td class="col-photo"><img class="painting-thumb" src="/api/artworks/image/${{art.id}}" onerror="this.src='https://placehold.co/70x50?text=Artwork'"></td>
@@ -764,12 +782,60 @@ def get_artist_portfolio_report(artist_id: str):
                         container.innerHTML += `<div class="report-page">${{headerHtml}}<table class="report-table"><thead><tr><th class="col-select no-print">#</th><th class="col-sno">S#</th><th class="col-code">Code</th><th class="col-photo">Painting</th><th class="col-medium">Medium</th><th class="col-size">Size</th><th class="col-price">Price</th><th class="col-invoice">Invoice</th><th class="col-status">Status</th></tr></thead><tbody>${{rowsHtml}}</tbody></table><div class="page-footer"><div>MainFrame The Gallery &bull; Karachi</div><div>${{new Date().toLocaleDateString()}}</div></div></div>`;
                     }}
                 }}
-                function toggleItem(id, isChecked) {{ isChecked ? selectedIds.add(id) : selectedIds.delete(id); renderPages(); }}
-                function selectAll(state) {{ state ? allArtworks.forEach(a => selectedIds.add(a.id)) : selectedIds.clear(); renderPages(); }}
-                function selectFirstN(n) {{ selectedIds.clear(); allArtworks.slice(0, n).forEach(a => selectedIds.add(a.id)); renderPages(); }}
-                function setFilter(status, btnElem) {{ currentStatusFilter = status; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btnElem.classList.add('active'); renderPages(); }}
-                function downloadPDF() {{ html2pdf().from(document.getElementById('pagesContainer')).set({{ margin: [4, 4, 4, 4], filename: 'Portfolio_{artist_id}.pdf', jsPDF: {{ unit: 'mm', format: 'a4', orientation: 'portrait' }} }}).save(); }}
-                window.addEventListener('DOMContentLoaded', renderPages);
+
+                function toggleItem(id, isChecked) {{
+                    isChecked ? selectedIds.add(id) : selectedIds.delete(id);
+                    renderPages(false);
+                }}
+
+                function selectAll(state) {{
+                    const visibleItems = allArtworks.filter(a => currentStatusFilter === 'all' || a.status === currentStatusFilter);
+                    if (state) {{
+                        visibleItems.forEach(a => selectedIds.add(a.id));
+                    }} else {{
+                        visibleItems.forEach(a => selectedIds.delete(a.id));
+                    }}
+                    renderPages(false);
+                }}
+
+                function selectFirstN(n) {{
+                    const visibleItems = allArtworks.filter(a => currentStatusFilter === 'all' || a.status === currentStatusFilter);
+                    visibleItems.forEach((a, idx) => {{
+                        if (idx < n) selectedIds.add(a.id);
+                        else selectedIds.delete(a.id);
+                    }});
+                    renderPages(false);
+                }}
+
+                function setFilter(status, btnElem) {{
+                    currentStatusFilter = status;
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btnElem.classList.add('active');
+                    renderPages(false);
+                }}
+
+                function triggerPrint() {{
+                    renderPages(true);
+                    setTimeout(() => {{
+                        window.print();
+                        setTimeout(() => renderPages(false), 500);
+                    }}, 100);
+                }}
+
+                function downloadPDF() {{
+                    renderPages(true);
+                    setTimeout(() => {{
+                        html2pdf().from(document.getElementById('pagesContainer')).set({{
+                            margin: [4, 4, 4, 4],
+                            filename: 'Portfolio_{artist_id}.pdf',
+                            jsPDF: {{ unit: 'mm', format: 'a4', orientation: 'portrait' }}
+                        }}).save().then(() => {{
+                            renderPages(false);
+                        }});
+                    }}, 150);
+                }}
+
+                window.addEventListener('DOMContentLoaded', () => renderPages(false));
             </script>
         </body>
         </html>
