@@ -1254,11 +1254,11 @@ export default function ExhibitionsSection({
                         paddingTop: '0.85rem'
                       }}>
                         {art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
-                          <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 400, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
+                          <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 100, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
                             Archive
                           </span>
                         ) : art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
                             Sold
                           </span>
                         ) : (
@@ -1266,7 +1266,7 @@ export default function ExhibitionsSection({
                             <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
                               Inquiry
                             </span>
-                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 100, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
                               Available
                             </span>
                           </>

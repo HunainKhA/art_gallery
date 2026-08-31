@@ -358,6 +358,56 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
 
   return (
     <div className="page-content artwork-detail-page-wrapper" style={{ paddingTop: '0.5rem' }}>
+      {/* Scoped CSS for Artwork Detail 2-Column Desktop Grid Layout */}
+      <style>{`
+        .artwork-detail-page-wrapper {
+          width: 100% !important;
+          max-width: 1360px !important;
+          margin: 0 auto !important;
+          padding: 0.5rem 2rem 3rem !important;
+          box-sizing: border-box !important;
+        }
+        .artwork-detail-grid {
+          display: grid !important;
+          grid-template-columns: 1.2fr 0.8fr !important;
+          gap: 4rem !important;
+          align-items: center !important;
+          min-height: calc(100vh - 200px) !important;
+          width: 100% !important;
+        }
+        .artwork-image-container {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+        }
+        .artwork-image-container img {
+          max-width: 100% !important;
+          max-height: calc(100vh - 220px) !important;
+          object-fit: contain !important;
+          display: block !important;
+        }
+        .artwork-info-col {
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: flex-start !important;
+          text-align: left !important;
+          gap: 0.65rem !important;
+          padding: 1rem 0 !important;
+        }
+        @media (max-width: 992px) {
+          .artwork-detail-grid {
+            grid-template-columns: 1fr !important;
+            gap: 2rem !important;
+            min-height: auto !important;
+          }
+          .artwork-image-container img {
+            max-height: 55vh !important;
+          }
+        }
+      `}</style>
+
       {/* Header row with Back Button & sequence indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <button
