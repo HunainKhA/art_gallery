@@ -131,12 +131,13 @@ export default function AboutSection() {
           text-align: left !important;
           box-sizing: border-box !important;
         }
-        .about-heading {
+        .about-heading,
+        .about-location-title {
           font-size: 14px !important;
           font-weight: 100 !important;
           letter-spacing: 0.05em !important;
           text-transform: uppercase !important;
-          color: var(--text-primary) !important;
+          color: #000000 !important;
           margin: 0 0 0.75rem 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
@@ -145,7 +146,7 @@ export default function AboutSection() {
           font-size: 12px !important;
           font-weight: 100 !important;
           line-height: 1.85 !important;
-          color: var(--text-secondary) !important;
+          color: #000000 !important;
           margin: 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
@@ -167,26 +168,30 @@ export default function AboutSection() {
         .about-location-col {
           text-align: left !important;
         }
-        .about-location-title {
-          font-size: 14px !important;
-          font-weight: 100 !important;
-          color: var(--text-primary) !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          display: block !important;
-          margin-bottom: 0.5rem !important;
-          text-align: left !important;
-          font-family: 'Montserrat', sans-serif !important;
+
+        /* Dark Theme colors */
+        body.dark-theme .about-heading,
+        body.dark-theme .about-location-title,
+        body.dark-theme .about-paragraph,
+        [data-theme="dark"] .about-heading,
+        [data-theme="dark"] .about-location-title,
+        [data-theme="dark"] .about-paragraph {
+          color: #ffffff !important;
+          -webkit-text-fill-color: #ffffff !important;
         }
 
-        /* Light Theme typography colors matching gallery theme */
+        /* Light Theme pure black typography matching footer */
         body.light-theme .about-heading,
         body.light-theme .about-location-title,
-        body.light-theme .about-story-heading {
+        body.light-theme .about-story-heading,
+        body.light-theme .about-paragraph,
+        body.light-theme .about-content-inner,
+        body.light-theme .about-content-inner p,
+        body.light-theme .about-content-inner h2,
+        body.light-theme .about-content-inner strong {
           color: #000000 !important;
-        }
-        body.light-theme .about-paragraph {
-          color: #374151 !important;
+          -webkit-text-fill-color: #000000 !important;
+          opacity: 1 !important;
         }
 
         @media (max-width: 768px) {
@@ -203,17 +208,6 @@ export default function AboutSection() {
         }
       `}</style>
 
-      {/* Hero Banner Section */}
-      {storyImageUrl && (
-        <div className="about-hero-container">
-          <img
-            src={storyImageUrl}
-            alt={storyTitle}
-            className="about-hero-img"
-          />
-        </div>
-      )}
-
       {/* Section 1: Our Story */}
       <div className="about-content-section">
         <div className="about-content-inner">
@@ -226,18 +220,17 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {/* Section 2: Our Journey Image Banner */}
-      {framingImageUrl && (
+      {storyImageUrl && (
         <div className="about-hero-container">
           <img
-            src={framingImageUrl}
-            alt={framingTitle}
+            src={storyImageUrl}
+            alt={storyTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 2: Our Journey Text */}
+      {/* Section 2: Our Journey */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -249,18 +242,17 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {/* Section 3: Vision Image Banner */}
-      {visionImageUrl && (
+      {framingImageUrl && (
         <div className="about-hero-container">
           <img
-            src={visionImageUrl}
-            alt={visionTitle}
+            src={framingImageUrl}
+            alt={framingTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 3: Vision Text */}
+      {/* Section 3: Vision */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -272,18 +264,17 @@ export default function AboutSection() {
         </div>
       </div>
 
-      {/* Section 4: Mission Image Banner */}
-      {missionImageUrl && (
+      {visionImageUrl && (
         <div className="about-hero-container">
           <img
-            src={missionImageUrl}
-            alt={missionTitle}
+            src={visionImageUrl}
+            alt={visionTitle}
             className="about-hero-img"
           />
         </div>
       )}
 
-      {/* Section 4: Mission Text */}
+      {/* Section 4: Mission */}
       <div className="about-content-section">
         <div className="about-content-inner">
           <h2 className="about-heading">
@@ -294,6 +285,16 @@ export default function AboutSection() {
           </p>
         </div>
       </div>
+
+      {missionImageUrl && (
+        <div className="about-hero-container">
+          <img
+            src={missionImageUrl}
+            alt={missionTitle}
+            className="about-hero-img"
+          />
+        </div>
+      )}
 
       {/* Section 5: Location Details & Hours */}
       <div className="about-content-section about-location-section">
