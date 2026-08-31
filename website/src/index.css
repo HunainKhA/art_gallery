@@ -868,14 +868,15 @@ body.light-theme .gradient-title {
 }
 
 .btn-secondary {
-  background: white;
-  color: var(--text-primary);
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: none;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #ffffff);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  padding: 0.55rem 1.15rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
@@ -883,8 +884,9 @@ body.light-theme .gradient-title {
 }
 
 .btn-secondary:hover {
-  border-color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent-gold, #d4af37);
+  color: var(--accent-gold, #d4af37);
 }
 
 /* Frame Styles for Visualizer */
