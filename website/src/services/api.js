@@ -26,7 +26,7 @@ export const fetchArtworks = async (params = {}) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Could not fetch artworks inventory list.");
   const data = await res.json();
-  return Array.isArray(data) ? data.filter(art => art.status !== 'Return') : [];
+  return Array.isArray(data) ? data : [];
 };
 
 export const fetchArtistDetail = async (artistId) => {

@@ -554,7 +554,11 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
           {/* Price / Inquiry / Status */}
           <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 100, margin: 0, color: 'var(--text-primary)' }}>
-              {artwork.status && artwork.status.toLowerCase() === 'sold' ? (
+              {artwork.status && (artwork.status.toLowerCase() === 'return' || artwork.status.toLowerCase() === 'archive') ? (
+                <span className="status-return status-archive" style={{ color: '#f59e0b', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
+                  Archive
+                </span>
+              ) : artwork.status && artwork.status.toLowerCase() === 'sold' ? (
                 <span className="status-sold" style={{ color: '#ef4444', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                   Sold
                 </span>
@@ -569,7 +573,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
               )}
             </h2>
             {/* Convert currency drop-down */}
-            {!websiteSettings?.hide_prices && (artwork.status?.toLowerCase() !== 'sold') && (
+            {!websiteSettings?.hide_prices && (artwork.status?.toLowerCase() !== 'sold' && artwork.status?.toLowerCase() !== 'return' && artwork.status?.toLowerCase() !== 'archive') && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Convert:</span>
                 <select
@@ -608,8 +612,8 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                   }
                 }}
                 className="inquiry-icon-btn add-to-bag-icon-btn"
-                disabled={guestSession && (isInCart || (artwork.status?.toLowerCase() === 'sold'))}
-                title={!guestSession ? "Login to Add to Bag" : isInCart ? "In Bag" : "Add to Bag"}
+                disabled={guestSession && (isInCart || (artwork.status?.toLowerCase() === 'sold') || (artwork.status?.toLowerCase() === 'return') || (artwork.status?.toLowerCase() === 'archive'))}
+                title={!guestSession ? "Login to Add to Bag" : isInCart ? "In Bag" : (artwork.status?.toLowerCase() === 'return' || artwork.status?.toLowerCase() === 'archive') ? "Archived" : "Add to Bag"}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -617,7 +621,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                   width: '36px',
                   height: '36px',
                   padding: '0',
-                  cursor: (guestSession && (isInCart || artwork.status?.toLowerCase() === 'sold')) ? 'not-allowed' : 'pointer',
+                  cursor: (guestSession && (isInCart || artwork.status?.toLowerCase() === 'sold' || artwork.status?.toLowerCase() === 'return' || artwork.status?.toLowerCase() === 'archive')) ? 'not-allowed' : 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -626,7 +630,9 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                   color: 'var(--text-primary)'
                 }}
               >
-                {artwork.status?.toLowerCase() === 'sold' ? (
+                {artwork.status?.toLowerCase() === 'return' || artwork.status?.toLowerCase() === 'archive' ? (
+                  <span style={{ fontSize: '12px', fontWeight: 100, color: '#f59e0b' }}>Archive</span>
+                ) : artwork.status?.toLowerCase() === 'sold' ? (
                   <span style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444' }}>Sold</span>
                 ) : isInCart ? (
                   <Check size={20} style={{ color: '#10b981' }} title="In Bag" />

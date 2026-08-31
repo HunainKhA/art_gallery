@@ -188,7 +188,7 @@ export default function ExhibitionsSection({
     try {
       const res = await fetch(getApiUrl(`/api/crm/exhibitions/${exhibitionId}/artworks`));
       const data = await res.json();
-      return Array.isArray(data) ? data.filter(art => art.status !== 'Return') : [];
+      return Array.isArray(data) ? data : [];
     } catch (err) {
       console.error("Error fetching artworks for download:", err);
       return [];
@@ -1244,7 +1244,7 @@ export default function ExhibitionsSection({
                         {art.title}
                       </p>
 
-                      {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
+                      {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Archive for Return) */}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -1253,7 +1253,11 @@ export default function ExhibitionsSection({
                         borderTop: '1px solid var(--border-color)',
                         paddingTop: '0.85rem'
                       }}>
-                        {art.status === 'Available' || art.status === 'not_sold' ? (
+                        {art.status === 'Return' || art.status === 'archive' || art.status === 'Archive' ? (
+                          <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 400, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
+                            Archive
+                          </span>
+                        ) : art.status === 'Available' || art.status === 'not_sold' ? (
                           <>
                             <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
                               Inquiry

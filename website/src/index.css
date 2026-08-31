@@ -145,6 +145,11 @@ small,
   color: #10b981 !important;
 }
 
+.status-archive,
+.status-return {
+  color: #f59e0b !important;
+}
+
 .status-inquiry {
   color: #000000 !important;
 }
