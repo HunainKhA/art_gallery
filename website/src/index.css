@@ -1879,12 +1879,15 @@ body.light-theme .floating-socials {
 .home-fullscreen-slider img {
   width: 100% !important;
   height: 100% !important;
-
-  /* IMPORTANT: image crop nahi hogi */
-  object-fit: contain !important;
+  object-fit: cover !important;
   object-position: center center !important;
-
   display: block !important;
+}
+
+@media (max-width: 768px) {
+  .home-fullscreen-slider img {
+    object-position: center center !important;
+  }
 }
 
 .home-fullscreen-slider::after {
