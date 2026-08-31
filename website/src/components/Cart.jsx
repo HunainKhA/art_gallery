@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, Trash2, CheckCircle, ArrowLeft, Loader } from 'lucide-react';
 import { formatPrice } from '../services/currency';
+import { getApiUrl, getArtworkImageUrl } from '../services/api';
 
 export default function Cart({ cartItems, onRemoveFromCart, onClearCart, onBack, currency, exchangeRates }) {
   const [customerName, setCustomerName] = useState('');
@@ -29,7 +30,7 @@ export default function Cart({ cartItems, onRemoveFromCart, onClearCart, onBack,
     // 1. We create the payment intent (Stripe simulation on Backend)
     const artworkIds = cartItems.map(item => item.id);
     
-    fetch("http://localhost:8000/api/payments/create-payment-intent", {
+    fetch(getApiUrl("/api/payments/create-payment-intent"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -45,7 +46,7 @@ export default function Cart({ cartItems, onRemoveFromCart, onClearCart, onBack,
       })
       .then(intentData => {
         // 2. Confirm the payment and sync back to SugarCRM database
-        return fetch("http://localhost:8000/api/payments/confirm-order", {
+        return fetch(getApiUrl("/api/payments/confirm-order"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -124,7 +125,7 @@ export default function Cart({ cartItems, onRemoveFromCart, onClearCart, onBack,
             {cartItems.map((item) => (
               <div key={item.id} className="glass-card" style={{ padding: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                 <img 
-                  src={item.id ? `http://localhost:8000/api/artworks/image/${item.id}` : (item.image || '')} 
+                  src={item.id ? getArtworkImageUrl(item.id) : (item.image || '')} 
                   alt={item.title} 
                   style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
                 />

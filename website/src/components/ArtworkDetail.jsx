@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, MessageCircle, Mail, ShoppingCart, Layout, X, Check, Eye } from 'lucide-react';
+import { getApiUrl } from '../services/api';
 import { formatPrice, renderDimensions } from '../services/currency';
 import galleryRoomBg from '../assets/gallery_room_bg_highres.jpg';
 import galleryGirlOverlay from '../assets/gallery_girl_final.png';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 // Rich paint palette for the wall backdrop
 const WALL_COLORS = [
@@ -71,27 +72,78 @@ const WALL_COLORS = [
 ];
 
 export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItems, currency, setCurrency, exchangeRates, websiteSettings = { hide_prices: false, hide_add_to_cart: false }, guestSession, setIsGuestModalOpen, artworks = [], setSelectedArtworkId }) {
-  const [artwork, setArtwork] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const currentInScope = artworks?.find(item => String(item.id) === String(artworkId));
+  const [artwork, setArtwork] = useState(currentInScope || null);
+  const [loading, setLoading] = useState(!currentInScope);
   const [error, setError] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Sync artwork detail with backend when artworkId changes
+  useEffect(() => {
+    if (!artworkId) return;
+    const found = artworks?.find(item => String(item.id) === String(artworkId));
+    if (found) {
+      setArtwork(found);
+    }
+    fetch(getApiUrl(`/api/artworks/${artworkId}`))
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.id) {
+          setArtwork(prev => ({ ...(prev || {}), ...data }));
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load artwork detail:", err);
+        setLoading(false);
+      });
+  }, [artworkId]);
 
   const currentIndex = (artworks && artworks.length > 0) ? artworks.findIndex(item => String(item.id) === String(artworkId)) : -1;
 
+  // Preload adjacent images in browser cache for instant smooth browsing
+  useEffect(() => {
+    if (artworks && currentIndex !== -1) {
+      if (currentIndex < artworks.length - 1) {
+        const nextItem = artworks[currentIndex + 1];
+        if (nextItem) {
+          const nextImg = new Image();
+          nextImg.src = nextItem.id ? `${API_BASE}/api/artworks/image/${nextItem.id}` : (nextItem.image || '');
+        }
+      }
+      if (currentIndex > 0) {
+        const prevItem = artworks[currentIndex - 1];
+        if (prevItem) {
+          const prevImg = new Image();
+          prevImg.src = prevItem.id ? `${API_BASE}/api/artworks/image/${prevItem.id}` : (prevItem.image || '');
+        }
+      }
+    }
+  }, [currentIndex, artworks]);
+
   const handlePrev = () => {
     if (artworks && currentIndex > 0) {
-      setLoading(true);
-      const prevId = artworks[currentIndex - 1].id;
-      setSelectedArtworkId(prevId);
-      sessionStorage.setItem('selectedArtworkId', prevId);
+      const prevItem = artworks[currentIndex - 1];
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setArtwork(prev => ({ ...prev, ...prevItem }));
+        setSelectedArtworkId(prevItem.id);
+        sessionStorage.setItem('selectedArtworkId', prevItem.id);
+        setIsTransitioning(false);
+      }, 120);
     }
   };
 
   const handleNext = () => {
     if (artworks && currentIndex < artworks.length - 1) {
-      setLoading(true);
-      const nextId = artworks[currentIndex + 1].id;
-      setSelectedArtworkId(nextId);
-      sessionStorage.setItem('selectedArtworkId', nextId);
+      const nextItem = artworks[currentIndex + 1];
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setArtwork(prev => ({ ...prev, ...nextItem }));
+        setSelectedArtworkId(nextItem.id);
+        sessionStorage.setItem('selectedArtworkId', nextItem.id);
+        setIsTransitioning(false);
+      }, 120);
     }
   };
 
@@ -121,6 +173,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
   const [showWallModal, setShowWallModal] = useState(false);
   const [wallColor, setWallColor] = useState('#ffffff'); // Default clean white wall
   const [frameStyle, setFrameStyle] = useState('none'); // Default no frame
+  const [visualizerImageAspect, setVisualizerImageAspect] = useState(null);
 
   // Lightbox State
   const [showLightbox, setShowLightbox] = useState(false);
@@ -208,7 +261,15 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
   };
 
   useEffect(() => {
-    // Fetch individual artwork details from Python backend API
+    // If we already have current in-scope artwork from list, sync it immediately
+    const found = artworks?.find(item => String(item.id) === String(artworkId));
+    if (found) {
+      setArtwork(prev => ({ ...prev, ...found }));
+      setCustomLength(found.length || '');
+      setCustomWidth(found.width || '');
+    }
+
+    // Fetch individual artwork details from Python backend in background without blanking screen
     fetch(`${API_BASE}/api/artworks/${artworkId}`)
       .then(res => {
         if (!res.ok) throw new Error("Could not fetch artwork details.");
@@ -225,10 +286,36 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
         setLoading(false);
       })
       .catch(err => {
-        setError(err.message);
+        console.error("Error fetching detail:", err);
         setLoading(false);
       });
   }, [artworkId]);
+
+  // Lock body scroll when Wall Visualizer modal is open so background elements / footer cannot be clicked
+  useEffect(() => {
+    if (showWallModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showWallModal]);
+
+  // Handle Escape key to close modal/lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowWallModal(false);
+        setShowLightbox(false);
+      }
+    };
+    if (showWallModal || showLightbox) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showWallModal, showLightbox]);
 
   // Run the Sheet Sizing Calculator API
   const handleCalculateSheet = (e) => {
@@ -255,8 +342,8 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
       });
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--accent-gold)' }}>Loading artwork details...</div>;
-  if (error) return <div style={{ color: 'var(--accent-red)', padding: '2rem' }}>Error: {error}</div>;
+  if (loading && !artwork) return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--accent-gold)' }}>Loading artwork details...</div>;
+  if (error && !artwork) return <div style={{ color: 'var(--accent-red)', padding: '2rem' }}>Error: {error}</div>;
   if (!artwork) return null;
 
   const isInCart = (cartItems || []).some(item => item.id === artwork.id);
@@ -300,7 +387,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
         )}
       </div>
 
-      <div className="artwork-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1.4fr) 1fr', gap: '3rem', alignItems: 'center' }}>
+      <div className="artwork-detail-grid">
 
         {/* Artwork Image View with Hover Zoom & Painting Overlay Navigation Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
@@ -317,7 +404,9 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
               backgroundColor: 'transparent',
               border: 'none',
               boxShadow: 'none',
-              width: '100%'
+              width: '100%',
+              opacity: isTransitioning ? 0.35 : 1,
+              transition: 'opacity 0.2s ease-in-out'
             }}
             onMouseMove={handleMouseMoveZoom}
             onMouseLeave={handleMouseLeaveZoom}
@@ -335,7 +424,8 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 display: 'block',
                 transform: zoomStyle.transform,
                 transformOrigin: zoomStyle.transformOrigin,
-                transition: 'transform 0.1s ease-out'
+                transition: 'opacity 0.2s ease-in-out, transform 0.1s ease-out',
+                opacity: isTransitioning ? 0.35 : 1
               }}
             />
           </div>
@@ -416,7 +506,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
         </div>
 
         {/* Artwork Info & Features */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem 0 0.5rem 0', justifyContent: 'center' }} className="artwork-info-col">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem 0 0.5rem 0', justifyContent: 'center', opacity: isTransitioning ? 0.4 : 1, transition: 'opacity 0.2s ease-in-out' }} className="artwork-info-col">
           {/* Title & Artist & Code */}
           <div>
             <h3 className="artist-name" style={{
@@ -468,18 +558,18 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 <span className="status-sold" style={{ color: '#ef4444', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                   Sold
                 </span>
-              ) : !guestSession ? (
+              ) : websiteSettings?.hide_prices ? (
                 <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
-                  Inquiry
+                  Price on Request
                 </span>
               ) : (
                 <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
-                  {websiteSettings.hide_prices ? 'Price on Request' : formatPrice(artwork.price, currency, exchangeRates)}
+                  {formatPrice(artwork.price, currency, exchangeRates)}
                 </span>
               )}
             </h2>
-            {/* Convert currency drop-down for logged-in guests */}
-            {!websiteSettings.hide_prices && guestSession && (artwork.status?.toLowerCase() !== 'sold') && (
+            {/* Convert currency drop-down */}
+            {!websiteSettings?.hide_prices && (artwork.status?.toLowerCase() !== 'sold') && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Convert:</span>
                 <select
@@ -517,45 +607,31 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     onAddToCart(artwork);
                   }
                 }}
-                className={`add-to-bag-btn${!guestSession ? ' inquiry-icon-btn' : ''}`}
+                className="inquiry-icon-btn add-to-bag-icon-btn"
                 disabled={guestSession && (isInCart || (artwork.status?.toLowerCase() === 'sold'))}
-                title={!guestSession ? "Login to Add to Bag" : ""}
-                style={!guestSession ? {
+                title={!guestSession ? "Login to Add to Bag" : isInCart ? "In Bag" : "Add to Bag"}
+                style={{
                   background: 'transparent',
                   border: 'none',
                   borderRadius: '50%',
                   width: '36px',
                   height: '36px',
                   padding: '0',
-                  cursor: 'pointer',
+                  cursor: (guestSession && (isInCart || artwork.status?.toLowerCase() === 'sold')) ? 'not-allowed' : 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'all 0.2s ease',
                   flexShrink: 0,
-                } : {
-                  padding: '0.55rem 1.25rem',
-                  border: 'none',
-                  backgroundColor: 'var(--text-primary)',
-                  color: 'var(--bg-dark)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  cursor: (guestSession && (isInCart || artwork.status?.toLowerCase() === 'sold')) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  borderRadius: '0px',
-                  whiteSpace: 'nowrap'
+                  color: 'var(--text-primary)'
                 }}
               >
                 {artwork.status?.toLowerCase() === 'sold' ? (
-                  'Sold'
-                ) : !guestSession ? (
-                  <ShoppingCart size={22} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 100, color: '#ef4444' }}>Sold</span>
                 ) : isInCart ? (
-                  'In Bag'
+                  <Check size={20} style={{ color: '#10b981' }} title="In Bag" />
                 ) : (
-                  'Add to Bag'
+                  <ShoppingCart size={20} style={{ color: 'var(--text-primary)' }} title="Add to Bag" />
                 )}
               </button>
             )}
@@ -705,7 +781,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 )}
 
                 {/* Row 1: Name + Email */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="inquiry-form-row">
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Name <span style={{ color: 'var(--accent-red)' }}>*</span>
@@ -731,7 +807,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 </div>
 
                 {/* Row 2: Phone + Mobile */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="inquiry-form-row">
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Phone</label>
                     <input
@@ -755,7 +831,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 </div>
 
                 {/* Row 3: City + Country */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="inquiry-form-row">
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>City</label>
                     <input
@@ -822,87 +898,78 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
 
       {/* Room Wall Visualizer Modal */}
       {showWallModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1.5rem'
-        }}>
+        <div
+          className="room-wall-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowWallModal(false);
+          }}
+        >
           {/* Modal Container */}
-          <div className="glass-card room-wall-modal-container" style={{
-            width: '100%',
-            maxWidth: '1200px',
-            height: '90vh',
-            backgroundColor: '#0c0d10',
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            position: 'relative',
-
-          }}>
+          <div className="glass-card room-wall-modal-container">
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, fontWeight: 100, fontSize: '14px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Layout color="var(--accent-gold)" /> Room Wall Preview
-                <span className="modal-header-subtitle" style={{ fontSize: '12px', color: '#ffffff', fontWeight: 100, marginLeft: '0.5rem' }}>
-                  — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} | {artwork.width || 36}" × {artwork.length || 24}" (Scale: 16ft × 11ft Wall)
+            <div className="room-wall-modal-header">
+              <h3 className="room-wall-modal-title" style={{ color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)' }}>
+                  <Layout size={18} /> Room Wall Preview
+                </span>
+                <span className="modal-header-subtitle" style={{ color: '#ffffff', fontWeight: 500 }}>
+                  — {artwork.title} | {artwork.artist_name || 'Artist Unknown'} ({artwork.width || 36}" × {artwork.length || 24}") • Wall Size: 16 ft × 11 ft
                 </span>
               </h3>
               <button
                 onClick={() => setShowWallModal(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                className="btn-secondary"
+                className="room-wall-close-btn"
+                aria-label="Close Wall Preview"
+                title="Close (Esc)"
               >
-                <X size={20} />
+                <X size={18} strokeWidth={2.5} />
               </button>
             </div>
 
-            {/* Modal Body — Side by Side */}
-            <div style={{ display: 'grid', gridTemplateColumns: '65% 35%', flex: 1, overflow: 'hidden' }}>
-              {/* LEFT: Wall Image — fills all available height */}
-              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Modal Body — Side by Side on Desktop, Stacked on Mobile */}
+            <div className="room-wall-modal-body">
+              {/* LEFT: Wall Image Canvas */}
+              <div className="gallery-wall-canvas-wrapper">
                 <div
                   className="gallery-wall-canvas"
                   style={{
-                    flex: 1,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: 'inset 0 10px 30px rgba(0,0,0,0.5)',
                     backgroundColor: wallColor,
                     transition: 'background-color 0.4s ease',
                   }}
                 >
+                  {/* Top Right Floating Close Button directly on Picture */}
+                  <button
+                    onClick={() => setShowWallModal(false)}
+                    className="canvas-floating-close-btn"
+                    title="Close Preview (Esc)"
+                    aria-label="Close Wall Preview"
+                  >
+                    <X size={18} strokeWidth={2.5} />
+                  </button>
+
                   {/* Room background image layer */}
                   <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     zIndex: 0
                   }}>
-                    {/* Background Room Image — sits on top of solid wallColor */}
+                    {/* Background Room Image */}
                     <img
                       src={galleryRoomBg}
                       alt="Room Background"
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', zIndex: 0 }}
                     />
-                    {/* Wall Color Tint Overlay — wall only, not floor */}
+                    {/* Wall Color Tint Overlay */}
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '76%', backgroundColor: wallColor, opacity: 0.55, pointerEvents: 'none', zIndex: 1, transition: 'background-color 0.4s ease' }} />
                   </div>
 
-                  {/* Scale Reference Girl: Accurately proportioned to 11ft wall (~5.4 ft height = 50% of 11ft wall height) */}
+                  {/* Scale Reference Figure: Accurately proportioned to 11ft wall (~5.4 ft height) */}
                   <div
+                    className="gallery-wall-figure"
                     style={{
                       position: 'absolute',
-                      bottom: '9%',
-                      left: '12%',
-                      height: '50%',
+                      bottom: '8%',
+                      left: '8%',
+                      height: '54%',
                       pointerEvents: 'none',
                       zIndex: 4,
                       display: 'flex',
@@ -922,70 +989,89 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     />
                   </div>
 
-                  {/* Hanging Painting (True Proportional Scale for 16ft Width x 11ft Height Wall) */}
+                  {/* Hanging Painting: Scaled to 16ft x 11ft Wall & Centered via (Wall Width - Painting Width) / 2 and (Wall Height - Painting Height) / 2 */}
                   {(() => {
-                    // Standard Room Wall Dimensions in Inches: 16ft wide x 11ft tall
-                    const WALL_WIDTH_INCHES = 192;  // 16 ft * 12
-                    const WALL_HEIGHT_INCHES = 132; // 11 ft * 12
-                    const WALL_CANVAS_PORTION = 0.76; // The wall surface occupies top 76% of canvas height
+                    const WALL_WIDTH_IN = 192;  // 16 ft = 192 in
+                    const WALL_HEIGHT_IN = 132; // 11 ft = 132 in
 
                     const rawW = parseFloat(artwork.width) || 36;
                     const rawH = parseFloat(artwork.length || artwork.height) || 24;
 
-                    // Calculate proportional % relative to the 16ft x 11ft wall
-                    let widthPct = (rawW / WALL_WIDTH_INCHES) * 100;
-                    let heightPct = (rawH / WALL_HEIGHT_INCHES) * (WALL_CANVAS_PORTION * 100);
-
-                    // Ensure monumental / giant paintings fit smoothly without clipping
-                    const maxAllowedWidth = 62;
-                    const maxAllowedHeight = 54;
-                    if (widthPct > maxAllowedWidth || heightPct > maxAllowedHeight) {
-                      const scaleFactor = Math.min(maxAllowedWidth / widthPct, maxAllowedHeight / heightPct);
-                      widthPct = widthPct * scaleFactor;
-                      heightPct = heightPct * scaleFactor;
+                    // Priority: Real natural aspect ratio of loaded image, fallback to dimensions
+                    let aspect = 1.0;
+                    if (visualizerImageAspect && visualizerImageAspect > 0) {
+                      aspect = visualizerImageAspect;
+                    } else if (rawW > 0 && rawH > 0) {
+                      aspect = rawW / rawH;
                     }
 
-                    // Ensure tiny miniature paintings stay visible
-                    const minAllowedWidth = 7;
-                    const minAllowedHeight = 9;
-                    if (widthPct < minAllowedWidth || heightPct < minAllowedHeight) {
-                      const scaleFactor = Math.max(minAllowedWidth / widthPct, minAllowedHeight / heightPct);
-                      widthPct = widthPct * scaleFactor;
-                      heightPct = heightPct * scaleFactor;
+                    // Clamp aspect ratio to reasonable artistic bounds
+                    aspect = Math.max(0.35, Math.min(2.8, aspect));
+
+                    // Scale proportionally to 16ft (192 in) x 11ft (132 in) wall
+                    let widthPct = Math.min(58, Math.max(16, (rawW / WALL_WIDTH_IN) * 100 * 1.45));
+                    let heightPct = widthPct / aspect;
+
+                    if (heightPct > 52) {
+                      heightPct = 52;
+                      widthPct = heightPct * aspect;
+                    }
+                    if (widthPct > 58) {
+                      widthPct = 58;
+                      heightPct = widthPct / aspect;
                     }
 
-                    // Gallery eye-level hanging center (~58-60 inches from floor, centered in open wall space)
-                    const centerY = 38;
-                    const centerX = 56;
+                    // Horizontal offset using formula: (16ft - Painting Width) / 2
+                    // Vertical offset using formula: (11ft - Painting Height) / 2
+                    const leftOffsetPct = ((WALL_WIDTH_IN - rawW) / 2 / WALL_WIDTH_IN) * 100;
+                    const topOffsetPct = ((WALL_HEIGHT_IN - rawH) / 2 / WALL_HEIGHT_IN) * 100;
 
                     return (
                       <div
                         className={`visualizer-artwork-wrapper frame-${frameStyle}`}
                         style={{
                           position: 'absolute',
-                          top: `${centerY}%`,
-                          left: `${centerX}%`,
-                          width: `${widthPct}%`,
+                          top: '38%', // Center of the wall area
+                          left: '50%', // (16ft - W)/2 exact horizontal center
                           height: `${heightPct}%`,
+                          aspectRatio: `${aspect}`,
+                          maxWidth: '58%',
+                          maxHeight: '52%',
                           transform: 'translate(-50%, -50%)',
-                          backgroundImage: `url(${artwork.id ? `${API_BASE}/api/artworks/image/${artwork.id}` : (artwork.image || '')})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
                           zIndex: 3,
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-                          borderImageSlice: '12',
-                          transition: 'width 0.4s ease, height 0.4s ease'
+                          boxShadow: '0 14px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'transparent',
+                          overflow: 'hidden',
+                          transition: 'all 0.35s ease'
                         }}
                       >
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 25%, rgba(255,255,255,0.12), transparent 70%)', pointerEvents: 'none' }} />
+                        <img
+                          src={artwork.id ? `${API_BASE}/api/artworks/image/${artwork.id}` : (artwork.image || '')}
+                          alt={artwork.title}
+                          onLoad={(e) => {
+                            if (e.target.naturalWidth && e.target.naturalHeight) {
+                              setVisualizerImageAspect(e.target.naturalWidth / e.target.naturalHeight);
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            display: 'block'
+                          }}
+                        />
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 25%, rgba(255,255,255,0.08), transparent 70%)', pointerEvents: 'none' }} />
                       </div>
                     );
                   })()}
                 </div>
               </div>
 
-              {/* RIGHT: Color Palette Panel — scrollable */}
-              <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '1.25rem', gap: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+              {/* RIGHT: Color Palette Panel */}
+              <div className="room-wall-palette-panel">
                 {/* Header */}
                 <h4 style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
                   <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent-gold)' }}></span>
@@ -993,8 +1079,8 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 </h4>
 
                 {/* Selected color preview + hex */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: wallColor, border: '2px solid var(--border-color)', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: wallColor, border: '2px solid var(--border-color)', flexShrink: 0 }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                     <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: '#ffffff', letterSpacing: '0.05em', userSelect: 'all', fontWeight: 600 }}>{wallColor.toUpperCase()}</span>
                     <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>{WALL_COLORS.find(c => c.value === wallColor)?.name || 'Custom'}</span>
@@ -1002,7 +1088,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 </div>
 
                 {/* Color Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
+                <div className="wall-color-grid">
                   {WALL_COLORS.map((color) => {
                     const isActive = wallColor === color.value;
                     const isLight = ['#ffffff', '#faf5e8', '#f7ecd3', '#f2ede4', '#faebd7', '#f5f0e8', '#fadcb9', '#f5deb3', '#ebd3d1', '#e2d8e6', '#d5e1df', '#d2dfd3', '#e0e0e0', '#f5f5f5', '#87ceeb', '#c0c0c0'].includes(color.value);
@@ -1013,14 +1099,13 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                         onClick={() => setWallColor(color.value)}
                         title={`${color.name} — ${color.value.toUpperCase()}`}
                         style={{
-                          width: '100%',
                           aspectRatio: '1',
                           borderRadius: '6px',
                           backgroundColor: color.value,
                           background: color.value,
                           border: isActive ? '2px solid var(--accent-gold)' : '1px solid rgba(128,128,128,0.3)',
                           cursor: 'pointer',
-                          transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                          transform: isActive ? 'scale(1.08)' : 'scale(1)',
                           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                           display: 'flex',
                           alignItems: 'center',
@@ -1035,7 +1120,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                   })}
                 </div>
 
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                <p style={{ margin: '0.15rem 0 0', fontSize: '0.68rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   * 16ft × 11ft gallery wall scale. Figure = 5'4" (1.63m).
                 </p>
               </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../services/api';
 
 export default function POSBillingSection({ frames, fittings, customers, onSuccess }) {
   const [selectedCustomerType, setSelectedCustomerType] = useState('existing'); // existing, new
@@ -39,7 +40,7 @@ export default function POSBillingSection({ frames, fittings, customers, onSucce
   const handleSearchPaintings = () => {
     if (!paintingSearchQuery) return;
     setLoadingPaintings(true);
-    fetch(`http://localhost:8000/api/artworks?search=${encodeURIComponent(paintingSearchQuery)}&limit=10`)
+    fetch(getApiUrl(`/api/artworks?search=${encodeURIComponent(paintingSearchQuery)}&limit=10`))
       .then(res => res.json())
       .then(data => {
         setPaintingSearchResults(data || []);
@@ -259,7 +260,7 @@ export default function POSBillingSection({ frames, fittings, customers, onSucce
       }))
     };
 
-    fetch("http://localhost:8000/api/sales/invoices", {
+    fetch(getApiUrl("/api/sales/invoices"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)

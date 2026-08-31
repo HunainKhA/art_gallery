@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Check, AlertCircle, Trash2, Plus, Printer } from 'lucide-react';
+import { getApiUrl } from '../services/api';
 
 // Guillotine 2D Bin Packing Layout Algorithm for mixed-size rectangles
 class GuillotinePacker {
@@ -187,7 +188,7 @@ export default function SheetSizerSection() {
 
   // Fetch standard sheets on load
   useEffect(() => {
-    fetch("http://localhost:8000/api/calculator/sheets")
+    fetch(getApiUrl("/api/calculator/sheets"))
       .then(res => res.json())
       .then(data => {
         setSheets(data);
@@ -239,7 +240,7 @@ export default function SheetSizerSection() {
       }
 
       const promises = requests.map(req => {
-        return fetch("http://localhost:8000/api/calculator/suggest-sheet", {
+        return fetch(getApiUrl("/api/calculator/suggest-sheet"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ artwork_length: req.l, artwork_width: req.w })
@@ -271,7 +272,7 @@ export default function SheetSizerSection() {
       return;
     }
     
-    fetch("http://localhost:8000/api/calculator/suggest-sheet", {
+    fetch(getApiUrl("/api/calculator/suggest-sheet"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

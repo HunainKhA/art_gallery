@@ -105,9 +105,9 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
 
   const renderArtworkCard = (art) => {
     const isChecked = formData.artwork_ids.includes(art.id);
-    const artImg = art.image 
-      ? getApiUrl(`/api/artworks/image/${art.image}`) 
-      : 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
+    const artImg = art.id
+      ? getApiUrl(`/api/artworks/image/${art.id}`)
+      : (art.filename ? getApiUrl(`/api/artworks/image/${art.filename}`) : (art.image ? getApiUrl(`/api/artworks/image/${art.image}`) : 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100'));
 
     return (
       <div 
@@ -132,7 +132,15 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
         </div>
         
         <div style={{ width: '45px', height: '45px', borderRadius: '4px', overflow: 'hidden', background: '#111', flexShrink: 0 }}>
-          <img src={artImg} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={artImg}
+            alt={art.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
+            }}
+          />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>

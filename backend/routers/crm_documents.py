@@ -3,11 +3,69 @@ import os
 import json
 import shutil
 from datetime import datetime
+try:
+    from PIL import Image, ImageOps
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from database import execute_query, get_db_connection
 from config import Config
+
+def optimize_and_save_image(file_obj, output_path, max_dimension=1920, quality=82):
+    """
+    Auto-resizes and optimizes any uploaded image (even 20MB raw/phone photos)
+    to a crisp, ultra-fast web-ready file under ~500KB-1MB with auto-orientation.
+    """
+    if not HAS_PIL:
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+        with open(output_path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+        return True
+
+    try:
+        image = Image.open(file_obj)
+        # Auto-orient based on EXIF (fixes sideways mobile phone photos)
+        image = ImageOps.exif_transpose(image)
+        
+        # Proportional resize if larger than max_dimension
+        width, height = image.size
+        if width > max_dimension or height > max_dimension:
+            if width > height:
+                new_width = max_dimension
+                new_height = int(height * (max_dimension / width))
+            else:
+                new_height = max_dimension
+                new_width = int(width * (max_dimension / height))
+            image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+        ext = os.path.splitext(output_path)[1].lower()
+        if ext in ['.jpg', '.jpeg']:
+            if image.mode in ('RGBA', 'P', 'LA'):
+                image = image.convert('RGB')
+            image.save(output_path, format='JPEG', quality=quality, optimize=True, progressive=True)
+        elif ext == '.webp':
+            image.save(output_path, format='WEBP', quality=quality, method=6)
+        elif ext == '.png':
+            image.save(output_path, format='PNG', optimize=True)
+        else:
+            image.save(output_path, quality=quality, optimize=True)
+        return True
+    except Exception as e:
+        print(f"PIL optimization failed, fallback to raw copy: {e}")
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+        with open(output_path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+        return False
 
 
 router = APIRouter(prefix="/api/crm", tags=["CRM Unified Documents"])
@@ -166,63 +224,120 @@ def get_exhibition_artworks(exhibition_id: str):
 @router.get("/exhibitions/image/{exhibition_id}")
 def get_exhibition_cover_image(exhibition_id: str):
     """
-    Serves the cover image for an exhibition. If a custom cover image exists,
-    it serves it. Otherwise, it falls back to the first artwork's image in the exhibition.
+    Serves the cover image for an exhibition. Searches by exhibition ID, filename,
+    or falls back to the first artwork's image in the exhibition.
     """
     import os
-    from fastapi.responses import RedirectResponse
+    from fastapi.responses import RedirectResponse, FileResponse
     
     upload_dir = Config.UPLOAD_DIR
     
-    # 1. Query the exhibition document to get the uploaded cover filename
+    def find_file(name):
+        if not name:
+            return None
+        direct = os.path.join(upload_dir, name)
+        if os.path.exists(direct) and os.path.isfile(direct):
+            return direct
+        name_lower = name.lower()
+        try:
+            for root, dirs, files in os.walk(upload_dir):
+                for f in files:
+                    if f.lower() == name_lower:
+                        return os.path.join(root, f)
+        except Exception:
+            pass
+        return None
+
+    def try_serve(filename):
+        if not filename:
+            return None
+        path = find_file(filename)
+        if path:
+            ext = os.path.splitext(path)[1].lower()
+            media_type = "image/jpeg"
+            if ext == ".png":
+                media_type = "image/png"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            return FileResponse(path, media_type=media_type)
+        return None
+
+    # 1. Check exhibition ID directly or with extensions
+    match = try_serve(exhibition_id)
+    if match:
+        return match
+    for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+        match = try_serve(f"{exhibition_id}{ext}")
+        if match:
+            return match
+
+    # 2. Query the exhibition document to get the uploaded cover filename
     try:
-        ex_query = "SELECT filename FROM art_exhibitions WHERE id = %s AND deleted = 0;"
+        ex_query = "SELECT filename, document_name FROM art_exhibitions WHERE id = %s AND deleted = 0;"
         ex_res = execute_query(ex_query, (exhibition_id,), fetch="one")
-        if ex_res and ex_res.get("filename"):
-            filename = ex_res["filename"]
-            file_path = os.path.join(upload_dir, filename)
-            if os.path.exists(file_path):
-                ext = os.path.splitext(file_path)[1].lower()
-                media_type = "image/jpeg"
-                if ext == ".png":
-                    media_type = "image/png"
-                elif ext == ".webp":
-                    media_type = "image/webp"
-                elif ext == ".gif":
-                    media_type = "image/gif"
-                return FileResponse(file_path, media_type=media_type)
+        if ex_res:
+            if ex_res.get("filename"):
+                match = try_serve(ex_res["filename"])
+                if match:
+                    return match
+            if ex_res.get("document_name"):
+                doc_name = ex_res["document_name"].strip()
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                    match = try_serve(f"{doc_name}{ext}")
+                    if match:
+                        return match
     except Exception as e:
         print(f"Error checking exhibition filename: {e}")
 
-    # 2. If no custom filename or file doesn't exist, query the first artwork's image
+    # 3. Query linked artworks in this exhibition
     try:
         art_query = """
-            SELECT c.filename 
+            SELECT c.id, c.filename, c.document_name 
             FROM art_collections c
             INNER JOIN art_exhibitions_art_collections_1_c rel
                 ON c.id = rel.art_exhibitions_art_collections_1art_collections_idb AND rel.deleted = 0
             WHERE rel.art_exhibitions_art_collections_1art_exhibitions_ida = %s AND c.deleted = 0
             ORDER BY c.date_entered ASC
-            LIMIT 1;
+            LIMIT 20;
         """
-        art_res = execute_query(art_query, (exhibition_id,), fetch="one")
-        if art_res and art_res.get("filename"):
-            art_filename = art_res["filename"]
-            file_path = os.path.join(upload_dir, art_filename)
-            if os.path.exists(file_path):
-                ext = os.path.splitext(file_path)[1].lower()
-                media_type = "image/jpeg"
-                if ext == ".png":
-                    media_type = "image/png"
-                elif ext == ".webp":
-                    media_type = "image/webp"
-                elif ext == ".gif":
-                    media_type = "image/gif"
-                return FileResponse(file_path, media_type=media_type)
+        art_rows = execute_query(art_query, (exhibition_id,))
+        for art in art_rows:
+            # Try art id
+            match = try_serve(art["id"])
+            if match:
+                return match
+            for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                match = try_serve(f"{art['id']}{ext}")
+                if match:
+                    return match
+            # Try art filename
+            if art.get("filename"):
+                match = try_serve(art["filename"])
+                if match:
+                    return match
     except Exception as e:
         print(f"Error checking exhibition artwork filename: {e}")
 
-    # 3. Ultimate fallback: redirect to a beautiful placeholder image
+    # 4. Check custom CSV artwork_ids_c in art_exhibitions_cstm
+    try:
+        cstm_query = "SELECT artwork_ids_c FROM art_exhibitions_cstm WHERE id_c = %s;"
+        cstm_res = execute_query(cstm_query, (exhibition_id,), fetch="one")
+        if cstm_res and cstm_res.get("artwork_ids_c"):
+            csv_ids = [aid.strip() for aid in cstm_res["artwork_ids_c"].split(",") if aid.strip()]
+            for aid in csv_ids:
+                match = try_serve(aid)
+                if match:
+                    return match
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                    match = try_serve(f"{aid}{ext}")
+                    if match:
+                        return match
+    except Exception as e:
+        print(f"Error checking exhibition custom artwork_ids: {e}")
+
+    # 5. Fallback placeholder
     return RedirectResponse(url="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500")
 
 
@@ -684,8 +799,7 @@ def upload_banner_asset(file: UploadFile = File(...)):
     file_path = os.path.join(upload_dir, unique_filename)
     
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        optimize_and_save_image(file.file, file_path, max_dimension=1920, quality=82)
         return {"success": True, "filename": unique_filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save uploaded banner asset: {str(e)}")
@@ -713,7 +827,7 @@ def get_banner_image(filename: str):
 @router.post("/exhibitions/upload-guest-pic")
 def upload_guest_pic(file: UploadFile = File(...)):
     """
-    Uploads a guest photo for an exhibition and saves it in the upload directory.
+    Uploads a guest photo for an exhibition, auto-resizes & optimizes it to under ~500KB-1MB, and saves it.
     """
     upload_dir = Config.UPLOAD_DIR
     os.makedirs(upload_dir, exist_ok=True)
@@ -726,8 +840,7 @@ def upload_guest_pic(file: UploadFile = File(...)):
     file_path = os.path.join(upload_dir, unique_filename)
     
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        optimize_and_save_image(file.file, file_path, max_dimension=1920, quality=82)
         return {"success": True, "filename": unique_filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save guest image: {str(e)}")

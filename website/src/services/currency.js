@@ -42,7 +42,13 @@ export const fetchExchangeRates = async () => {
  * @returns {string} Formatted price string
  */
 export const formatPrice = (pricePKR, currency = 'PKR', rates = FALLBACK_RATES) => {
-  const numericPrice = Number(pricePKR);
+  if (pricePKR === undefined || pricePKR === null || pricePKR === '') {
+    return 'Price on Inquiry';
+  }
+  const numericPrice = typeof pricePKR === 'string' 
+    ? Number(pricePKR.replace(/[^0-9.-]+/g, '')) 
+    : Number(pricePKR);
+
   if (isNaN(numericPrice) || numericPrice <= 0) {
     return 'Price on Inquiry';
   }

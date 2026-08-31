@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, Upload, Users, Image, Layers, Palette, Menu, ChevronLeft,
   Home, DollarSign, TrendingUp, Globe, Sun, Moon, Activity, Mail
 } from 'lucide-react';
-import { getLogoUrl } from '../services/api';
+import { getLogoUrl, getApiUrl } from '../services/api';
 
 
 // Import modularized sections
@@ -154,7 +154,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
 
   const fetchDashboardStats = () => {
     setStatsLoading(true);
-    fetch("http://localhost:8000/api/sales/dashboard-stats")
+    fetch(getApiUrl("/api/sales/dashboard-stats"))
       .then(res => {
         if (!res.ok) throw new Error("Could not fetch dashboard analytics.");
         return res.json();
@@ -174,10 +174,10 @@ export default function StaffPortal({ theme, toggleTheme }) {
     setLoading(true);
     fetchDashboardStats();
     Promise.all([
-      fetch("http://localhost:8000/api/frames?branch_id=1").then(res => res.json()),
-      fetch("http://localhost:8000/api/fittings?branch_id=1").then(res => res.json()),
-      fetch("http://localhost:8000/api/calculator/sheets").then(res => res.json()),
-      fetch("http://localhost:8000/api/customers").then(res => res.json())
+      fetch(getApiUrl("/api/frames?branch_id=1")).then(res => res.json()),
+      fetch(getApiUrl("/api/fittings?branch_id=1")).then(res => res.json()),
+      fetch(getApiUrl("/api/calculator/sheets")).then(res => res.json()),
+      fetch(getApiUrl("/api/customers")).then(res => res.json())
     ])
       .then(([frameData, fittingData, sheetData, customerData]) => {
         setFrames(frameData || []);

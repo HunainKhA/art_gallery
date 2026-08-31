@@ -26,7 +26,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
   useEffect(() => {
     const lookupFields = fields.filter(f => f.type === 'lookup');
     lookupFields.forEach(field => {
-      let endpoint = `http://localhost:8000/api/${field.lookupType}`;
+      let endpoint = getApiUrl(`/api/${field.lookupType}`);
       fetch(endpoint)
         .then(res => res.json())
         .then(data => {

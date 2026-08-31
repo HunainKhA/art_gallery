@@ -47,51 +47,63 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
   };
 
   return (
-    <div className="page-content" style={{ animation: 'fadeIn 0.5s ease' }}>
+    <div className="page-content framer-heaven-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
 
       {/* Options Tab Selector (Products & Services) */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        gap: '1rem',
+        gap: '0.75rem',
         marginBottom: '3rem',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        paddingBottom: '1rem'
+        borderBottom: '1px solid #e5e7eb',
+        paddingBottom: '1.25rem'
       }}>
         <button
           onClick={() => setActiveTab('Product')}
           style={{
-            padding: '0.55rem 2rem',
-            fontSize: '0.9rem',
-            borderRadius: '20px',
-            border: activeTab === 'Product' ? '1px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
-            background: activeTab === 'Product' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
-            color: activeTab === 'Product' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+            padding: '0.6rem 1.8rem',
+            fontSize: '12px',
+            fontWeight: 100,
+            borderRadius: '0px',
+            border: 'none',
+            borderBottom: activeTab.toLowerCase() === 'product' ? '2px solid #000000' : '2px solid transparent',
+            background: '#ffffff',
+            color: '#000000',
             cursor: 'pointer',
-            transition: 'all 0.3s'
+            transition: 'all 0.25s ease',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            opacity: activeTab.toLowerCase() === 'product' ? 1 : 0.6
           }}
+          className="framer-tab-btn"
         >
           Products
         </button>
         <button
           onClick={() => setActiveTab('Service')}
           style={{
-            padding: '0.55rem 2rem',
-            fontSize: '0.9rem',
-            borderRadius: '20px',
-            border: activeTab === 'Service' ? '1px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
-            background: activeTab === 'Service' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
-            color: activeTab === 'Service' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+            padding: '0.6rem 1.8rem',
+            fontSize: '12px',
+            fontWeight: 100,
+            borderRadius: '0px',
+            border: 'none',
+            borderBottom: activeTab.toLowerCase() === 'service' ? '2px solid #000000' : '2px solid transparent',
+            background: '#ffffff',
+            color: '#000000',
             cursor: 'pointer',
-            transition: 'all 0.3s'
+            transition: 'all 0.25s ease',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            opacity: activeTab.toLowerCase() === 'service' ? 1 : 0.6
           }}
+          className="framer-tab-btn"
         >
           Services
         </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: 'var(--accent-gold)', fontSize: '1.1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#000000', fontSize: '14px', fontWeight: 400 }}>
           Loading workshops data...
         </div>
       ) : (
@@ -105,32 +117,53 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
             {currentItems.map((item) => (
               <div
                 key={item.id}
-                className="glass-card framer-item-card"
+                className="framer-item-card"
                 style={{
-                  borderRadius: '16px',
+                  borderRadius: '8px',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  border: '1px solid var(--border-color)',
-                  transition: 'transform 0.3s ease, border-color 0.3s ease'
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease'
                 }}
               >
                 {/* Image container */}
-                <div style={{ height: '220px', overflow: 'hidden', backgroundColor: '#111' }}>
+                <div style={{ height: '230px', overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
                   <img
                     src={getItemImage(item.id)}
                     alt={item.document_name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
                     className="framer-card-img"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500';
+                    }}
                   />
                 </div>
 
                 {/* Text Content */}
-                <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: '0 0 0.75rem 0', fontWeight: 400 }}>
+                <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{
+                    fontSize: '14px',
+                    color: '#000000',
+                    margin: '0 0 0.6rem 0',
+                    fontWeight: 400,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }} className="framer-item-title">
                     {item.document_name}
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.6', margin: 0, flex: 1 }}>
+                  <p style={{
+                    color: '#000000',
+                    fontSize: '12px',
+                    lineHeight: '1.6',
+                    margin: 0,
+                    flex: 1,
+                    fontWeight: 400,
+                    opacity: 0.85
+                  }} className="framer-item-desc">
                     {item.description || 'Premium selection of bespoke framing materials and conservation glass protection.'}
                   </p>
                 </div>
@@ -139,7 +172,7 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
           </div>
 
           {filteredItems.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '4rem', color: '#000000', fontSize: '14px', fontWeight: 400 }}>
               No {activeTab.toLowerCase()}s found in this category.
             </div>
           )}
@@ -157,13 +190,15 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={activePage === 1}
                 style={{
-                  background: 'var(--bg-input)',
-                  color: activePage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
+                  background: '#ffffff',
+                  color: '#000000',
+                  border: '1px solid #000000',
                   padding: '0.55rem 1.1rem',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   cursor: activePage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '0.85rem'
+                  fontSize: '12px',
+                  fontWeight: 400,
+                  opacity: activePage === 1 ? 0.4 : 1
                 }}
               >
                 Previous
@@ -176,20 +211,20 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
                   return (
                     <React.Fragment key={page}>
                       {showEllipsis && (
-                        <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
+                        <span style={{ color: '#000000', padding: '0.55rem 0.75rem', alignSelf: 'flex-end', fontSize: '12px' }}>...</span>
                       )}
                       <button
                         onClick={() => setCurrentPage(page)}
                         style={{
-                          background: activePage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
-                          color: activePage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
-                          border: '1px solid var(--border-color)',
-                          fontWeight: activePage === page ? '700' : '500',
+                          background: activePage === page ? '#000000' : '#ffffff',
+                          color: activePage === page ? '#ffffff' : '#000000',
+                          border: '1px solid #000000',
+                          fontWeight: 400,
                           padding: '0.55rem 1.1rem',
                           minWidth: '2.6rem',
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           cursor: 'pointer',
-                          fontSize: '0.85rem'
+                          fontSize: '12px'
                         }}
                       >
                         {page}
@@ -202,13 +237,15 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={activePage === totalPages}
                 style={{
-                  background: 'var(--bg-input)',
-                  color: activePage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
+                  background: '#ffffff',
+                  color: '#000000',
+                  border: '1px solid #000000',
                   padding: '0.55rem 1.1rem',
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   cursor: activePage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '0.85rem'
+                  fontSize: '12px',
+                  fontWeight: 400,
+                  opacity: activePage === totalPages ? 0.4 : 1
                 }}
               >
                 Next
@@ -218,15 +255,27 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
         </>
       )}
 
-      {/* Hover effects */}
+      {/* Local styles for Framer's Heaven */}
       <style>{`
         .framer-item-card:hover {
-          border-color: var(--accent-gold) !important;
-          transform: translateY(-5px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+          transform: translateY(-4px);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+          border-color: #000000 !important;
         }
         .framer-item-card:hover .framer-card-img {
           transform: scale(1.04);
+        }
+        .framer-item-title {
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          font-weight: 400 !important;
+          font-size: 14px !important;
+        }
+        .framer-item-desc {
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          font-weight: 400 !important;
+          font-size: 12px !important;
         }
       `}</style>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Search, Trash2, Send, RefreshCw, Check, AlertCircle, Users, Bell, Sparkles } from 'lucide-react';
+import { getApiUrl } from '../services/api';
 
 export default function SubscribersSection() {
   const [subscribers, setSubscribers] = useState([]);
@@ -15,7 +16,7 @@ export default function SubscribersSection() {
 
   const fetchSubscribers = () => {
     setLoading(true);
-    fetch('http://localhost:8000/api/subscribers')
+    fetch(getApiUrl('/api/subscribers'))
       .then(res => res.json())
       .then(data => {
         setSubscribers(data.subscribers || []);
@@ -28,7 +29,7 @@ export default function SubscribersSection() {
   };
 
   const fetchExhibitions = () => {
-    fetch('http://localhost:8000/api/crm/exhibitions')
+    fetch(getApiUrl('/api/crm/exhibitions'))
       .then(res => res.json())
       .then(data => {
         setExhibitionsList(Array.isArray(data) ? data : []);
@@ -44,7 +45,7 @@ export default function SubscribersSection() {
   const handleDeleteSubscriber = (id, email) => {
     if (!window.confirm(`Are you sure you want to remove subscriber: ${email}?`)) return;
 
-    fetch(`http://localhost:8000/api/subscribers/${id}`, {
+    fetch(getApiUrl(`/api/subscribers/${id}`), {
       method: 'DELETE'
     })
       .then(res => res.json())
@@ -66,7 +67,7 @@ export default function SubscribersSection() {
     }
 
     setIsBroadcasting(true);
-    fetch('http://localhost:8000/api/subscribers/notify-exhibition', {
+    fetch(getApiUrl('/api/subscribers/notify-exhibition'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

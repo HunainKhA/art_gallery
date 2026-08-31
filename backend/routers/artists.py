@@ -384,25 +384,51 @@ def upload_artist_image(file: UploadFile = File(...)):
 @router.get("/image/{filename}")
 def get_artist_image(filename: str):
     """
-    Serves an artist profile image from SugarCRM's upload directory.
+    Serves an artist profile image from SugarCRM's upload directory with luxury monogram fallback.
     """
-    from fastapi.responses import FileResponse, RedirectResponse
+    from fastapi.responses import FileResponse, Response
     upload_dir = Config.UPLOAD_DIR
-    file_path = os.path.join(upload_dir, filename)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
     
-    try:
-        query = "SELECT filename FROM art_artists WHERE id = %s AND deleted = 0;"
-        res = execute_query(query, (filename,), fetch="one")
-        if res and res["filename"]:
-            alt_path = os.path.join(upload_dir, res["filename"])
-            if os.path.exists(alt_path):
-                return FileResponse(alt_path)
-    except:
-        pass
+    # 1. Direct file match
+    if filename and os.path.exists(os.path.join(upload_dir, filename)):
+        return FileResponse(os.path.join(upload_dir, filename))
         
-    return RedirectResponse(url="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300")
+    # 2. Lookup by id or filename from database
+    artist_name = "Artist"
+    try:
+        query = "SELECT filename, first_name, last_name FROM art_artists WHERE (id = %s OR filename = %s) AND deleted = 0;"
+        res = execute_query(query, (filename, filename), fetch="one")
+        if res:
+            if res.get("first_name") or res.get("last_name"):
+                artist_name = f"{res.get('first_name') or ''} {res.get('last_name') or ''}".strip()
+            if res.get("filename"):
+                alt_path = os.path.join(upload_dir, res["filename"].strip())
+                if os.path.exists(alt_path):
+                    return FileResponse(alt_path)
+    except Exception:
+        pass
+
+    # 3. Generate elegant luxury gold monogram SVG with artist initials
+    initials = "".join([part[0].upper() for part in artist_name.split() if part])[:2] or "MF"
+    svg_content = f"""<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#141416" />
+          <stop offset="50%" stop-color="#1f1f23" />
+          <stop offset="100%" stop-color="#0b0b0d" />
+        </linearGradient>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f3d078" />
+          <stop offset="50%" stop-color="#d4af37" />
+          <stop offset="100%" stop-color="#aa771c" />
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bgGrad)" />
+      <circle cx="200" cy="200" r="140" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-dasharray="6,4" opacity="0.6" />
+      <circle cx="200" cy="200" r="120" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.8" />
+      <text x="50%" y="54%" font-family="Montserrat, 'Cinzel', serif, sans-serif" font-size="72" font-weight="600" fill="url(#goldGrad)" text-anchor="middle" dominant-baseline="middle" letter-spacing="4">{initials}</text>
+    </svg>"""
+    return Response(content=svg_content, media_type="image/svg+xml")
 
 
 @router.get("/{artist_id}/portfolio-report")

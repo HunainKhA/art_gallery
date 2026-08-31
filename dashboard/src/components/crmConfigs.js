@@ -147,7 +147,6 @@ export const LIST_COLUMNS = {
   collections: [
     { key: 'image', label: 'Photo' },
     { key: 'title', label: 'Artwork Title' },
-    { key: 'code', label: 'Code' },
     { key: 'artist_name', label: 'Artist' },
     { key: 'category_name', label: 'Category' },
     { key: 'medium_name', label: 'Medium' },

@@ -157,59 +157,76 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
   };
 
   // Filter artworks: New Work vs Old/Exhibited Work
-  const newArtworks = artworks.filter(art => !art.is_exhibited);
-  const oldArtworks = artworks.filter(art => art.is_exhibited);
+  const newArtworks = artworks.filter(art => art.is_exhibited);
+  const oldArtworks = artworks.filter(art => !art.is_exhibited);
 
   const [uploadingGuests, setUploadingGuests] = useState(false);
 
-  const handleGuestPhotosUpload = (e) => {
+  const handleGuestPhotosUpload = async (e) => {
     const files = Array.from(e.target.files);
+    e.target.value = ''; // Reset input to allow selecting files again
     if (files.length === 0) return;
 
-    if (formData.guest_pics.length + files.length > 30) {
-      alert("You can upload a maximum of 30 guest photos per exhibition.");
+    const remainingSlots = 30 - formData.guest_pics.length;
+    if (remainingSlots <= 0) {
+      alert("You have already reached the maximum limit of 30 guest photos.");
       return;
+    }
+
+    let filesToUpload = files;
+    if (files.length > remainingSlots) {
+      alert(`Only ${remainingSlots} more photo(s) can be added (max 30 limit). Uploading the first ${remainingSlots} photo(s).`);
+      filesToUpload = files.slice(0, remainingSlots);
     }
 
     setUploadingGuests(true);
 
-    const uploadFileSequentially = async (fileList) => {
+    try {
+      // Concurrently upload in batches of 5
       const uploadedNames = [];
-      for (const file of fileList) {
-        const uploadData = new FormData();
-        uploadData.append('file', file);
-        try {
-          const res = await fetch(getApiUrl('/api/crm/exhibitions/upload-guest-pic'), {
-            method: 'POST',
-            body: uploadData
-          });
-          if (!res.ok) throw new Error("Upload failed");
-          const resData = await res.json();
-          if (resData.filename) {
-            uploadedNames.push(resData.filename);
-          }
-        } catch (err) {
-          console.error("Guest photo upload error for file:", file.name, err);
-          alert(`Failed to upload file ${file.name}: ${err.message}`);
-        }
+      const batchSize = 5;
+      for (let i = 0; i < filesToUpload.length; i += batchSize) {
+        const batch = filesToUpload.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (file) => {
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+            try {
+              const res = await fetch(getApiUrl('/api/crm/exhibitions/upload-guest-pic'), {
+                method: 'POST',
+                body: uploadData
+              });
+              if (!res.ok) throw new Error("Upload failed");
+              const resData = await res.json();
+              return resData.filename || null;
+            } catch (err) {
+              console.error("Guest photo upload error for file:", file.name, err);
+              return null;
+            }
+          })
+        );
+        batchResults.forEach(name => {
+          if (name) uploadedNames.push(name);
+        });
       }
-      return uploadedNames;
-    };
 
-    uploadFileSequentially(files)
-      .then(newFilenames => {
-        if (newFilenames.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            guest_pics: [...prev.guest_pics, ...newFilenames]
-          }));
-        }
-        setUploadingGuests(false);
-      })
-      .catch(err => {
-        console.error("Sequential uploads error:", err);
-        setUploadingGuests(false);
-      });
+      if (uploadedNames.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          guest_pics: [...prev.guest_pics, ...uploadedNames]
+        }));
+      }
+
+      if (uploadedNames.length < filesToUpload.length) {
+        const failedCount = filesToUpload.length - uploadedNames.length;
+        alert(`${uploadedNames.length} photos uploaded successfully. (${failedCount} failed to upload)`);
+      }
+    } catch (err) {
+      console.error("Guest photos upload error:", err);
+      alert("Error uploading guest photos: " + err.message);
+    } finally {
+      setUploadingGuests(false);
+    }
   };
 
   const removeGuestPhoto = (filenameToRemove) => {
@@ -381,9 +398,9 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
 
   const renderArtworkCard = (art) => {
     const isChecked = formData.artwork_ids.includes(art.id);
-    const artImg = art.image
-      ? getApiUrl(`/api/artworks/image/${art.image}`)
-      : 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
+    const artImg = art.id
+      ? getApiUrl(`/api/artworks/image/${art.id}`)
+      : (art.filename ? getApiUrl(`/api/artworks/image/${art.filename}`) : (art.image ? getApiUrl(`/api/artworks/image/${art.image}`) : 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100'));
 
     return (
       <div
@@ -408,7 +425,15 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
         </div>
 
         <div style={{ width: '45px', height: '45px', borderRadius: '4px', overflow: 'hidden', background: '#111', flexShrink: 0 }}>
-          <img src={artImg} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={artImg}
+            alt={art.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
+            }}
+          />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -576,15 +601,20 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
               </div>
 
               {formData.guest_pics.length > 0 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                  gap: '1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)'
-                }}>
+                <div
+                  className="custom-scrollbar"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                    gap: '1rem',
+                    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    maxHeight: '280px',
+                    overflowY: 'auto'
+                  }}
+                >
                   {formData.guest_pics.map((filename, idx) => {
                     const guestImgUrl = getApiUrl(`/api/crm/exhibitions/guest-pic/${filename}`);
                     return (

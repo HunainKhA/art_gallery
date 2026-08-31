@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutGrid, Users, ShoppingCart, Home, Info, Calendar,
   BookOpen, Flame, Video, Mail, Search, Sun, Moon, Lock, Unlock,
@@ -33,9 +33,59 @@ export default function MainLayout({ children, state }) {
   } = state;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [exhibitions, setExhibitions] = useState([]);
   const [subscribeEmail, setSubscribeEmail] = useState('');
   const [showSubscribePopup, setShowSubscribePopup] = useState(false);
+
+  const lastScrollYRef = useRef(0);
+
+  // Navbar is visible if locked open by click, hovered at top, or mobile menu open
+  const isHeaderVisible = isPinnedOpen || isHovered || isMenuOpen;
+
+  // Reset navbar to hidden on tab/view changes
+  useEffect(() => {
+    setIsPinnedOpen(false);
+    setIsHovered(false);
+    setIsMenuOpen(false);
+    lastScrollYRef.current = 0;
+  }, [activeTab]);
+
+  // Auto-hide hover navbar when scrolling down (unless pinned open by click)
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0;
+      const prevScrollY = lastScrollYRef.current;
+      const delta = currentScrollY - prevScrollY;
+
+      if (delta > 8 && currentScrollY > 60 && !isPinnedOpen) {
+        setIsHovered(false);
+      }
+
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isPinnedOpen]);
+
+  // Hover at top of screen (<= 35px) to peek navbar; leave (> 110px) to slide back up
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (window.innerWidth <= 1180) return;
+      if (isPinnedOpen || isMenuOpen) return;
+
+      if (e.clientY <= 35) {
+        setIsHovered(true);
+      } else if (e.clientY > 110) {
+        setIsHovered(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isPinnedOpen, isMenuOpen]);
 
   const handleSubscribeSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -121,17 +171,57 @@ export default function MainLayout({ children, state }) {
   return (
     <div className={`app-wrapper  ${activeTab === 'home' ? 'is-home-view' : ''} ${activeTab === 'about' ? 'is-about-view' : ''}`}>
 
-      {/*  Hamburger Toggle Button (outside translated container so it stays fixed permanently) */}
+      {/* Hamburger Toggle Button (outside translated container so it stays fixed permanently) */}
       <button
-        className={`hamburger-btn ${isMenuOpen ? 'is-menu-active' : ''}`}
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        className={`hamburger-btn ${(isMenuOpen || isPinnedOpen) ? 'is-menu-active' : ''}`}
+        onClick={() => {
+          if (window.innerWidth > 1180) {
+            // Desktop: toggle lock open / close
+            setIsPinnedOpen(prev => !prev);
+            setIsHovered(false);
+          } else {
+            // Mobile/Tablet: toggle full top-to-bottom shutter overlay menu
+            setIsMenuOpen(prev => !prev);
+          }
+        }}
         aria-label="Toggle Menu"
       >
-        {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        {(isMenuOpen || isPinnedOpen) ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      {/*  FLOATING HEADER GROUP (NAVBAR + MARQUEE) */}
-      <div className={`floating-header-group ${isMenuOpen ? 'menu-open' : ''}`}>
+      {/* Invisible Top Edge Hover Strip to catch mouse hover at the top of screen */}
+      <div
+        className="top-hover-trigger-bar"
+        onMouseEnter={() => {
+          if (window.innerWidth > 1180 && !isPinnedOpen) {
+            setIsHovered(true);
+          }
+        }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '35px',
+          zIndex: 1090,
+          pointerEvents: isHeaderVisible ? 'none' : 'auto'
+        }}
+      />
+
+      {/* FLOATING HEADER GROUP (NAVBAR + MARQUEE) */}
+      <div
+        className={`floating-header-group ${isMenuOpen ? 'menu-open' : ''} ${!isHeaderVisible ? 'header-hidden' : ''}`}
+        onMouseEnter={() => {
+          if (window.innerWidth > 1180 && !isPinnedOpen) {
+            setIsHovered(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (window.innerWidth > 1180 && !isPinnedOpen) {
+            setIsHovered(false);
+          }
+        }}
+      >
         {/*  TOP NAVBAR */}
         <header className="top-navbar">
           {/* Brand Logo (Left side) */}
@@ -409,17 +499,34 @@ export default function MainLayout({ children, state }) {
               <p style={{ margin: 0 }}>© 2026 Mainframe The Gallery. All Rights Reserved.</p>
               <p style={{ margin: 0 }}>Developed by <a href="https://www.facebook.com/hunain.khan.942/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>Hunain Khan</a>.</p>
             </div>
-            {/* Social Icons below copyright */}
-            <div className="footer-socials">
-              <a href="https://www.facebook.com/mainframethegallery" target="_blank" rel="noopener noreferrer" title="Facebook" className="facebook-link">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-              </a>
-              <a href="https://www.instagram.com/mainframethegallery" target="_blank" rel="noopener noreferrer" title="Instagram" className="instagram-link">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-              </a>
-              <a href="https://x.com" target="_blank" rel="noopener noreferrer" title="X (Twitter)" className="twitter-link">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
-              </a>
+            {/* Social Icons & Try Frames Promo below copyright */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+              <div className="footer-socials" style={{ margin: 0 }}>
+                <a href="https://www.facebook.com/mainframethegallery" target="_blank" rel="noopener noreferrer" title="Facebook" className="facebook-link">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                </a>
+                <a href="https://www.instagram.com/mainframethegallery" target="_blank" rel="noopener noreferrer" title="Instagram" className="instagram-link">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                </a>
+                <a href="https://x.com" target="_blank" rel="noopener noreferrer" title="X (Twitter)" className="twitter-link">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="social-icon"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+                </a>
+              </div>
+
+              {/* Try Frames on your Painting Promo */}
+              <div className="try-frames-footer-promo">
+                <span className="try-frames-label">
+                  Try Frames on your Painting
+                </span>
+                <a
+                  href="https://karachi.mainframethegallery.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="try-frames-btn"
+                >
+                  TRY IT
+                </a>
+              </div>
             </div>
           </div>
 
@@ -979,6 +1086,21 @@ export default function MainLayout({ children, state }) {
           background: var(--accent-gold);
           border-radius: 2px;
         }
+
+        body.light-theme .nav-link {
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          opacity: 1 !important;
+        }
+        body.light-theme .nav-link:hover,
+        body.light-theme .nav-link.active {
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+        }
+        body.light-theme .nav-link.active::after {
+          background: #000000 !important;
+          background-color: #000000 !important;
+        }
         
         /* Home View overrides for nav-links (always white text on dark background slider) */
         .app-wrapper.is-home-view .nav-link {
@@ -1034,6 +1156,72 @@ export default function MainLayout({ children, state }) {
         .footer-socials a.instagram-link:hover { color: #E1306C; }
         .footer-socials a.twitter-link:hover   { color: #1DA1F2; }
         .footer-socials a.whatsapp-link:hover  { color: #25D366; }
+
+        .try-frames-footer-promo {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.65rem;
+        }
+        .try-frames-label {
+          font-size: 12px;
+          font-weight: 300;
+          color: var(--text-muted);
+          font-family: 'Montserrat', sans-serif;
+          letter-spacing: 0.02em;
+          transition: color 0.3s ease;
+        }
+        .try-frames-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem 0.65rem;
+          font-size: 11px;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 4px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          border: 1px solid var(--border-color);
+          background: transparent;
+          color: var(--text-primary);
+          cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+        }
+        .try-frames-btn:hover {
+          background: var(--text-primary);
+          color: var(--background-color);
+          border-color: var(--text-primary);
+        }
+
+        /* Light Theme - Deep Solid Black Footer Text */
+        body.light-theme .global-footer,
+        body.light-theme .global-footer p,
+        body.light-theme .global-footer a,
+        body.light-theme .footer-copyright,
+        body.light-theme .footer-copyright p,
+        body.light-theme .footer-copyright a,
+        body.light-theme .footer-socials a,
+        body.light-theme .footer-socials svg,
+        body.light-theme .try-frames-label,
+        body.light-theme .footer-subscribe-btn,
+        body.light-theme .footer-subscribe-btn svg,
+        body.light-theme .footer-search-input {
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          opacity: 1 !important;
+          stroke: #000000 !important;
+          font-weight: 400 !important;
+        }
+        body.light-theme .try-frames-btn {
+          color: #000000 !important;
+          border-color: rgba(0, 0, 0, 0.4) !important;
+          background: transparent !important;
+        }
+        body.light-theme .try-frames-btn:hover {
+          background: #000000 !important;
+          color: #ffffff !important;
+        }
         
         /* Minimalist Footer Search Bar - Line only, magnifying glass on the right */
         .footer-search {
@@ -1206,11 +1394,6 @@ export default function MainLayout({ children, state }) {
           .shop-btn-floating {
             width: 30px !important;
             height: 30px !important;
-          }
-        }
-        @media (min-width: 1181px) {
-          .slide-down-menu {
-            display: none !important;
           }
         }
 

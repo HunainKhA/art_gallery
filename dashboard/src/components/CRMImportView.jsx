@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { CONFIGS } from './crmConfigs';
+import { getApiUrl } from '../services/api';
 
 const getModulePath = (moduleName) => {
   if (moduleName === 'collection_types') return 'collection-types';
@@ -23,24 +24,21 @@ export default function CRMImportView({ module, onSuccess }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      const lines = text.split('\n').filter(line => line.trim() !== '');
       if (lines.length <= 1) {
-        alert("Empty or invalid CSV file.");
+        alert('CSV file is empty or missing data rows.');
         setParsing(false);
         return;
       }
 
-      // Simple CSV split (handling commas)
-      const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
       const parsedRows = [];
 
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
+        const row = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
         const rowData = {};
-        headers.forEach((header, idx) => {
-          if (importFields.includes(header)) {
-            rowData[header] = row[idx] || '';
-          }
+        headers.forEach((h, idx) => {
+          rowData[h] = row[idx] || '';
         });
         parsedRows.push(rowData);
       }
@@ -55,9 +53,9 @@ export default function CRMImportView({ module, onSuccess }) {
     if (csvData.length === 0) return;
     setImporting(true);
 
-    let endpoint = `http://localhost:8000/api/${getModulePath(module)}/import`;
+    let endpoint = getApiUrl(`/api/${getModulePath(module)}/import`);
     if (['exhibitions', 'framerheaven', 'catalogues', 'flashimages', 'videos'].includes(module)) {
-      endpoint = `http://localhost:8000/api/crm/${module}/import`;
+      endpoint = getApiUrl(`/api/crm/${module}/import`);
     }
 
     const payloadKey = module === 'collection_types' ? 'types' : (module === 'collections' ? 'artworks' : module);

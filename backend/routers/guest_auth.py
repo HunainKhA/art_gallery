@@ -2,6 +2,7 @@ import random
 import uuid
 import re
 import urllib.parse
+from typing import Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ class GuestVerifyOtp(BaseModel):
     otp: str
 
 class GuestLogin(BaseModel):
-    code: str
+    code: Optional[str] = ""
     username: str
     password: str
 
@@ -242,9 +243,12 @@ def verify_otp(payload: GuestVerifyOtp):
         if not row:
             raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the correct code.")
             
+        session_token = str(uuid.uuid4())
+        expiry_time = datetime.now() + timedelta(hours=24)
+        
         execute_query(
-            "UPDATE guest_users SET verified = True WHERE verification_code = %s",
-            (code,)
+            "UPDATE guest_users SET verified = True, session_token = %s, session_expiry = %s WHERE verification_code = %s",
+            (session_token, expiry_time.strftime("%Y-%m-%d %H:%M:%S"), code)
         )
         
         # Ensure credentials are generated
@@ -254,6 +258,8 @@ def verify_otp(payload: GuestVerifyOtp):
             "status": "success",
             "message": "OTP verified successfully.",
             "code": code,
+            "token": session_token,
+            "expiry": expiry_time.isoformat(),
             "username": gen_username,
             "password": gen_password
         }
@@ -297,39 +303,50 @@ async def whatsapp_webhook(request: Request):
 @router.post("/login")
 def guest_login(payload: GuestLogin):
     """
-    Validates a verified code + one-time admin credentials and issues a 30m session token.
+    Validates credentials (direct admin-created or WhatsApp generated) and issues a 24-hour persistent session token.
     """
-    code = payload.code.strip()
+    code = (payload.code or "").strip()
     username = payload.username.strip()
     password = payload.password.strip()
     
     try:
-        user_row = execute_query(
-            "SELECT id, verified FROM guest_users WHERE verification_code = %s",
-            (code,),
-            fetch="one"
-        )
-        if not user_row:
-            raise HTTPException(status_code=400, detail="Invalid verification code.")
-        if not user_row["verified"]:
-            raise HTTPException(status_code=400, detail="WhatsApp verification is pending.")
-            
-        # Verify credentials against active guest credentials
+        # 1. Verify credentials against active guest credentials table
         cred_row = execute_query(
             "SELECT id FROM guest_credentials WHERE username = %s AND password = %s AND active = True",
             (username, password),
             fetch="one"
         )
+        
+        # 2. If not found in guest_credentials, check if generated in guest_users table
         if not cred_row:
-            raise HTTPException(status_code=401, detail="Invalid guest credentials or expired one-time login.")
+            user_by_cred = execute_query(
+                "SELECT id, verification_code FROM guest_users WHERE generated_username = %s AND generated_password = %s",
+                (username, password),
+                fetch="one"
+            )
+            if not user_by_cred:
+                raise HTTPException(status_code=401, detail="Invalid username or password.")
+            if not code:
+                code = user_by_cred.get("verification_code") or ""
             
         session_token = str(uuid.uuid4())
-        expiry_time = datetime.now() + timedelta(minutes=30)
+        expiry_time = datetime.now() + timedelta(hours=24) # 24-hour persistent session
         
-        execute_query(
-            "UPDATE guest_users SET session_token = %s, session_expiry = %s WHERE verification_code = %s",
-            (session_token, expiry_time.strftime("%Y-%m-%d %H:%M:%S"), code)
-        )
+        # 3. Update or create guest session
+        if code and code != 'DIRECT':
+            execute_query(
+                "UPDATE guest_users SET session_token = %s, session_expiry = %s, verified = True WHERE verification_code = %s",
+                (session_token, expiry_time.strftime("%Y-%m-%d %H:%M:%S"), code)
+            )
+        else:
+            execute_query(
+                """
+                INSERT INTO guest_users (email, phone, verification_code, verified, session_token, session_expiry)
+                VALUES (%s, %s, %s, True, %s, %s)
+                ON DUPLICATE KEY UPDATE session_token = VALUES(session_token), session_expiry = VALUES(session_expiry), verified = True
+                """,
+                (f"{username}@mainframe.local", username, f"DIRECT-{username}", session_token, expiry_time.strftime("%Y-%m-%d %H:%M:%S"))
+            )
         
         return {
             "status": "success",

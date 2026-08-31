@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutGrid, ZoomIn, ZoomOut, Check } from 'lucide-react';
+import { getArtworkImageUrl } from '../services/api';
 
 const WALL_STYLES = [
   { id: 1, name: "Modern Living Room", color: "#1e222b", accent: "#2d333f", grid: true },
@@ -122,7 +123,7 @@ export default function WallVisualizer({ artwork }) {
               height: `${artHeightPercent * scale}%`,
               maxHeight: '70%',
               maxWidth: '80%',
-              backgroundImage: `url(${artwork.id ? `http://localhost:8000/api/artworks/image/${artwork.id}` : (artwork.image || '')})`,
+              backgroundImage: `url(${artwork.id ? getArtworkImageUrl(artwork.id) : (artwork.image || '')})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               transition: 'all 0.3s ease',

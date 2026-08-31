@@ -26,29 +26,59 @@ export default function CataloguesSection({
 
   // Helper to dynamically resolve the catalog cover image url (or first artwork's image)
   const getCatalogCoverUrl = (item) => {
+    if (item?.id) {
+      return getApiUrl(`/api/crm/exhibitions/image/${item.id}`);
+    }
     if (item?.filename) {
       return getApiUrl(`/api/artworks/image/${item.filename}`);
-    }
-    if (item?.artwork_ids) {
-      const firstId = item.artwork_ids.split(',')[0]?.trim();
-      if (firstId) {
-        return getApiUrl(`/api/artworks/image/${firstId}`);
-      }
     }
     return '';
   };
 
-  // Fetch all catalogues
+  // Fetch all exhibitions and catalogues
   useEffect(() => {
     setLoading(true);
-    fetch(getApiUrl('/api/crm/catalogues'))
-      .then(res => res.json())
-      .then(data => {
-        setExhibitions(Array.isArray(data) ? data : []);
+    Promise.all([
+      fetch(getApiUrl('/api/crm/exhibitions')).then(res => res.json()).catch(() => []),
+      fetch(getApiUrl('/api/crm/catalogues')).then(res => res.json()).catch(() => [])
+    ])
+      .then(([exhibitionsData, cataloguesData]) => {
+        const exList = Array.isArray(exhibitionsData) ? exhibitionsData.map(item => ({ ...item, isExhibition: true })) : [];
+        const catList = Array.isArray(cataloguesData) ? cataloguesData.map(item => ({ ...item, isExhibition: false })) : [];
+        
+        // Merge without duplicates by document_name or ID
+        const seen = new Set();
+        const combined = [];
+        
+        // Prioritize exhibitions first
+        exList.forEach(item => {
+          const key = item.document_name ? item.document_name.trim().toLowerCase() : item.id;
+          if (!seen.has(key)) {
+            seen.add(key);
+            combined.push(item);
+          }
+        });
+        
+        catList.forEach(item => {
+          const key = item.document_name ? item.document_name.trim().toLowerCase() : item.id;
+          if (!seen.has(key)) {
+            seen.add(key);
+            combined.push(item);
+          }
+        });
+
+        // Sort newest date-wise
+        combined.sort((a, b) => {
+          const dateA = a.active_date ? new Date(a.active_date) : (a.date_entered ? new Date(a.date_entered) : new Date(0));
+          const dateB = b.active_date ? new Date(b.active_date) : (b.date_entered ? new Date(b.date_entered) : new Date(0));
+          return dateB - dateA;
+        });
+
+        setExhibitions(combined);
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching catalogues:", err);
+        console.error("Error fetching catalogues/exhibitions:", err);
         setExhibitions([]);
         setLoading(false);
       });
@@ -59,11 +89,33 @@ export default function CataloguesSection({
     if (selectedExhibition) {
       setLoadingArtworks(true);
       setArtworksPage(1);
-      fetch(getApiUrl(`/api/crm/catalogues/${selectedExhibition.id}/artworks`))
+      
+      const primaryUrl = selectedExhibition.isExhibition !== false
+        ? `/api/crm/exhibitions/${selectedExhibition.id}/artworks`
+        : `/api/crm/catalogues/${selectedExhibition.id}/artworks`;
+        
+      fetch(getApiUrl(primaryUrl))
         .then(res => res.json())
         .then(data => {
-          setExhibitionArtworks(Array.isArray(data) ? data : []);
-          setLoadingArtworks(false);
+          if (Array.isArray(data) && data.length > 0) {
+            setExhibitionArtworks(data);
+            setLoadingArtworks(false);
+          } else {
+            // Try alternative endpoint
+            const altUrl = selectedExhibition.isExhibition !== false
+              ? `/api/crm/catalogues/${selectedExhibition.id}/artworks`
+              : `/api/crm/exhibitions/${selectedExhibition.id}/artworks`;
+            fetch(getApiUrl(altUrl))
+              .then(r => r.json())
+              .then(altData => {
+                setExhibitionArtworks(Array.isArray(altData) ? altData : []);
+                setLoadingArtworks(false);
+              })
+              .catch(() => {
+                setExhibitionArtworks([]);
+                setLoadingArtworks(false);
+              });
+          }
         })
         .catch(err => {
           console.error("Error fetching artworks:", err);
@@ -82,10 +134,23 @@ export default function CataloguesSection({
   };
 
   // Utility to fetch artworks data inline for downloading
-  const fetchArtworksForExhibition = async (exhibitionId) => {
+  const fetchArtworksForExhibition = async (exhibitionId, isExhibition = true) => {
     try {
-      const res = await fetch(getApiUrl(`/api/crm/catalogues/${exhibitionId}/artworks`));
-      const data = await res.json();
+      const primaryUrl = isExhibition !== false
+        ? `/api/crm/exhibitions/${exhibitionId}/artworks`
+        : `/api/crm/catalogues/${exhibitionId}/artworks`;
+        
+      let res = await fetch(getApiUrl(primaryUrl));
+      let data = await res.json();
+      
+      if (!Array.isArray(data) || data.length === 0) {
+        const altUrl = isExhibition !== false
+          ? `/api/crm/catalogues/${exhibitionId}/artworks`
+          : `/api/crm/exhibitions/${exhibitionId}/artworks`;
+        res = await fetch(getApiUrl(altUrl));
+        data = await res.json();
+      }
+      
       return Array.isArray(data) ? data.filter(art => art.status !== 'Return') : [];
     } catch (err) {
       console.error("Error fetching artworks for download:", err);
@@ -124,7 +189,7 @@ export default function CataloguesSection({
   // Download Catalog PDF Compiler (No Banner - Direct Catalog Only)
   const handleDownloadCatalog = async (exhibition) => {
     setDownloadingCatalogId(exhibition.id);
-    const artworks = await fetchArtworksForExhibition(exhibition.id);
+    const artworks = await fetchArtworksForExhibition(exhibition.id, exhibition.isExhibition);
 
     if (!artworks || artworks.length === 0) {
       setDownloadingCatalogId(null);
@@ -467,21 +532,8 @@ export default function CataloguesSection({
         </button>
 
         {/* Selected Exhibition Header Detail Card */}
-        <div
-          className="glass-card"
-          style={{
-            padding: '2.5rem',
-            marginBottom: '3rem',
-            borderLeft: '4px solid var(--accent-gold)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '2rem'
-          }}
-        >
-          <div style={{ flex: '1 1 500px' }}>
-
+        <div className="glass-card catalog-detail-header-card">
+          <div className="catalog-detail-header-text">
             <h1 style={{ fontSize: '18px', marginTop: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: 100 }}>
               {selectedExhibition.document_name}
             </h1>
@@ -496,12 +548,11 @@ export default function CataloguesSection({
           </div>
 
           <button
-            className="btn-primary"
-            style={{ padding: '0.85rem 1.75rem', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none' }}
+            className="btn-primary catalog-download-btn"
             disabled={isDownloading}
             onClick={() => handleDownloadCatalog(selectedExhibition)}
           >
-            {isDownloading ? <Loader className="animate-spin" size={10} /> : <Download size={10} />}
+            {isDownloading ? <Loader className="animate-spin" size={12} /> : <Download size={12} />}
             {isDownloading ? 'Compiling PDF...' : 'Download Catalog'}
           </button>
         </div>
@@ -517,11 +568,7 @@ export default function CataloguesSection({
           </div>
         ) : (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '2.5rem'
-            }} className="catalog-artworks-pics-grid">
+            <div className="catalog-artworks-pics-grid">
               {currentArtworks.map((art) => (
                 <div
                   key={art.id}
@@ -539,7 +586,7 @@ export default function CataloguesSection({
                   onClick={() => viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks)}
                 >
                   {/* Artwork Image with Hover Overlay */}
-                  <div style={{ height: '260px', overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                  <div className="art-card-img-container">
                     <img
                       src={getApiUrl(`/api/artworks/image/${art.id}`)}
                       alt={art.title}
@@ -572,7 +619,7 @@ export default function CataloguesSection({
                   </div>
 
                   {/* Artwork details text */}
-                  <div style={{
+                  <div className="art-card-details-body" style={{
                     padding: '1.25rem',
                     flex: 1,
                     display: 'flex',
@@ -760,24 +807,109 @@ export default function CataloguesSection({
         )}
 
         <style>{`
+          .catalog-detail-header-card {
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            border-left: 4px solid var(--accent-gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+          }
+          .catalog-detail-header-text {
+            flex: 1 1 500px;
+          }
+          .catalog-download-btn {
+            padding: 0.85rem 1.75rem;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+          }
           .catalog-artworks-pics-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 2.5rem;
           }
+          .art-card-img-container {
+            height: 260px;
+            overflow: hidden;
+            position: relative;
+            background-color: #111;
+          }
+          .art-card-interactive:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-gold) !important;
+            box-shadow: var(--shadow-gold), var(--shadow-premium);
+          }
+          .art-card-interactive:hover .art-grid-image {
+            transform: scale(1.04);
+          }
+          .art-card-interactive:hover .art-hover-overlay {
+            opacity: 1 !important;
+          }
+          .animate-spin {
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
           @media (max-width: 1200px) {
             .catalog-artworks-pics-grid {
               grid-template-columns: repeat(3, 1fr);
+              gap: 1.75rem;
+            }
+            .art-card-img-container {
+              height: 230px;
             }
           }
           @media (max-width: 992px) {
+            .catalog-detail-header-card {
+              padding: 1.75rem;
+              margin-bottom: 2rem;
+              gap: 1.5rem;
+            }
             .catalog-artworks-pics-grid {
               grid-template-columns: repeat(2, 1fr);
+              gap: 1.25rem;
+            }
+            .art-card-img-container {
+              height: 210px;
             }
           }
           @media (max-width: 768px) {
+            .catalog-detail-header-card {
+              padding: 1.25rem;
+              margin-bottom: 1.5rem;
+              gap: 1rem;
+              flex-direction: column;
+              align-items: stretch;
+            }
+            .catalog-download-btn {
+              width: 100%;
+              justify-content: center;
+              padding: 0.75rem 1.25rem;
+            }
+            .catalog-artworks-pics-grid {
+              grid-template-columns: repeat(2, 1fr);
+              gap: 0.85rem;
+            }
+            .art-card-img-container {
+              height: 170px;
+            }
+            .art-card-details-body {
+              padding: 0.85rem !important;
+            }
+          }
+          @media (max-width: 480px) {
             .catalog-artworks-pics-grid {
               grid-template-columns: 1fr;
+              gap: 1rem;
+            }
+            .art-card-img-container {
+              height: 220px;
             }
           }
           .back-btn:hover {
@@ -975,16 +1107,27 @@ export default function CataloguesSection({
         .catalog-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 2.5rem;
+          gap: 2rem;
         }
         @media (max-width: 1200px) {
           .catalog-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 1.75rem;
           }
         }
         @media (max-width: 768px) {
           .catalog-grid {
             grid-template-columns: 1fr;
+            gap: 1.25rem;
+          }
+          .catalog-card-image-container {
+            height: 180px !important;
+          }
+          .catalog-card-body {
+            padding: 1rem !important;
+          }
+          .catalog-card-footer {
+            padding: 0.75rem 1rem !important;
           }
         }
         .catalog-card {
@@ -1017,24 +1160,23 @@ export default function CataloguesSection({
           transform: scale(1.04);
         }
         .catalog-card-body {
-          padding: 12px;
+          padding: 1rem;
           flex: 1;
           display: flex;
           flex-direction: column;
-         background-color: 'Black' ;
         }
         .catalog-card-title {
           font-size: 14px;
           font-weight: 100;
           color: var(--text-primary);
-          margin: 0 0 12px 0;
+          margin: 0 0 0.5rem 0;
           line-height: 1.4;
         }
         .catalog-card-date {
           font-size: 12px;
           color: var(--text-primary) !important;
           font-weight: 400;
-          margin: 0 0 1rem 0;
+          margin: 0 0 0.75rem 0;
         }
         .catalog-card-desc {
           color: var(--text-secondary);
@@ -1050,20 +1192,8 @@ export default function CataloguesSection({
         .catalog-card-footer {
           display: flex;
           gap: 12px;
-          padding: 12px 12px 12px 12px;
+          padding: 0.75rem 1rem;
           border-top: 1px solid var(--border-color);
-          background-color: 'white';
-        }
-        .art-card-interactive:hover {
-          transform: translateY(-5px);
-          border-color: var(--accent-gold) !important;
-          box-shadow: var(--shadow-gold), var(--shadow-premium);
-        }
-        .art-card-interactive:hover .art-grid-image {
-          transform: scale(1.04);
-        }
-        .art-card-interactive:hover .art-hover-overlay {
-          opacity: 1 !important;
         }
         .animate-spin {
           animation: spin 1s linear infinite;

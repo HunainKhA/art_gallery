@@ -60,7 +60,7 @@ def get_artwork_categories():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("")
-def get_all_artworks(category: str = None, artist_id: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 24):
+def get_all_artworks(category: str = None, artist_id: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 10000):
     """
     Fetches artworks from the database with pagination, filtering by category, artist, code, or search term.
     """
@@ -79,65 +79,94 @@ def get_all_artworks(category: str = None, artist_id: str = None, code: str = No
         where_clauses.append("cstm.code_c = %s")
         params.append(code)
         
-    if search:
-        where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
-        search_param = f"%{search}%"
-        params.extend([search_param, search_param, search_param, search_param])
+    cache_key = f"{category}_{artist_id}_{medium_id}_{status}_{code}_{search}_{limit}_{page}"
+    
+    def run_query():
+        where_clauses = ["c.deleted = 0"]
+        params = []
         
-    where_str = " AND ".join(where_clauses)
-    offset = (page - 1) * limit
-    
-    query = f"""
-        SELECT 
-            c.id AS id,
-            c.document_name AS title,
-            c.filename AS image,
-            c.description AS description,
-            c.collection_status AS status,
-            cstm.sale_gallery_price_c AS price,
-            cstm.collection_size_length_c AS length,
-            cstm.collection_size_width_c AS width,
-            cstm.with_frame_c AS with_frame,
-            cstm.frame_charges_c AS frame_charges,
-            cstm.code_c AS code,
-            cstm.authenticity_letter_field_c AS authenticity_letter,
-            cstm.sale_c AS deal_type,
-            cstm.purchase_price_c AS purchase_price,
-            a.id AS artist_id,
-            CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
-            t.id AS category_id,
-            t.name AS category_name,
-            m.id AS medium_id,
-            m.name AS medium_name,
-            (SELECT IF(COUNT(*) > 0, 1, 0) 
-             FROM art_exhibitions_art_collections_1_c 
-             WHERE art_exhibitions_art_collections_1art_collections_idb = c.id AND deleted = 0) AS is_exhibited
-        FROM art_collections c
-        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel 
-            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
-        LEFT JOIN art_artists a 
-            ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
-        LEFT JOIN art_collectionstype_art_collections_c type_rel
-            ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
-        LEFT JOIN art_collectionstype t
-            ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
-        LEFT JOIN art_medium_art_collections_c med_rel
-            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
-        LEFT JOIN art_medium m
-            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
-        WHERE {where_str}
-        ORDER BY c.date_entered DESC
-        LIMIT %s OFFSET %s;
-    """
-    params.extend([limit, offset])
-    
-    try:
+        if category:
+            where_clauses.append("t.id = %s")
+            params.append(category)
+            
+        if artist_id:
+            where_clauses.append("a.id = %s")
+            params.append(artist_id)
+            
+        if medium_id:
+            where_clauses.append("m.id = %s")
+            params.append(medium_id)
+            
+        if status:
+            where_clauses.append("c.collection_status = %s")
+            params.append(status)
+            
+        if code:
+            where_clauses.append("cstm.code_c = %s")
+            params.append(code)
+            
+        if search:
+            where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param, search_param])
+            
+        where_str = " AND ".join(where_clauses)
+        offset = (page - 1) * limit
+        
+        query = f"""
+            SELECT 
+                c.id AS id,
+                c.document_name AS title,
+                c.filename AS image,
+                c.description AS description,
+                c.collection_status AS status,
+                COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
+                cstm.collection_size_length_c AS length,
+                cstm.collection_size_width_c AS width,
+                cstm.with_frame_c AS with_frame,
+                cstm.frame_charges_c AS frame_charges,
+                cstm.code_c AS code,
+                cstm.authenticity_letter_field_c AS authenticity_letter,
+                cstm.sale_c AS deal_type,
+                cstm.purchase_price_c AS purchase_price,
+                a.id AS artist_id,
+                CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+                t.id AS category_id,
+                t.name AS category_name,
+                m.id AS medium_id,
+                m.name AS medium_name,
+                IF(exh_rel.art_id IS NOT NULL, 1, 0) AS is_exhibited
+            FROM art_collections c
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            LEFT JOIN art_artists_art_collections_c rel 
+                ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+            LEFT JOIN art_artists a 
+                ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+            LEFT JOIN art_collectionstype_art_collections_c type_rel
+                ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
+            LEFT JOIN art_collectionstype t
+                ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+            LEFT JOIN art_medium_art_collections_c med_rel
+                ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+            LEFT JOIN art_medium m
+                ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+            LEFT JOIN (
+                SELECT DISTINCT art_exhibitions_art_collections_1art_collections_idb AS art_id
+                FROM art_exhibitions_art_collections_1_c
+                WHERE deleted = 0
+            ) exh_rel ON c.id = exh_rel.art_id
+            WHERE {where_str}
+            ORDER BY c.date_entered DESC
+            LIMIT %s OFFSET %s;
+        """
+        params.extend([limit, offset])
+        
         artworks = execute_query(query, tuple(params))
         for art in artworks:
             try:
-                art["price"] = float(art["price"]) if art["price"] else 0.0
-            except ValueError:
+                raw_p = str(art["price"]).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip() if art["price"] else "0"
+                art["price"] = float(raw_p) if raw_p else 0.0
+            except (ValueError, TypeError):
                 art["price"] = 0.0
             
             try:
@@ -155,6 +184,16 @@ def get_all_artworks(category: str = None, artist_id: str = None, code: str = No
                 art["width"] = 0.0
                 
         return artworks
+
+    try:
+        now = time.time()
+        if cache_key in _ARTWORKS_CACHE:
+            data, timestamp = _ARTWORKS_CACHE[cache_key]
+            if now - timestamp < 30: # 30s in-memory cache
+                return data
+        result = run_query()
+        _ARTWORKS_CACHE[cache_key] = (result, now)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -184,18 +223,21 @@ def get_mainframe_logo():
     from fastapi.responses import HTMLResponse
     import os
     
-    # 1. Search in configured UPLOAD_DIR
+    # 1. Search in configured UPLOAD_DIR and frontend roots (Prioritizing the official square logo)
     search_paths = [
-        os.path.join(Config.UPLOAD_DIR, "logo.svg"),
+        "/var/www/html/website/favicon.png",
+        "/var/www/html/dashboard/favicon.png",
+        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "favicon.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "favicon.png"),
         os.path.join(Config.UPLOAD_DIR, "logo.png"),
         os.path.join(Config.UPLOAD_DIR, "logo.jpg"),
-        # 2. Fallbacks in frontend projects
-        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.svg"),
-        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.png"),
-        os.path.join(Config.WORKSPACE_ROOT, "website", "public", "logo.jpg"),
-        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.svg"),
-        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.png"),
-        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "logo.jpg")
+        os.path.join(Config.UPLOAD_DIR, "logo.svg"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "logo.jpg"),
+        os.path.join(Config.WORKSPACE_ROOT, "website", "logo.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "logo.jpg"),
+        "/var/www/html/website/logo.jpg",
+        "/var/www/html/dashboard/logo.jpg",
+        "/var/www/html/uploads/logo.jpg"
     ]
     
     for logo_path in search_paths:
@@ -217,12 +259,27 @@ def get_mainframe_signature():
     """
     import os
     search_paths = [
+        "/var/www/html/website/signature.png",
+        "/var/www/html/website/signature.jpg",
+        "/var/www/html/website/signature.svg",
+        "/var/www/html/dashboard/signature.png",
+        "/var/www/html/dashboard/signature.jpg",
+        "/var/www/html/dashboard/signature.svg",
+        "/var/www/html/uploads/signature.png",
+        "/var/www/html/uploads/signature.jpg",
+        "/var/www/html/uploads/signature.svg",
+        os.path.join(Config.UPLOAD_DIR, "signature.png"),
+        os.path.join(Config.UPLOAD_DIR, "signature.jpg"),
+        os.path.join(Config.UPLOAD_DIR, "signature.svg"),
         os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.svg"),
         os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.png"),
         os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.jpg"),
         os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.svg"),
         os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.png"),
-        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.jpg")
+        os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.jpg"),
+        os.path.join(Config.WORKSPACE_ROOT, "signature.png"),
+        os.path.join(Config.WORKSPACE_ROOT, "signature.jpg"),
+        os.path.join(Config.WORKSPACE_ROOT, "signature.svg")
     ]
     
     for sig_path in search_paths:
@@ -240,7 +297,7 @@ def get_mainframe_signature():
 @router.post("/upload-signature")
 def upload_mainframe_signature(file: UploadFile = File(...)):
     """
-    Uploads the owner's signature image file and saves it in website/public/signature.png.
+    Uploads the owner's signature image file and saves it across public/upload paths.
     """
     import os
     import shutil
@@ -254,26 +311,31 @@ def upload_mainframe_signature(file: UploadFile = File(...)):
         
     try:
         target_dirs = [
+            Config.UPLOAD_DIR,
+            "/var/www/uploads",
+            "/var/www/html/website",
+            "/var/www/html/dashboard",
             os.path.join(Config.WORKSPACE_ROOT, "website", "public"),
             os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public")
         ]
         
+        saved_count = 0
         for d in target_dirs:
-            os.makedirs(d, exist_ok=True)
-            
-        for d in target_dirs:
-            for existing_ext in allowed_extensions:
-                old_file = os.path.join(d, f"signature{existing_ext}")
-                if os.path.exists(old_file):
-                    os.remove(old_file)
-                    
-        main_target = os.path.join(target_dirs[0], f"signature{ext}")
-        with open(main_target, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        dashboard_target = os.path.join(target_dirs[1], f"signature{ext}")
-        shutil.copyfile(main_target, dashboard_target)
-        
+            try:
+                os.makedirs(d, exist_ok=True)
+                for existing_ext in allowed_extensions:
+                    old_file = os.path.join(d, f"signature{existing_ext}")
+                    if os.path.exists(old_file):
+                        os.remove(old_file)
+                        
+                target_file = os.path.join(d, f"signature{ext}")
+                file.file.seek(0)
+                with open(target_file, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                saved_count += 1
+            except Exception as e:
+                print(f"Skipping write to {d}: {e}")
+                
         return {"success": True, "message": "Signature uploaded successfully.", "filename": f"signature{ext}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save signature: {str(e)}")
@@ -291,7 +353,7 @@ def get_artwork_by_id(artwork_id: str):
             c.filename AS image,
             c.description AS description,
             c.collection_status AS status,
-            cstm.sale_gallery_price_c AS price,
+            COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.with_frame_c AS with_frame,
@@ -329,8 +391,9 @@ def get_artwork_by_id(artwork_id: str):
             raise HTTPException(status_code=404, detail="Artwork not found")
             
         try:
-            artwork["price"] = float(artwork["price"]) if artwork["price"] else 0.0
-        except ValueError:
+            raw_p = str(artwork["price"]).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip() if artwork["price"] else "0"
+            artwork["price"] = float(raw_p) if raw_p else 0.0
+        except (ValueError, TypeError):
             artwork["price"] = 0.0
             
         try:
@@ -351,51 +414,97 @@ def get_artwork_by_id(artwork_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+_UPLOAD_FILES_MAP = {}
+_LAST_MAP_TIME = 0
+
+def get_upload_map():
+    global _UPLOAD_FILES_MAP, _LAST_MAP_TIME
+    now = time.time()
+    if not _UPLOAD_FILES_MAP or (now - _LAST_MAP_TIME > 300):
+        m = {}
+        try:
+            for entry in os.scandir(Config.UPLOAD_DIR):
+                if entry.is_file():
+                    m[entry.name.lower()] = entry.path
+        except Exception:
+            pass
+        _UPLOAD_FILES_MAP = m
+        _LAST_MAP_TIME = now
+    return _UPLOAD_FILES_MAP
+
 @router.get("/image/{artwork_id}")
 def get_artwork_image(artwork_id: str):
     """
-    Serves the actual image file from SugarCRM's upload directory.
+    Serves the actual image file from SugarCRM's upload directory with ultra-fast memory index and browser cache.
     """
     import os
-    from fastapi.responses import RedirectResponse
+    from fastapi.responses import RedirectResponse, FileResponse
     
     upload_dir = Config.UPLOAD_DIR
-    file_path = os.path.join(upload_dir, artwork_id)
-    if os.path.exists(file_path):
-        ext = os.path.splitext(file_path)[1].lower()
-        media_type = "image/jpeg"
-        if ext == ".png":
-            media_type = "image/png"
-        elif ext == ".webp":
-            media_type = "image/webp"
-        elif ext == ".gif":
-            media_type = "image/gif"
-        elif ext == ".pdf":
-            media_type = "application/pdf"
-            
-        with open(file_path, "rb") as f:
-            return Response(content=f.read(), media_type=media_type)
-        
+
+    def find_file(name):
+        if not name:
+            return None
+        direct = os.path.join(upload_dir, name)
+        if os.path.exists(direct) and os.path.isfile(direct):
+            return direct
+        name_lower = name.lower()
+        fmap = get_upload_map()
+        if name_lower in fmap:
+            return fmap[name_lower]
+        return None
+    
+    # Helper to check if file exists and return response with cache header
+    def try_serve(filename):
+        path = find_file(filename)
+        if path:
+            ext = os.path.splitext(path)[1].lower()
+            media_type = "image/jpeg"
+            if ext == ".png":
+                media_type = "image/png"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            elif ext == ".pdf":
+                media_type = "application/pdf"
+            return FileResponse(
+                path, 
+                media_type=media_type,
+                headers={"Cache-Control": "public, max-age=2592000, immutable"}
+            )
+        return None
+
+    # 1. Direct ID match
+    direct_match = try_serve(artwork_id)
+    if direct_match:
+        return direct_match
+
+    # 2. ID with extensions
+    for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.JPG', '.JPEG', '.PNG']:
+        match = try_serve(f"{artwork_id}{ext}")
+        if match:
+            return match
+
+    # 3. Lookup filename and title/code from database
     try:
-        query = "SELECT filename FROM art_collections WHERE id = %s AND deleted = 0;"
-        res = execute_query(query, (artwork_id,), fetch="one")
-        if res and res["filename"]:
-            orig_filename = res["filename"]
-            alt_path = os.path.join(upload_dir, orig_filename)
-            if os.path.exists(alt_path):
-                alt_ext = os.path.splitext(alt_path)[1].lower()
-                alt_media_type = "image/jpeg"
-                if alt_ext == ".png":
-                    alt_media_type = "image/png"
-                elif alt_ext == ".webp":
-                    alt_media_type = "image/webp"
-                elif alt_ext == ".gif":
-                    alt_media_type = "image/gif"
-                elif alt_ext == ".pdf":
-                    alt_media_type = "application/pdf"
-                    
-                with open(alt_path, "rb") as f:
-                    return Response(content=f.read(), media_type=alt_media_type)
+        query = "SELECT filename, document_name FROM art_collections WHERE (id = %s OR filename = %s) AND deleted = 0;"
+        res = execute_query(query, (artwork_id, artwork_id), fetch="one")
+        if res:
+            if res.get("filename"):
+                orig_filename = res["filename"].strip()
+                match = try_serve(orig_filename)
+                if match:
+                    return match
+                match = try_serve(os.path.basename(orig_filename))
+                if match:
+                    return match
+            if res.get("document_name"):
+                doc_name = res["document_name"].strip()
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']:
+                    match = try_serve(f"{doc_name}{ext}")
+                    if match:
+                        return match
     except Exception as e:
         print(f"Database query failed in get_artwork_image: {e}")
         
@@ -702,20 +811,32 @@ async def preview_pdf_catalog(
         # Render page
         page = doc.load_page(page_num)
         
-        # Try to parse dimensions from page text (e.g. 28" x 34" or 28x34)
+        # Try to parse dimensions in INCHES from page text (e.g. 17" x 18" or 17 x 18 in, strictly ignoring cm)
         extracted_length = 0.0
         extracted_width = 0.0
         try:
             page_text = page.get_text()
-            # Match formats like 28 x 34, 28" x 34", 28.5x34.2
-            dim_match = re.search(r"(\d+(?:\.\d+)?)\s*\"?\s*(?:x|X|\*)\s*(\d+(?:\.\d+)?)\s*\"?", page_text)
-            if dim_match:
-                len_val = float(dim_match.group(1))
-                wid_val = float(dim_match.group(2))
-                # Validate that they look like real painting dimensions (both > 2 inches)
-                if len_val >= 2.0 and wid_val >= 2.0:
+            # 1. First priority: look for numbers explicitly marked with inch symbols (" or ” or in or inches)
+            inch_match = re.search(r'(\d+(?:\.\d+)?)\s*["\u201d\u201c\']?\s*(?:x|X|\*)\s*(\d+(?:\.\d+)?)\s*(?:["\u201d\u201c\']|\bin\b|\binch\b|\binches\b)', page_text, re.IGNORECASE)
+            if inch_match:
+                len_val = float(inch_match.group(1))
+                wid_val = float(inch_match.group(2))
+                if len_val >= 1.0 and wid_val >= 1.0:
                     extracted_length = len_val
                     extracted_width = wid_val
+            else:
+                # 2. Find AxB patterns, strictly skipping any followed by cm/cms
+                all_matches = re.finditer(r'(\d+(?:\.\d+)?)\s*(?:x|X|\*)\s*(\d+(?:\.\d+)?)(?:\s*([a-zA-Z"\'\u201d\u201c]+))?', page_text, re.IGNORECASE)
+                for m in all_matches:
+                    unit = (m.group(3) or "").lower().strip()
+                    if "cm" in unit or "centimeter" in unit:
+                        continue
+                    len_val = float(m.group(1))
+                    wid_val = float(m.group(2))
+                    if len_val >= 1.0 and wid_val >= 1.0 and len_val <= 120 and wid_val <= 120:
+                        extracted_length = len_val
+                        extracted_width = wid_val
+                        break
         except Exception as txt_err:
             print(f"Failed to extract dimensions on page {page_num + 1}: {txt_err}")
         zoom = 150 / 72
@@ -1091,12 +1212,47 @@ def get_artwork_authenticity_letter(artwork_id: str):
         wid_str = str(int(width_inch)) if width_inch.is_integer() else str(width_inch)
         
         dimensions_inch = f'{len_str}" x {wid_str}"' if (length_inch > 0 or width_inch > 0) else 'N/A'
-        dimensions_cm = f'{length_cm} x {width_cm} cm' if (length_cm > 0 or width_cm > 0) else 'N/A'
-        
         if dimensions_inch != 'N/A' and dimensions_cm != 'N/A':
             dimensions = f"{dimensions_inch} | {dimensions_cm}"
         else:
             dimensions = "N/A"
+
+        # Resolve signature as base64 or fallback url
+        import base64
+        sig_src = "/api/artworks/signature"
+        sig_search_paths = [
+            "/var/www/html/website/signature.png",
+            "/var/www/html/website/signature.jpg",
+            "/var/www/html/website/signature.svg",
+            "/var/www/html/dashboard/signature.png",
+            "/var/www/html/dashboard/signature.jpg",
+            "/var/www/html/dashboard/signature.svg",
+            "/var/www/html/uploads/signature.png",
+            "/var/www/html/uploads/signature.jpg",
+            "/var/www/html/uploads/signature.svg",
+            os.path.join(Config.UPLOAD_DIR, "signature.png"),
+            os.path.join(Config.UPLOAD_DIR, "signature.jpg"),
+            os.path.join(Config.UPLOAD_DIR, "signature.svg"),
+            os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.svg"),
+            os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.png"),
+            os.path.join(Config.WORKSPACE_ROOT, "website", "public", "signature.jpg"),
+            os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.svg"),
+            os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.png"),
+            os.path.join(Config.WORKSPACE_ROOT, "dashboard", "public", "signature.jpg"),
+            os.path.join(Config.WORKSPACE_ROOT, "signature.png"),
+            os.path.join(Config.WORKSPACE_ROOT, "signature.jpg"),
+            os.path.join(Config.WORKSPACE_ROOT, "signature.svg")
+        ]
+        for sp in sig_search_paths:
+            if os.path.exists(sp):
+                try:
+                    with open(sp, "rb") as sf:
+                        mime = "image/svg+xml" if sp.endswith(".svg") else "image/png" if sp.endswith(".png") else "image/jpeg"
+                        b64 = base64.b64encode(sf.read()).decode("utf-8")
+                        sig_src = f"data:{mime};base64,{b64}"
+                        break
+                except Exception:
+                    pass
             
         # HTML template
         html_content = f"""
@@ -1194,65 +1350,60 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 .logo {{
                     position: absolute;
                     top: 0;
-                    right: 0;
-                    height: 60px;
-                    width: 60px;
+                    left: 0;
+                    height: 50px;
                     object-fit: contain;
                 }}
                 
                 .certificate-title {{
                     font-family: 'Montserrat', sans-serif;
-                    font-size: 32px;
-                    font-weight: 400;
+                    font-size: 16px;
+                    font-weight: 600;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
                     color: #000;
-                    letter-spacing: 0.5px;
-                    text-align: center;
+                    margin: 0;
                 }}
                 
-                .cert-table {{
+                .details-table {{
                     width: 100%;
                     border-collapse: collapse;
-                    border: 0.5px solid #000;
                     font-family: 'Montserrat', sans-serif;
-                    margin-bottom: 0.15in;
+                    font-size: 11.5px;
+                    color: #000;
+                    margin-top: 0.1in;
                 }}
                 
-                .cert-table td {{
-                    border: 0.5px solid #000;
-                    padding: 10px 15px;
+                .details-table td {{
+                    padding: 4px 6px;
                     vertical-align: middle;
-                    color: #000;
                 }}
                 
                 .cell-label {{
-                    width: 25%;
-                    font-weight: 700;
-                    text-align: left;
-                    font-size: 14px;
-                    border-right: 0.5px solid #000;
+                    width: 130px;
+                    font-weight: 400;
+                    color: #000;
                 }}
                 
                 .cell-val {{
-                    width: 75%;
-                    text-align: center;
-                    font-size: 15px;
-                }}
-                
-                .text-left {{
-                    text-align: left !important;
+                    font-weight: 400;
+                    color: #000;
                 }}
                 
                 .text-bold {{
                     font-weight: 700;
                 }}
                 
-                .label-image {{
+                .text-left {{
                     text-align: left;
-                    font-weight: 700;
+                }}
+                
+                .label-image {{
+                    vertical-align: middle !important;
                 }}
                 
                 .cell-img-val {{
-                    padding: 15px !important;
+                    padding: 8px 0;
                     text-align: center;
                 }}
                 
@@ -1384,10 +1535,18 @@ def get_artwork_authenticity_letter(artwork_id: str):
             <div class="certificate-container">
                 <div class="certificate-header">
                     <div class="certificate-title">Certificate of Authenticity</div>
-                    <img class="logo" src="/api/artworks/logo" alt="Mainframe Logo">
+                    <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
                 </div>
                 
-                <table class="cert-table">
+                <table class="details-table">
+                    <tr>
+                        <td class="cell-label">Date:</td>
+                        <td class="cell-val text-bold">{date_str}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Reg: Code</td>
+                        <td class="cell-val text-bold">{code}</td>
+                    </tr>
                     <tr>
                         <td class="cell-label">Painting by:</td>
                         <td class="cell-val text-bold">{artist}</td>

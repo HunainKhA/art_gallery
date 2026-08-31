@@ -629,27 +629,56 @@ export default function ExhibitionsSection({
       fetch(getApiUrl(`/api/crm/exhibitions/${selectedExhibition.id}/artworks`))
         .then(res => res.json())
         .then(data => {
-          setExhibitionArtworks(Array.isArray(data) ? data : []);
+          const arts = Array.isArray(data) ? data : [];
+          setExhibitionArtworks(arts);
           setLoadingArtworks(false);
+
+          // Resolve Exhibition Artist reliably
+          let targetArtistId = selectedExhibition.artist_id;
+          let targetArtistName = selectedExhibition.artist_name;
+
+          if (!targetArtistId && arts.length > 0 && arts[0].artist_id) {
+            targetArtistId = arts[0].artist_id;
+          }
+          if (!targetArtistName && arts.length > 0 && arts[0].artist_name) {
+            targetArtistName = arts[0].artist_name;
+          }
+
+          if (targetArtistId) {
+            fetchArtistDetail(targetArtistId)
+              .then(aData => setExhibitionArtist(aData))
+              .catch(() => {
+                const found = artists.find(a => a.id === targetArtistId);
+                setExhibitionArtist(found || null);
+              });
+          } else if (targetArtistName) {
+            const cleanTarget = targetArtistName.trim().toLowerCase();
+            const found = artists.find(a => `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase() === cleanTarget);
+            if (found) {
+              fetchArtistDetail(found.id).then(aData => setExhibitionArtist(aData)).catch(() => setExhibitionArtist(found));
+            } else {
+              setExhibitionArtist({ id: 'temp', first_name: targetArtistName, last_name: '' });
+            }
+          } else {
+            // Check if artist name is embedded in exhibition title (e.g. Farrukh Shahab)
+            const doc = (selectedExhibition.document_name || '').toLowerCase();
+            const found = artists.find(a => {
+              const full = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+              return full && doc.includes(full);
+            });
+            if (found) {
+              fetchArtistDetail(found.id).then(aData => setExhibitionArtist(aData)).catch(() => setExhibitionArtist(found));
+            } else {
+              setExhibitionArtist(null);
+            }
+          }
         })
         .catch(err => {
           console.error(err);
           setExhibitionArtworks([]);
           setLoadingArtworks(false);
+          setExhibitionArtist(null);
         });
-
-      if (selectedExhibition.artist_id) {
-        fetchArtistDetail(selectedExhibition.artist_id)
-          .then(data => {
-            setExhibitionArtist(data);
-          })
-          .catch(err => {
-            console.error("Error loading exhibition artist:", err);
-            setExhibitionArtist(null);
-          });
-      } else {
-        setExhibitionArtist(null);
-      }
     } else {
       setExhibitionArtworks([]);
       setExhibitionArtist(null);
@@ -676,15 +705,23 @@ export default function ExhibitionsSection({
       const nextIndex = (bookIndex + 2) >= exhibitionArtworks.length ? 0 : (bookIndex + 2);
 
       setFlipDirection('next');
-      setFlipData(prev => ({
-        ...prev,
+      setFlipData({
+        left: exhibitionArtworks[bookIndex],
+        right: exhibitionArtworks[Math.min(nextIndex + 1, exhibitionArtworks.length - 1)],
+        flipFront: exhibitionArtworks[(bookIndex + 1) % exhibitionArtworks.length],
         flipBack: exhibitionArtworks[nextIndex]
-      }));
+      });
 
       setIsFlipping(true);
 
       setTimeout(() => {
         setBookIndex(nextIndex);
+        setFlipData({
+          left: exhibitionArtworks[nextIndex],
+          right: exhibitionArtworks[(nextIndex + 1) % exhibitionArtworks.length],
+          flipFront: exhibitionArtworks[(nextIndex + 1) % exhibitionArtworks.length],
+          flipBack: exhibitionArtworks[(nextIndex + 2) % exhibitionArtworks.length]
+        });
         setIsFlipping(false);
       }, 800);
     }, 4000);
@@ -765,6 +802,16 @@ export default function ExhibitionsSection({
     return getApiUrl(`/api/crm/exhibitions/image/${id}`);
   };
 
+  const getArtworkImage = (artOrId) => {
+    if (!artOrId) return '';
+    if (typeof artOrId === 'object') {
+      if (artOrId.id) return getArtworkImageUrl(artOrId.id);
+      if (artOrId.image) return getArtworkImageUrl(artOrId.image);
+      if (artOrId.filename) return getArtworkImageUrl(artOrId.filename);
+    }
+    return getArtworkImageUrl(artOrId);
+  };
+
   const isArtworkInCart = (artId) => {
     return cartItems.some(item => item.id === artId);
   };
@@ -776,17 +823,79 @@ export default function ExhibitionsSection({
 
   if (selectedExhibition) {
     const isUpcoming = getExhibitionStatus(selectedExhibition.active_date, selectedExhibition.exp_date) === 'upcoming';
-    const groupArtistsList = selectedExhibition.show_type === 'group' && selectedExhibition.group_artist_ids
-      ? selectedExhibition.group_artist_ids.split(',')
-        .map(id => id.trim())
-        .map(id => artists.find(a => a.id === id))
-        .filter(Boolean)
-      : [];
+
+    // Gather all participating artists dynamically (from group IDs, solo ID, or artworks)
+    const allExhibitionArtists = (() => {
+      const artistMap = new Map();
+
+      // 1. Check group_artist_ids from exhibition
+      if (selectedExhibition.group_artist_ids) {
+        selectedExhibition.group_artist_ids.split(',').forEach(id => {
+          const cleanId = id.trim();
+          if (cleanId) {
+            const found = artists.find(a => a.id === cleanId);
+            if (found) artistMap.set(found.id, found);
+          }
+        });
+      }
+
+      // 2. Check solo artist_id from exhibition
+      if (selectedExhibition.artist_id) {
+        const found = artists.find(a => a.id === selectedExhibition.artist_id);
+        if (found) artistMap.set(found.id, found);
+      }
+
+      // 3. Dynamically extract artists from exhibitionArtworks
+      if (exhibitionArtworks && exhibitionArtworks.length > 0) {
+        exhibitionArtworks.forEach(art => {
+          if (art.artist_id) {
+            const found = artists.find(a => a.id === art.artist_id);
+            if (found) {
+              artistMap.set(found.id, found);
+            } else if (!artistMap.has(art.artist_id)) {
+              artistMap.set(art.artist_id, {
+                id: art.artist_id,
+                first_name: art.artist_name || 'Artist',
+                last_name: '',
+                name: art.artist_name || 'Artist'
+              });
+            }
+          } else if (art.artist_name) {
+            const cleanName = art.artist_name.trim();
+            const found = artists.find(a => `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase() === cleanName.toLowerCase());
+            if (found) {
+              artistMap.set(found.id, found);
+            } else if (!artistMap.has(cleanName)) {
+              artistMap.set(cleanName, {
+                id: cleanName,
+                first_name: cleanName,
+                last_name: '',
+                name: cleanName
+              });
+            }
+          }
+        });
+      }
+
+      // 4. Fallback to state exhibitionArtist if still empty
+      if (artistMap.size === 0 && exhibitionArtist) {
+        artistMap.set(exhibitionArtist.id || 'single', exhibitionArtist);
+      }
+
+      return Array.from(artistMap.values());
+    })();
 
     const jumpToPage = (idx) => {
+      if (isFlipping) return;
       const targetIndex = idx % 2 === 0 ? idx : idx - 1;
       if (targetIndex >= 0 && targetIndex < exhibitionArtworks.length) {
         setBookIndex(targetIndex);
+        setFlipData({
+          left: exhibitionArtworks[targetIndex],
+          right: exhibitionArtworks[(targetIndex + 1) % exhibitionArtworks.length],
+          flipFront: exhibitionArtworks[(targetIndex + 1) % exhibitionArtworks.length],
+          flipBack: exhibitionArtworks[(targetIndex + 2) % exhibitionArtworks.length]
+        });
       }
     };
 
@@ -805,6 +914,12 @@ export default function ExhibitionsSection({
       setIsFlipping(true);
       setTimeout(() => {
         setBookIndex(nextIndex);
+        setFlipData({
+          left: exhibitionArtworks[nextIndex],
+          right: exhibitionArtworks[(nextIndex + 1) % exhibitionArtworks.length],
+          flipFront: exhibitionArtworks[(nextIndex + 1) % exhibitionArtworks.length],
+          flipBack: exhibitionArtworks[(nextIndex + 2) % exhibitionArtworks.length]
+        });
         setIsFlipping(false);
       }, 800);
     };
@@ -825,6 +940,12 @@ export default function ExhibitionsSection({
       setIsFlipping(true);
       setTimeout(() => {
         setBookIndex(prevIndex);
+        setFlipData({
+          left: exhibitionArtworks[prevIndex],
+          right: exhibitionArtworks[(prevIndex + 1) % exhibitionArtworks.length],
+          flipFront: exhibitionArtworks[(prevIndex + 1) % exhibitionArtworks.length],
+          flipBack: exhibitionArtworks[(prevIndex + 2) % exhibitionArtworks.length]
+        });
         setIsFlipping(false);
       }, 800);
     };
@@ -858,44 +979,42 @@ export default function ExhibitionsSection({
         </div>
 
         {/* Sticky horizontal sub-navigation */}
-        {!isUpcoming && (
-          <div className="exhibition-sub-nav-horizontal">
+        <div className="exhibition-sub-nav-horizontal">
+          <button
+            onClick={() => scrollToSection('overview')}
+            className={`exhibition-nav-link ${activeSubSec === 'overview' ? 'active' : ''}`}
+          >
+            OVERVIEW
+          </button>
+          <button
+            onClick={() => scrollToSection('catalogue')}
+            className={`exhibition-nav-link ${activeSubSec === 'catalogue' ? 'active' : ''}`}
+          >
+            CATALOGUE
+          </button>
+          <button
+            onClick={() => scrollToSection('images')}
+            className={`exhibition-nav-link ${activeSubSec === 'images' ? 'active' : ''}`}
+          >
+            IMAGES
+          </button>
+          {selectedExhibition.video_url && (
             <button
-              onClick={() => scrollToSection('overview')}
-              className={`exhibition-nav-link ${activeSubSec === 'overview' ? 'active' : ''}`}
+              onClick={() => scrollToSection('video-player')}
+              className={`exhibition-nav-link ${activeSubSec === 'video-player' ? 'active' : ''}`}
             >
-              OVERVIEW
+              VIDEO
             </button>
+          )}
+          {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (
             <button
-              onClick={() => scrollToSection('catalogue')}
-              className={`exhibition-nav-link ${activeSubSec === 'catalogue' ? 'active' : ''}`}
+              onClick={() => scrollToSection('video')}
+              className={`exhibition-nav-link ${activeSubSec === 'video' ? 'active' : ''}`}
             >
-              CATALOGUE
+              GUESTS
             </button>
-            <button
-              onClick={() => scrollToSection('images')}
-              className={`exhibition-nav-link ${activeSubSec === 'images' ? 'active' : ''}`}
-            >
-              IMAGES
-            </button>
-            {selectedExhibition.video_url && (
-              <button
-                onClick={() => scrollToSection('video-player')}
-                className={`exhibition-nav-link ${activeSubSec === 'video-player' ? 'active' : ''}`}
-              >
-                VIDEO
-              </button>
-            )}
-            {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (
-              <button
-                onClick={() => scrollToSection('video')}
-                className={`exhibition-nav-link ${activeSubSec === 'video' ? 'active' : ''}`}
-              >
-                GUESTS
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* 1. OVERVIEW SECTION (UNIFIED HORIZONTAL SHOW CARD LAYOUT) */}
         <div id="exhibition-sec-overview" style={{ marginBottom: '3.5rem' }}>
@@ -917,8 +1036,8 @@ export default function ExhibitionsSection({
                 className="glass-card exhibit-grid-card"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '5.8fr 4.2fr',
-                  minHeight: '520px',
+                  gridTemplateColumns: '1.3fr 1fr',
+                  height: '420px',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   border: '1px solid var(--border-color)',
@@ -930,6 +1049,7 @@ export default function ExhibitionsSection({
                   className="exhibit-card-img-container"
                   style={{
                     height: '100%',
+                    width: '100%',
                     overflow: 'hidden',
                     backgroundColor: '#0c0d10',
                     borderRight: '1px solid var(--border-color)',
@@ -944,44 +1064,17 @@ export default function ExhibitionsSection({
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
+                      objectPosition: 'center 18%',
                       display: 'block'
                     }}
                   />
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    fontSize: '0.75rem',
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '30px',
-                    fontWeight: 600,
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    border: `1px solid ${status === 'current' ? 'rgba(16, 185, 129, 0.3)' : status === 'upcoming' ? 'white' : 'rgba(255,255,255,0.2)'}`,
-                    ...labelStyles[status]
-                  }}>
-                    <span
-                      className={status === 'current' ? 'pulse-green-dot' : ''}
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: status === 'current' ? 'var(--accent-green)' : status === 'upcoming' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                        display: 'inline-block'
-                      }}
-                    />
-                    {labelTexts[status]}
-                  </div>
                 </div>
 
                 {/* RIGHT: TITLE, DATE, DESCRIPTION, FEATURED ARTISTS */}
                 <div
                   className="exhibit-card-content"
                   style={{
-                    padding: '1.5rem',
+                    padding: '1.5rem 2rem',
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
@@ -992,11 +1085,13 @@ export default function ExhibitionsSection({
                     <h1
                       className="exhibit-card-title"
                       style={{
-                        fontSize: '1.25rem',
+                        fontSize: '14px',
                         fontWeight: 100,
+                        fontFamily: 'Montserrat, sans-serif',
                         color: 'var(--text-primary)',
                         margin: '0 0 0.4rem 0',
-                        lineHeight: '1.4'
+                        lineHeight: '1.4',
+                        letterSpacing: '0.02em'
                       }}
                     >
                       {selectedExhibition.document_name}
@@ -1014,7 +1109,6 @@ export default function ExhibitionsSection({
                         letterSpacing: '0.02em'
                       }}
                     >
-                      <Calendar size={13} style={{ flexShrink: 0 }} />
                       <span>{formatDate(selectedExhibition.active_date)} - {formatDate(selectedExhibition.exp_date) || 'Ongoing'}</span>
                     </p>
                     <p
@@ -1035,21 +1129,22 @@ export default function ExhibitionsSection({
                     </p>
                   </div>
 
-                  {/* FEATURED ARTISTS AT BOTTOM */}
-                  {selectedExhibition.show_type === 'group' && groupArtistsList.length > 0 ? (
+                  {/* FEATURED ARTISTS AT BOTTOM (SOLO OR GROUP) */}
+                  {allExhibitionArtists.length > 1 ? (
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', marginTop: 'auto' }}>
-                      <h3 style={{ fontSize: '12px', fontWeight: 100, color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                        ARTISTS FEATURED
+                      <h3 style={{ fontSize: '14px', fontWeight: 100, color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.6rem', textTransform: 'uppercase' }}>
+                        ARTISTS FEATURED ({allExhibitionArtists.length})
                       </h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: '0.75rem' }}>
-                        {groupArtistsList.map((a, idx) => {
-                          const artistImgUrl = a.profile_image ? getArtistImageUrl(a.profile_image) : '';
+                      <div style={{ display: 'flex', gap: '0.85rem', overflowX: 'auto', paddingBottom: '0.4rem' }} className="custom-scrollbar">
+                        {allExhibitionArtists.map((a, idx) => {
+                          const artistImgUrl = a.profile_image ? getArtistImageUrl(a.profile_image) : (a.id ? getArtistImageUrl(a.id) : '');
+                          const artistDisplayName = a.name || `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Artist';
                           return (
                             <div
-                              key={a.id}
+                              key={a.id || idx}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleOpenArtistBio(a, idx, groupArtistsList);
+                                handleOpenArtistBio(a, idx, allExhibitionArtists);
                               }}
                               style={{
                                 display: 'flex',
@@ -1058,47 +1153,48 @@ export default function ExhibitionsSection({
                                 textAlign: 'center',
                                 gap: '0.25rem',
                                 cursor: 'pointer',
+                                minWidth: '65px',
                                 transition: 'transform 0.2s ease'
                               }}
-                              title={`View ${a.first_name} ${a.last_name || ''}'s Biography`}
+                              title={`View ${artistDisplayName}'s Biography`}
                               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
                               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                             >
                               <div style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--accent-gold)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backgroundColor: '#111' }}>
                                 <img
                                   src={artistImgUrl}
-                                  alt={`${a.first_name} ${a.last_name || ''}`}
+                                  alt={artistDisplayName}
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                               </div>
-                              <span style={{ fontSize: '0.65rem', color: 'var(--text-primary)', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{a.first_name}</span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 100, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70px' }}>
+                                {a.first_name || artistDisplayName}
+                              </span>
                             </div>
                           );
                         })}
                       </div>
                     </div>
-                  ) : exhibitionArtist ? (
+                  ) : allExhibitionArtists.length === 1 ? (
                     <div
                       style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenArtistBio(exhibitionArtist);
+                        handleOpenArtistBio(allExhibitionArtists[0], 0, allExhibitionArtists);
                       }}
-                      title={`View ${exhibitionArtist.first_name} ${exhibitionArtist.last_name || ''}'s Biography`}
+                      title={`View ${allExhibitionArtists[0].name || `${allExhibitionArtists[0].first_name || ''} ${allExhibitionArtists[0].last_name || ''}`}'s Biography`}
                     >
-                      {exhibitionArtist.profile_image && (
-                        <div style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--accent-gold)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backgroundColor: '#111', flexShrink: 0 }}>
-                          <img
-                            src={getArtistImageUrl(exhibitionArtist.profile_image)}
-                            alt={`${exhibitionArtist.first_name} ${exhibitionArtist.last_name || ''}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        </div>
-                      )}
+                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--accent-gold)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backgroundColor: '#111', flexShrink: 0 }}>
+                        <img
+                          src={allExhibitionArtists[0].profile_image ? getArtistImageUrl(allExhibitionArtists[0].profile_image) : (allExhibitionArtists[0].id ? getArtistImageUrl(allExhibitionArtists[0].id) : '')}
+                          alt={allExhibitionArtists[0].name || `${allExhibitionArtists[0].first_name || ''} ${allExhibitionArtists[0].last_name || ''}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
                       <div>
-                        <h3 style={{ fontSize: '12px', fontWeight: 100, color: 'var(--text-muted)', letterSpacing: '0.05em', margin: '0 0 0.15rem 0', textTransform: 'uppercase' }}>ARTIST FEATURED</h3>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--accent-gold)', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                          {exhibitionArtist.first_name} {exhibitionArtist.last_name} →
+                        <h3 style={{ fontSize: '14px', fontWeight: 100, color: 'var(--text-muted)', letterSpacing: '0.05em', margin: '0 0 0.15rem 0', textTransform: 'uppercase' }}>ARTIST FEATURED</h3>
+                        <p style={{ fontSize: '12px', fontWeight: 100, color: 'var(--accent-gold)', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          {allExhibitionArtists[0].name || `${allExhibitionArtists[0].first_name || ''} ${allExhibitionArtists[0].last_name || ''}`} →
                         </p>
                       </div>
                     </div>
@@ -1109,644 +1205,588 @@ export default function ExhibitionsSection({
           })()}
         </div>
 
-        {isUpcoming ? (
-          /* TEASER VIEW FOR UPCOMING EXHIBITIONS */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
+        {/* 2. CATALOGUE SECTION (VIRTUAL BOOK + PDF DOWNLOAD) */}
+        {exhibitionArtworks.length > 0 && (
+          <div id="exhibition-sec-catalogue" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
 
-            {/* Show cover banner image only */}
-            <div style={{
-              width: '100%',
-              maxHeight: '450px',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-              backgroundColor: '#111'
-            }}>
-              <img
-                src={getExhibitionImage(selectedExhibition.id)}
-                alt={selectedExhibition.document_name}
-                style={{ width: '100%', height: '100%', maxHeight: '450px', objectFit: 'cover' }}
-              />
-            </div>
+            {/* Side-by-Side Sidebar and Virtual Book Container */}
+            <div className="catalog-book-row">
 
-            {/* Lock/Teaser info message */}
-            <div
-              className="glass-card"
-              style={{
-                padding: '3rem',
-                textAlign: 'center',
-                maxWidth: '650px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '1.25rem',
-                border: '1px solid rgba(212, 175, 55, 0.2)',
-                borderRadius: '16px',
-                marginTop: '1rem',
-                boxShadow: 'var(--shadow-premium)'
-              }}
-            >
-              <div style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--accent-gold)',
-                marginBottom: '0.5rem'
-              }}>
-                <Lock size={28} />
-              </div>
-
-              <h2 style={{ fontSize: '1.4rem', color: '#fff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                Exhibition Preview Locked
-              </h2>
-
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
-                This exclusive exhibition starts on <strong style={{ color: 'var(--accent-gold)' }}>{formatDate(selectedExhibition.active_date)}</strong>.
-                The catalog and artworks will be revealed here when the exhibition date arrives. Stay tuned!
-              </p>
-
-              <div style={{
-                fontSize: '0.8rem',
-                color: 'var(--accent-gold)',
-                backgroundColor: 'rgba(212, 175, 55, 0.05)',
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontWeight: 600,
-                border: '1px solid rgba(212, 175, 55, 0.15)',
-                marginTop: '0.5rem'
-              }}>
-                Opening on {formatDate(selectedExhibition.active_date)}
-              </div>
-            </div>
-
-          </div>
-        ) : (
-          /* STANDARD FULL EXHIBITION VIEW */
-          <>
-            {/* 2. CATALOGUE SECTION (VIRTUAL BOOK + PDF DOWNLOAD) */}
-            {exhibitionArtworks.length > 0 && (
-              <div id="exhibition-sec-catalogue" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-
-                {/* Side-by-Side Sidebar and Virtual Book Container */}
-                <div style={{
-                  display: 'flex',
-                  gap: '3rem',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                  maxWidth: '1100px',
-                  flexWrap: 'wrap',
-                  marginBottom: '2rem'
-                }}>
-
-                  {/* Left Column: Top-to-Bottom Artwork Thumbnail List */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem',
-                    maxHeight: '430px',
-                    overflowY: 'auto',
-                    paddingRight: '1rem',
-                    width: '100px',
-                    borderRight: '1px solid var(--border-color)'
-                  }} className="catalog-sidebar-thumbnails">
-                    {exhibitionArtworks.map((art, idx) => {
-                      const isActive = idx === bookIndex || idx === (bookIndex + 1) % exhibitionArtworks.length;
-                      return (
-                        <div
-                          key={art.id}
-                          onClick={() => jumpToPage(idx)}
-                          style={{
-                            width: '70px',
-                            height: '55px',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            border: `2px solid ${isActive ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.1)'}`,
-                            cursor: 'pointer',
-                            opacity: isActive ? 1 : 0.6,
-                            transition: 'all 0.3s',
-                            backgroundColor: '#111',
-                            flexShrink: 0
-                          }}
-                          title={art.title || `Page ${idx + 1}`}
-                        >
-                          <img
-                            src={getExhibitionImage(art.id)}
-                            alt={art.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Right Column: 3D Virtual Flipping Book */}
-                  <div className="book-wrapper" style={{ margin: 0, flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <div className="book-cover">
-                      <div className="book-body">
-                        <div className="book-spine-line"></div>
-
-                        {/* Left Static Page (Clicking goes to previous page) */}
-                        {flipData.left && (
-                          <div
-                            className="book-page-half book-page-left"
-                            onClick={goPrevPage}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to go to previous page"
-                          >
-                            <div className="book-img-container">
-                              <img
-                                src={getExhibitionImage(flipData.left.id)}
-                                alt={flipData.left.title}
-                              />
-                            </div>
-                            <div className="book-caption">
-                              <h4 className="book-caption-title">{flipData.left.title}</h4>
-                              <p className="book-caption-meta">{flipData.left.artist_name || 'Unknown Artist'}</p>
-                              <p className="book-caption-dims">{flipData.left.width ? `${flipData.left.width} x ${flipData.left.length} in` : ''}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Right Static Page (Clicking goes to next page) */}
-                        {flipData.right && (
-                          <div
-                            className="book-page-half book-page-right"
-                            onClick={goNextPage}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to go to next page"
-                          >
-                            <div className="book-img-container">
-                              <img
-                                src={getExhibitionImage(flipData.right.id)}
-                                alt={flipData.right.title}
-                              />
-                            </div>
-                            <div className="book-caption">
-                              <h4 className="book-caption-title">{flipData.right.title}</h4>
-                              <p className="book-caption-meta">{flipData.right.artist_name || 'Unknown Artist'}</p>
-                              <p className="book-caption-dims">{flipData.right.width ? `${flipData.right.width} x ${flipData.right.length} in` : ''}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 3D Flipping Page Layer overlay */}
-                        {exhibitionArtworks.length > 2 && (
-                          <div className={`book-flipping-page ${isFlipping ? 'is-turning' : ''} ${flipDirection === 'prev' ? 'prev-dir' : 'next-dir'}`}>
-                            <div className="book-flipping-face front">
-                              {flipData.flipFront && (
-                                <>
-                                  <div className="book-img-container">
-                                    <img
-                                      src={getExhibitionImage(flipData.flipFront.id)}
-                                      alt={flipData.flipFront.title}
-                                    />
-                                  </div>
-                                  <div className="book-caption">
-                                    <h4 className="book-caption-title">{flipData.flipFront.title}</h4>
-                                    <p className="book-caption-meta">{flipData.flipFront.artist_name || 'Unknown Artist'}</p>
-                                    <p className="book-caption-dims">{flipData.flipFront.width ? `${flipData.flipFront.width} x ${flipData.flipFront.length} in` : ''}</p>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                            <div className="book-flipping-face back">
-                              {flipData.flipBack && (
-                                <>
-                                  <div className="book-img-container">
-                                    <img
-                                      src={getExhibitionImage(flipData.flipBack.id)}
-                                      alt={flipData.flipBack.title}
-                                    />
-                                  </div>
-                                  <div className="book-caption">
-                                    <h4 className="book-caption-title">{flipData.flipBack.title}</h4>
-                                    <p className="book-caption-meta">{flipData.flipBack.artist_name || 'Unknown Artist'}</p>
-                                    <p className="book-caption-dims">{flipData.flipBack.width ? `${flipData.flipBack.width} x ${flipData.flipBack.length} in` : ''}</p>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Autoplay & Navigation Controls below the book */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginTop: '0.5rem',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <button
-                      onClick={goPrevPage}
-                      className="btn-secondary"
+              {/* Left Column: Top-to-Bottom Artwork Thumbnail List */}
+              <div className="catalog-sidebar-thumbnails">
+                {exhibitionArtworks.map((art, idx) => {
+                  const isActive = idx === bookIndex || idx === (bookIndex + 1) % exhibitionArtworks.length;
+                  return (
+                    <div
+                      key={art.id}
+                      onClick={() => jumpToPage(idx)}
+                      className="catalog-thumb-item"
                       style={{
-                        padding: '0.4rem 0.8rem',
-                        fontSize: '0.8rem',
-                        minWidth: '80px',
-                        borderRadius: '20px',
-                        cursor: 'pointer'
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        border: `2px solid ${isActive ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.1)'}`,
+                        cursor: 'pointer',
+                        opacity: isActive ? 1 : 0.6,
+                        transition: 'all 0.3s',
+                        backgroundColor: '#111',
+                        flexShrink: 0
                       }}
+                      title={art.title || `Page ${idx + 1}`}
                     >
-                      ← Prev
-                    </button>
-
-                    <button
-                      onClick={() => setIsAutoplayPaused(prev => !prev)}
-                      className="btn-secondary"
-                      style={{
-                        padding: '0.4rem 1.25rem',
-                        fontSize: '0.8rem',
-                        borderRadius: '20px',
-                        borderColor: isAutoplayPaused ? 'rgba(212, 175, 55, 0.4)' : 'rgba(255,255,255,0.1)',
-                        color: isAutoplayPaused ? 'var(--accent-gold)' : 'var(--text-secondary)'
-                      }}
-                    >
-                      {isAutoplayPaused ? '▶ Play Autoplay' : '⏸ Pause Autoplay'}
-                    </button>
-
-                    <button
-                      onClick={goNextPage}
-                      className="btn-secondary"
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        fontSize: '0.8rem',
-                        minWidth: '80px',
-                        borderRadius: '20px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Next →
-                    </button>
-                  </div>
-
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Pages {bookIndex + 1} - {Math.min(bookIndex + 2, exhibitionArtworks.length)} of {exhibitionArtworks.length} {isAutoplayPaused ? '(Autoplay Paused)' : '(Auto-turning every 4 seconds)'}
-                  </span>
-                </div>
-
-                {/* PDF Catalog compilation button (MOVED BELOW BOOK) */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-                  <button
-                    className="btn-primary"
-                    style={{
-                      padding: '0.8rem 1.75rem',
-                      fontSize: '0.85rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      borderRadius: '8px',
-                      background: 'var(--accent-gold)',
-                      border: 'none',
-                      color: '#000',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      boxShadow: '0 4px 15px rgba(212, 175, 55, 0.2)',
-                      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }}
-                    disabled={downloadingCatalogId === selectedExhibition.id}
-                    onClick={() => handleDownloadCatalog(selectedExhibition)}
-                  >
-                    {downloadingCatalogId === selectedExhibition.id ? <Loader className="animate-spin" size={16} /> : <Download size={16} />}
-                    {downloadingCatalogId === selectedExhibition.id ? 'Compiling PDF...' : 'Download PDF Catalog'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* 3. IMAGES SECTION (ARTWORKS GRID) */}
-            <div id="exhibition-sec-images" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
-              <h2 style={{ fontSize: '14px', color: '#fff', marginBottom: '1.5rem', fontWeight: 100 }}>
-                Artworks ({exhibitionArtworks.length})
-              </h2>
-
-              {loadingArtworks ? (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: 'var(--accent-gold)', fontSize: '1.1rem' }}>
-                  Loading exhibition artworks...
-                </div>
-              ) : (
-                <>
-                  <div className="exhibit-artworks-grid">
-                    {currentArtworks.map((art) => (
-                      <div
-                        key={art.id}
-                        className="glass-card artwork-card"
-                        onClick={() => viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks)}
-                        style={{
-                          borderRadius: '16px',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          border: '1px solid var(--border-color)',
-                          transition: 'transform 0.3s ease, border-color 0.3s ease',
-                          position: 'relative',
-                          cursor: 'pointer'
+                      <img
+                        src={getArtworkImage(art)}
+                        alt={art.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
                         }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right Column: 3D Virtual Flipping Book */}
+              <div className="book-wrapper" style={{ margin: 0, flex: 1, display: 'flex', justifyContent: 'center' }}>
+                <div className="book-cover">
+                  <div className="book-body">
+                    <div className="book-spine-line"></div>
+
+                    {/* Left Static Page (Clicking goes to previous page) */}
+                    {flipData.left && (
+                      <div
+                        className="book-page-half book-page-left"
+                        onClick={goPrevPage}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to go to previous page"
                       >
-                        {/* Image container with Hover Overlay */}
-                        <div style={{ height: '260px', overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                        <div className="book-img-container">
                           <img
-                            src={getExhibitionImage(art.id)}
-                            alt={art.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                            className="art-grid-image"
+                            src={getArtworkImage(flipData.left)}
+                            alt={flipData.left.title}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                            }}
                           />
-                          {/* Hover Overlay Button to View details */}
-                          <div className="art-hover-overlay" style={{
-                            position: 'absolute',
-                            top: 0, left: 0, right: 0, bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            opacity: 0,
-                            transition: 'opacity 0.3s ease'
-                          }}>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks); }}
-                              className="btn-primary"
-                              style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
-                            >
-                              View Details
-                            </button>
-                          </div>
                         </div>
-
-                        {/* Artwork details text */}
-                        <div style={{
-                          padding: '1.25rem',
-                          flex: 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          fontFamily: 'Montserrat, sans-serif'
-                        }}>
-                          {/* Heading: Artist Name (Thin font, black/text-primary) */}
-                          <h3 className="artist-name" style={{
-                            fontSize: '14px',
-                            color: 'var(--text-primary)',
-                            margin: '0 0 0.55rem 0',
-                            fontWeight: 100,
-                            fontFamily: 'Montserrat, sans-serif',
-                            lineHeight: '1.3',
-                            letterSpacing: '0.02em',
-                            textTransform: 'uppercase'
-                          }}>
-                            {art.artist_name || 'Unknown Artist'}
-                          </h3>
-
-                          {/* Medium (12px) */}
-                          <p style={{
-                            fontSize: '12px',
-                            color: 'var(--text-secondary)',
-                            margin: '0 0 0.45rem 0',
-                            fontFamily: 'Montserrat, sans-serif',
-                            lineHeight: '1.4'
-                          }}>
-                            {art.medium_name || 'Oil on Canvas'}
+                        <div className="book-caption">
+                          <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {flipData.left.artist_name || ''}
                           </p>
+                          {flipData.left.code && String(flipData.left.code).trim() !== '2' && !/^\d+$/.test(String(flipData.left.code).trim()) && (
+                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {flipData.left.code}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                          {/* Dimensions (12px) */}
-                          {(() => {
-                            const dims = renderDimensions(art.width, art.length);
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.45rem' }}>
-                                {dims.cmStr && (
-                                  <p style={{
-                                    fontSize: '12px',
-                                    color: 'var(--text-secondary)',
-                                    margin: 0,
-                                    fontFamily: 'Montserrat, sans-serif',
-                                    lineHeight: '1.4'
-                                  }}>
-                                    {dims.cmStr}
-                                  </p>
-                                )}
-                                {dims.inStr && (
-                                  <p style={{
-                                    fontSize: '12px',
-                                    color: 'var(--text-secondary)',
-                                    margin: 0,
-                                    fontFamily: 'Montserrat, sans-serif',
-                                    lineHeight: '1.4'
-                                  }}>
-                                    {dims.inStr}
+                    {/* Right Static Page (Clicking goes to next page) */}
+                    {flipData.right && (
+                      <div
+                        className="book-page-half book-page-right"
+                        onClick={goNextPage}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to go to next page"
+                      >
+                        <div className="book-img-container">
+                          <img
+                            src={getArtworkImage(flipData.right)}
+                            alt={flipData.right.title}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                            }}
+                          />
+                        </div>
+                        <div className="book-caption">
+                          <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {flipData.right.artist_name || ''}
+                          </p>
+                          {flipData.right.code && String(flipData.right.code).trim() !== '2' && !/^\d+$/.test(String(flipData.right.code).trim()) && (
+                            <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {flipData.right.code}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3D Flipping Page Layer overlay */}
+                    {exhibitionArtworks.length > 2 && (
+                      <div className={`book-flipping-page ${isFlipping ? 'is-turning' : ''} ${flipDirection === 'prev' ? 'prev-dir' : 'next-dir'}`}>
+                        <div className="book-flipping-face front">
+                          {flipData.flipFront && (
+                            <>
+                              <div className="book-img-container">
+                                <img
+                                  src={getArtworkImage(flipData.flipFront)}
+                                  alt={flipData.flipFront.title}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                                  }}
+                                />
+                              </div>
+                              <div className="book-caption">
+                                <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  {flipData.flipFront.artist_name || ''}
+                                </p>
+                                {flipData.flipFront.code && String(flipData.flipFront.code).trim() !== '2' && !/^\d+$/.test(String(flipData.flipFront.code).trim()) && (
+                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {flipData.flipFront.code}
                                   </p>
                                 )}
                               </div>
-                            );
-                          })()}
-
-                          {/* Code / Title (12px - Placed at the bottom, matches text above) */}
-                          <p style={{
-                            fontSize: '12px',
-                            color: 'var(--text-secondary)',
-                            margin: '0 0 0.85rem 0',
-                            fontFamily: 'Montserrat, sans-serif',
-                            lineHeight: '1.4',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {art.title}
-                          </p>
-
-                          {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginTop: 'auto',
-                            borderTop: '1px solid var(--border-color)',
-                            paddingTop: '0.85rem'
-                          }}>
-                            {art.status === 'Available' || art.status === 'not_sold' ? (
-                              <>
-                                <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
-                                  Inquiry
-                                </span>
-                                <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
-                                  Available
-                                </span>
-                              </>
-                            ) : (
-                              <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                                Sold
-                              </span>
-                            )}
-                          </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="book-flipping-face back">
+                          {flipData.flipBack && (
+                            <>
+                              <div className="book-img-container">
+                                <img
+                                  src={getArtworkImage(flipData.flipBack)}
+                                  alt={flipData.flipBack.title}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                                  }}
+                                />
+                              </div>
+                              <div className="book-caption">
+                                <p className="book-caption-artist" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  {flipData.flipBack.artist_name || ''}
+                                </p>
+                                {flipData.flipBack.code && String(flipData.flipBack.code).trim() !== '2' && !/^\d+$/.test(String(flipData.flipBack.code).trim()) && (
+                                  <p className="book-caption-code" style={{ fontSize: '12px', fontWeight: 100, color: '#000000', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {flipData.flipBack.code}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-
-                  {exhibitionArtworks.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                      No artworks catalogued for this exhibition yet.
-                    </div>
-                  )}
-
-                  {/* Pagination for Exhibition Artworks */}
-                  {exhibitionArtworks.length > artworksPerPage && (
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginTop: '3.5rem',
-                      gap: '0.4rem'
-                    }}>
-                      <button
-                        onClick={() => setArtworksPage(prev => Math.max(1, prev - 1))}
-                        disabled={activeArtworksPage === 1}
-                        style={{
-                          background: 'var(--bg-input)',
-                          color: activeArtworksPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                          border: '1px solid var(--border-color)',
-                          padding: '0.55rem 1.1rem',
-                          borderRadius: '6px',
-                          cursor: activeArtworksPage === 1 ? 'not-allowed' : 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        Previous
-                      </button>
-
-                      {Array.from({ length: totalArtworksPages }, (_, i) => i + 1)
-                        .filter(page => page === 1 || page === totalArtworksPages || Math.abs(page - activeArtworksPage) <= 1)
-                        .map((page, index, array) => {
-                          const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                          return (
-                            <React.Fragment key={page}>
-                              {showEllipsis && (
-                                <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
-                              )}
-                              <button
-                                onClick={() => setArtworksPage(page)}
-                                className={`pagination-page-btn ${activeArtworksPage === page ? 'active' : ''}`}
-                                style={{
-                                  background: activeArtworksPage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
-                                  color: activeArtworksPage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
-                                  border: '1px solid var(--border-color)',
-                                  fontWeight: activeArtworksPage === page ? '700' : '500',
-                                  padding: '0.55rem 1.1rem',
-                                  minWidth: '2.6rem',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.85rem'
-                                }}
-                              >
-                                {page}
-                              </button>
-                            </React.Fragment>
-                          );
-                        })}
-
-                      <button
-                        onClick={() => setArtworksPage(prev => Math.min(totalArtworksPages, prev + 1))}
-                        disabled={activeArtworksPage === totalArtworksPages}
-                        style={{
-                          background: 'var(--bg-input)',
-                          color: activeArtworksPage === totalArtworksPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                          border: '1px solid var(--border-color)',
-                          padding: '0.55rem 1.1rem',
-                          borderRadius: '6px',
-                          cursor: activeArtworksPage === totalArtworksPages ? 'not-allowed' : 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+                </div>
+              </div>
             </div>
 
-            {/* 4. GUEST GALLERY SECTION */}
-            {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (
-              <div id="exhibition-sec-video" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
-                <h2 style={{ fontSize: '14px', color: 'black', marginBottom: '1.5rem', fontWeight: 100, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span> Photographs  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 100 }}>
-                    ({selectedExhibition.guest_pics.split(',').filter(Boolean).length} photos)
-                  </span>
-                </h2>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                  gap: '1.5rem'
-                }} className="guest-pics-grid">
-                  {selectedExhibition.guest_pics.split(',').filter(Boolean).map((filename, idx) => {
-                    const guestImgUrl = getApiUrl(`/api/crm/exhibitions/guest-pic/${filename}`);
-                    return (
-                      <div
-                        key={idx}
-                        className="glass-card guest-pic-card"
-                        style={{
-                          borderRadius: '12px',
-                          overflow: 'hidden',
-                          border: '1px solid var(--border-color)',
-                          height: '240px',
-                          background: '#111',
-                          cursor: 'zoom-in',
-                          transition: 'all 0.3s'
-                        }}
-                        onClick={() => window.open(guestImgUrl, '_blank')}
-                      >
-                        <img
-                          src={guestImgUrl}
-                          alt={`Guest ${idx + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                          className="guest-grid-image"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* Autoplay & Navigation Controls below the book */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem',
+              marginTop: '0.5rem',
+              marginBottom: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <button
+                  onClick={goPrevPage}
+                  className="btn-secondary"
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    fontSize: '0.8rem',
+                    minWidth: '80px',
+                    borderRadius: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ← Prev
+                </button>
 
-            {/* 5. VIDEO SECTION */}
-            {selectedExhibition.video_url && (
-              <div id="exhibition-sec-video-player" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem', width: '100%' }}>
-                <h2 style={{ fontSize: '22px', color: 'black', marginBottom: '2rem', fontWeight: 700 }}>
-                  Video
-                </h2>
-                <div style={{
-                  width: '100%',
-                  maxWidth: '900px',
-                  margin: '0 auto',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-premium), 0 10px 30px rgba(0,0,0,0.5)',
-                  backgroundColor: '#000',
-                  lineHeight: 0
-                }}>
-                  <video
-                    src={selectedExhibition.video_url.startsWith('http') ? selectedExhibition.video_url : getApiUrl(`/api/crm/exhibitions/video/${selectedExhibition.video_url}`)}
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    controls
-                  />
-                </div>
+                <button
+                  onClick={() => setIsAutoplayPaused(prev => !prev)}
+                  className="btn-secondary"
+                  style={{
+                    padding: '0.4rem 1.25rem',
+                    fontSize: '0.8rem',
+                    borderRadius: '20px',
+                    borderColor: isAutoplayPaused ? 'rgba(212, 175, 55, 0.4)' : 'rgba(255,255,255,0.1)',
+                    color: isAutoplayPaused ? 'var(--accent-gold)' : 'var(--text-secondary)'
+                  }}
+                >
+                  {isAutoplayPaused ? '▶ Play Autoplay' : '⏸ Pause Autoplay'}
+                </button>
+
+                <button
+                  onClick={goNextPage}
+                  className="btn-secondary"
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    fontSize: '0.8rem',
+                    minWidth: '80px',
+                    borderRadius: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Next →
+                </button>
               </div>
-            )}
-          </>
+
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Pages {bookIndex + 1} - {Math.min(bookIndex + 2, exhibitionArtworks.length)} of {exhibitionArtworks.length} {isAutoplayPaused ? '(Autoplay Paused)' : '(Auto-turning every 4 seconds)'}
+              </span>
+            </div>
+
+            {/* PDF Catalog compilation button (MOVED BELOW BOOK) */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+              <button
+                className="btn-primary"
+                style={{
+                  padding: '0.8rem 1.75rem',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  borderRadius: '8px',
+                  background: 'var(--accent-gold)',
+                  border: 'none',
+                  color: '#000',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 15px rgba(212, 175, 55, 0.2)',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                disabled={downloadingCatalogId === selectedExhibition.id}
+                onClick={() => handleDownloadCatalog(selectedExhibition)}
+              >
+                {downloadingCatalogId === selectedExhibition.id ? <Loader className="animate-spin" size={16} /> : <Download size={16} />}
+                {downloadingCatalogId === selectedExhibition.id ? 'Compiling PDF...' : 'Download PDF Catalog'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 3. IMAGES SECTION (ARTWORKS GRID) */}
+        <div id="exhibition-sec-images" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
+          <h2 style={{ fontSize: '14px', color: '#fff', marginBottom: '1.5rem', fontWeight: 100 }}>
+            Artworks ({exhibitionArtworks.length})
+          </h2>
+
+          {loadingArtworks ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: 'var(--accent-gold)', fontSize: '1.1rem' }}>
+              Loading exhibition artworks...
+            </div>
+          ) : (
+            <>
+              <div className="exhibit-artworks-grid">
+                {currentArtworks.map((art) => (
+                  <div
+                    key={art.id}
+                    className="glass-card artwork-card"
+                    onClick={() => viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks)}
+                    style={{
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      border: '1px solid var(--border-color)',
+                      transition: 'transform 0.3s ease, border-color 0.3s ease',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {/* Image container with Hover Overlay */}
+                    <div style={{ height: '260px', overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                      <img
+                        src={getArtworkImage(art)}
+                        alt={art.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                        className="art-grid-image"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                        }}
+                      />
+                      {/* Hover Overlay Button to View details */}
+                      <div className="art-hover-overlay" style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 0,
+                        transition: 'opacity 0.3s ease'
+                      }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); viewArtworkDetail && viewArtworkDetail(art.id, exhibitionArtworks); }}
+                          className="btn-primary"
+                          style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Artwork details text */}
+                    <div style={{
+                      padding: '1.25rem',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      fontFamily: 'Montserrat, sans-serif'
+                    }}>
+                      {/* Heading: Artist Name (Thin font, black/text-primary) */}
+                      <h3 className="artist-name" style={{
+                        fontSize: '14px',
+                        color: 'var(--text-primary)',
+                        margin: '0 0 0.55rem 0',
+                        fontWeight: 100,
+                        fontFamily: 'Montserrat, sans-serif',
+                        lineHeight: '1.3',
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase'
+                      }}>
+                        {art.artist_name || 'Unknown Artist'}
+                      </h3>
+
+                      {/* Medium (12px) */}
+                      <p style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        margin: '0 0 0.45rem 0',
+                        fontFamily: 'Montserrat, sans-serif',
+                        lineHeight: '1.4'
+                      }}>
+                        {art.medium_name || 'Oil on Canvas'}
+                      </p>
+
+                      {/* Dimensions (12px) */}
+                      {(() => {
+                        const dims = renderDimensions(art.width, art.length);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.45rem' }}>
+                            {dims.cmStr && (
+                              <p style={{
+                                fontSize: '12px',
+                                color: 'var(--text-secondary)',
+                                margin: 0,
+                                fontFamily: 'Montserrat, sans-serif',
+                                lineHeight: '1.4'
+                              }}>
+                                {dims.cmStr}
+                              </p>
+                            )}
+                            {dims.inStr && (
+                              <p style={{
+                                fontSize: '12px',
+                                color: 'var(--text-secondary)',
+                                margin: 0,
+                                fontFamily: 'Montserrat, sans-serif',
+                                lineHeight: '1.4'
+                              }}>
+                                {dims.inStr}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Code / Title (12px - Placed at the bottom, matches text above) */}
+                      <p style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        margin: '0 0 0.85rem 0',
+                        fontFamily: 'Montserrat, sans-serif',
+                        lineHeight: '1.4',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {art.title}
+                      </p>
+
+                      {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 'auto',
+                        borderTop: '1px solid var(--border-color)',
+                        paddingTop: '0.85rem'
+                      }}>
+                        {art.status === 'Available' || art.status === 'not_sold' ? (
+                          <>
+                            <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
+                              Inquiry
+                            </span>
+                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                              Available
+                            </span>
+                          </>
+                        ) : (
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                            Sold
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {exhibitionArtworks.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  No artworks catalogued for this exhibition yet.
+                </div>
+              )}
+
+              {/* Pagination for Exhibition Artworks */}
+              {exhibitionArtworks.length > artworksPerPage && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: '3.5rem',
+                  gap: '0.4rem'
+                }}>
+                  <button
+                    onClick={() => setArtworksPage(prev => Math.max(1, prev - 1))}
+                    disabled={activeArtworksPage === 1}
+                    style={{
+                      background: 'var(--bg-input)',
+                      color: activeArtworksPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                      padding: '0.55rem 1.1rem',
+                      borderRadius: '6px',
+                      cursor: activeArtworksPage === 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: totalArtworksPages }, (_, i) => i + 1)
+                    .filter(page => page === 1 || page === totalArtworksPages || Math.abs(page - activeArtworksPage) <= 1)
+                    .map((page, index, array) => {
+                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                      return (
+                        <React.Fragment key={page}>
+                          {showEllipsis && (
+                            <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
+                          )}
+                          <button
+                            onClick={() => setArtworksPage(page)}
+                            className={`pagination-page-btn ${activeArtworksPage === page ? 'active' : ''}`}
+                            style={{
+                              background: activeArtworksPage === page ? 'var(--accent-gold, #cfa15c)' : 'var(--bg-input)',
+                              color: activeArtworksPage === page ? 'var(--bg-dark)' : 'var(--text-primary)',
+                              border: '1px solid var(--border-color)',
+                              fontWeight: activeArtworksPage === page ? '700' : '500',
+                              padding: '0.55rem 1.1rem',
+                              minWidth: '2.6rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            {page}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+
+                  <button
+                    onClick={() => setArtworksPage(prev => Math.min(totalArtworksPages, prev + 1))}
+                    disabled={activeArtworksPage === totalArtworksPages}
+                    style={{
+                      background: 'var(--bg-input)',
+                      color: activeArtworksPage === totalArtworksPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                      padding: '0.55rem 1.1rem',
+                      borderRadius: '6px',
+                      cursor: activeArtworksPage === totalArtworksPages ? 'not-allowed' : 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* 4. GUEST GALLERY SECTION */}
+        {selectedExhibition.guest_pics && selectedExhibition.guest_pics.split(',').filter(Boolean).length > 0 && (
+          <div id="exhibition-sec-video" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem' }}>
+            <h2 style={{ fontSize: '14px', color: 'black', marginBottom: '1.5rem', fontWeight: 100, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span> Photographs  </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 100 }}>
+                ({selectedExhibition.guest_pics.split(',').filter(Boolean).length} photos)
+              </span>
+            </h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+              gap: '1.5rem'
+            }} className="guest-pics-grid">
+              {selectedExhibition.guest_pics.split(',').filter(Boolean).map((filename, idx) => {
+                const guestImgUrl = getApiUrl(`/api/crm/exhibitions/guest-pic/${filename}`);
+                return (
+                  <div
+                    key={idx}
+                    className="glass-card guest-pic-card"
+                    style={{
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color)',
+                      height: '240px',
+                      background: '#111',
+                      cursor: 'zoom-in',
+                      transition: 'all 0.3s'
+                    }}
+                    onClick={() => window.open(guestImgUrl, '_blank')}
+                  >
+                    <img
+                      src={guestImgUrl}
+                      alt={`Guest ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                      className="guest-grid-image"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 5. VIDEO SECTION */}
+        {selectedExhibition.video_url && (
+          <div id="exhibition-sec-video-player" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-color)', paddingTop: '4rem', width: '100%' }}>
+            <h2 style={{ fontSize: '22px', color: 'black', marginBottom: '2rem', fontWeight: 700 }}>
+              Video
+            </h2>
+            <div style={{
+              width: '100%',
+              maxWidth: '900px',
+              margin: '0 auto',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-premium), 0 10px 30px rgba(0,0,0,0.5)',
+              backgroundColor: '#000',
+              lineHeight: 0
+            }}>
+              <video
+                src={selectedExhibition.video_url.startsWith('http') ? selectedExhibition.video_url : getApiUrl(`/api/crm/exhibitions/video/${selectedExhibition.video_url}`)}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls
+              />
+            </div>
+          </div>
         )}
 
         <style>{`
@@ -1793,14 +1833,17 @@ export default function ExhibitionsSection({
           }
           .exhibition-sub-nav-horizontal {
             position: sticky;
-            top: 95px; /* Sit right below the main sticky navbar header */
-            z-index: 99;
-            background: transparent;
-            padding: 0.75rem 0;
+            top: 75px;
+            z-index: 90;
+            -webkit-backdrop-filter: blur(14px);
+            padding: 0.6rem 0.5rem;
             display: flex;
-            gap: 1.5rem;
-            margin-bottom: 0.75rem;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
             width: 100%;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             transition: all 0.3s;
           }
           .exhibition-nav-link {
@@ -1967,20 +2010,24 @@ export default function ExhibitionsSection({
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 2.5rem;
+            width: 100%;
           }
           @media (max-width: 1200px) {
             .exhibit-artworks-grid {
               grid-template-columns: repeat(3, 1fr);
+              gap: 2rem;
             }
           }
           @media (max-width: 992px) {
             .exhibit-artworks-grid {
               grid-template-columns: repeat(2, 1fr);
+              gap: 1.5rem;
             }
           }
-          @media (max-width: 768px) {
+          @media (max-width: 480px) {
             .exhibit-artworks-grid {
               grid-template-columns: 1fr;
+              gap: 1.25rem;
             }
           }
           
@@ -2001,16 +2048,76 @@ export default function ExhibitionsSection({
             opacity: 1 !important;
           }
 
+          /* Catalogue Book Layout & Sidebar */
+          .catalog-book-row {
+            display: flex;
+            gap: 2.5rem;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 2rem;
+          }
+
+          .catalog-sidebar-thumbnails {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 540px;
+            overflow-y: auto;
+            padding-right: 0.75rem;
+            width: 86px;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+          }
+
+          .catalog-thumb-item {
+            width: 74px;
+            height: 58px;
+          }
+
+          @media (max-width: 992px) {
+            .catalog-book-row {
+              flex-direction: column;
+              gap: 1.5rem;
+            }
+            .catalog-sidebar-thumbnails {
+              flex-direction: row;
+              width: 100%;
+              max-height: none;
+              height: auto;
+              border-right: none;
+              border-bottom: 1px solid var(--border-color);
+              padding: 0 0 0.75rem 0;
+              overflow-x: auto;
+              overflow-y: hidden;
+            }
+            .catalog-thumb-item {
+              width: 65px;
+              height: 50px;
+            }
+            .exhibit-grid-card {
+              grid-template-columns: 1fr !important;
+              min-height: auto !important;
+            }
+            .exhibit-card-img-container {
+              height: clamp(240px, 45vw, 360px) !important;
+              border-right: none !important;
+              border-bottom: 1px solid var(--border-color) !important;
+            }
+          }
+
           /*  3D Virtual Catalog Book Slider Styles */
           .book-wrapper {
             perspective: 2000px;
             display: flex;
             justify-content: center;
-            margin: 3rem 0;
+            margin: 1.5rem 0;
             width: 100%;
+            max-width: 1060px;
           }
           .book-cover {
-            background: linear-gradient(to right, #1c140d 0%, #2a1f14 10%, #352719 46%, #1c140d 49%, #120d08 50%, #1c140d 51%, #352719 54%, #2a1f14 90%, #1c140d 100%); /* realistic textured leather backing with gold foil borders */
+            background: linear-gradient(to right, #1c140d 0%, #2a1f14 10%, #352719 46%, #1c140d 49%, #120d08 50%, #1c140d 51%, #352719 54%, #2a1f14 90%, #1c140d 100%);
             padding: 10px 14px 14px 14px;
             border-radius: 14px;
             box-shadow: 
@@ -2022,7 +2129,7 @@ export default function ExhibitionsSection({
             justify-content: center;
             align-items: center;
             width: 100%;
-            max-width: 900px;
+            max-width: 100%;
             box-sizing: border-box;
           }
           .book-cover::before {
@@ -2035,11 +2142,10 @@ export default function ExhibitionsSection({
           }
           .book-body {
             width: 100%;
-            height: 480px;
+            height: 560px;
             background: #faf6ee;
             border-radius: 4px 10px 10px 4px;
             box-shadow: 
-              /* 3D stacked paper edges */
               -3px 0 0 -1px #d3c7b2, -3px 0 0 0 #fcfcfc,
               -6px 0 0 -2px #d3c7b2, -6px 0 0 -1px #fcfcfc,
               -9px 0 0 -3px #c5b69c, -9px 0 0 -2px #fcfcfc,
@@ -2068,18 +2174,35 @@ export default function ExhibitionsSection({
             z-index: 10;
             box-shadow: inset 0 0 8px rgba(0,0,0,0.15);
           }
-          .book-page-half {
-            flex: 1;
-            height: 100%;
+          /* Page Halves & 3D Turning Faces - 100% Unified Base Layout */
+          .book-page-half,
+          .book-flipping-face {
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 2.5rem;
-            box-sizing: border-box;
+            justify-content: flex-start;
+            padding: 1.25rem 1.1rem 0.75rem 1.1rem;
             overflow: hidden;
             position: relative;
           }
+
+          .book-page-half {
+            flex: 1;
+            height: 100%;
+          }
+
+          .book-flipping-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            background: #faf6ee;
+          }
+
           /* Curled page bottom corner shadow effect */
           .book-page-half::after {
             content: '';
@@ -2110,46 +2233,68 @@ export default function ExhibitionsSection({
             transform: rotate(1.5deg);
             border-bottom-left-radius: 40px 12px;
           }
+
+          .book-flipping-face.front {
+            transform: rotateY(0deg);
+            background: linear-gradient(to left, #faf6ee 85%, #f2ebdd 100%) !important;
+            border-left: 1px solid rgba(0,0,0,0.08);
+          }
+          .book-flipping-face.back {
+            transform: rotateY(180deg);
+            background: linear-gradient(to right, #faf6ee 85%, #f2ebdd 100%) !important;
+            border-right: 1px solid rgba(0,0,0,0.08);
+          }
+
           .book-img-container {
             width: 100%;
-            height: 280px;
+            height: 460px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 8px;
+            border-radius: 2px;
             overflow: hidden;
-            background: rgba(0,0,0,0.03);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            background: transparent;
           }
           .book-img-container img {
             max-width: 100%;
             max-height: 100%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
+            display: block;
           }
           .book-caption {
-            margin-top: 1.5rem;
+            margin-top: 0.45rem;
             text-align: center;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.12rem;
           }
-          .book-caption-title {
-            font-size: 14px;
-            color: #fff;
-            margin: 0 0 0.25rem 0;
-            font-weight: 100;
+          .book-caption-artist {
+            font-size: 12px !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            opacity: 1 !important;
+            margin: 0;
+            font-weight: 400 !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 100%;
+            line-height: 1.2;
+            letter-spacing: 0.04em;
           }
-          .book-caption-meta {
-            font-size: 12px;
-            color: var(--accent-gold);
-            margin: 0 0 0.25rem 0;
-            font-weight: 100;
-          }
-          .book-caption-dims {
-            font-size: 0.8rem;
-            color: var(--text-muted);
+          .book-caption-code {
+            font-size: 12px !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            opacity: 1 !important;
             margin: 0;
+            font-weight: 400 !important;
+            line-height: 1.2;
+            letter-spacing: 0.04em;
           }
 
           /* 3D Flipping Page classes */
@@ -2234,29 +2379,6 @@ export default function ExhibitionsSection({
               z-index: 5;
             }
           }
-          .book-flipping-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            box-sizing: border-box;
-            padding: 2.5rem;
-            background: #faf6ee;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-          }
-          .book-flipping-face.front {
-            transform: rotateY(0deg);
-            background: linear-gradient(to left, #faf6ee 85%, #f2ebdd 100%) !important;
-            border-left: 1px solid rgba(0,0,0,0.08);
-          }
-          .book-flipping-face.back {
-            transform: rotateY(180deg);
-            background: linear-gradient(to right, #faf6ee 85%, #f2ebdd 100%) !important;
-            border-right: 1px solid rgba(0,0,0,0.08);
-          }
 
           /* Theme adjustments */
           .theme-dark .book-body {
@@ -2287,6 +2409,101 @@ export default function ExhibitionsSection({
             background: linear-gradient(to right, #1e222b 85%, #15181e 100%) !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
           }
+
+          .theme-dark .book-caption-artist {
+            color: #f0f0f0 !important;
+            font-weight: 100 !important;
+            font-size: 12px !important;
+          }
+          .theme-dark .book-caption-code {
+            color: #a5abb8 !important;
+            font-weight: 100 !important;
+            font-size: 12px !important;
+          }
+
+          /* RESPONSIVE MEDIA QUERIES (Bottom-most to guarantee highest priority) */
+          @media (max-width: 992px) {
+            .book-body {
+              height: 330px !important;
+            }
+            .book-img-container {
+              height: 220px !important;
+            }
+            .book-page-half,
+            .book-flipping-face {
+              padding: 1rem 0.8rem 0.5rem 0.8rem !important;
+            }
+            .book-caption {
+              margin-top: 0.45rem !important;
+            }
+            .book-caption-title,
+            .book-caption-meta {
+              font-size: 8px !important;
+              font-weight: 100 !important;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .book-cover {
+              padding: 5px 6px !important;
+              border-radius: 10px !important;
+            }
+            .book-body {
+              height: 240px !important;
+              border-radius: 4px 8px 8px 4px !important;
+            }
+            .book-page-half,
+            .book-flipping-face {
+              padding: 0.7rem 0.55rem 0.35rem 0.55rem !important;
+            }
+            .book-img-container {
+              height: 155px !important;
+            }
+            .book-caption {
+              margin-top: 0.35rem !important;
+              gap: 0.08rem !important;
+            }
+            .book-caption-title,
+            .book-caption-meta {
+              font-size: 8px !important;
+              font-weight: 100 !important;
+              line-height: 1.15 !important;
+            }
+            .exhibition-sub-nav-horizontal {
+              gap: 0.5rem;
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+              padding: 0.5rem 0.35rem;
+              top: 60px;
+            }
+            .exhibition-nav-link {
+              padding: 0.35rem 0.6rem;
+              font-size: 11px;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .book-body {
+              height: 200px !important;
+            }
+            .book-page-half,
+            .book-flipping-face {
+              padding: 0.5rem 0.4rem 0.25rem 0.4rem !important;
+            }
+            .book-img-container {
+              height: 125px !important;
+            }
+            .book-caption {
+              margin-top: 0.25rem !important;
+              gap: 0.05rem !important;
+            }
+            .book-caption-title,
+            .book-caption-meta {
+              font-size: 7.5px !important;
+              font-weight: 100 !important;
+              line-height: 1.1 !important;
+            }
+          }
           .theme-light .book-body,
           .theme-light .book-flipping-face {
             background: #faf6ee !important;
@@ -2302,19 +2519,6 @@ export default function ExhibitionsSection({
           }
           .theme-light .book-caption-title {
             color: #111 !important;
-          }
-
-          /* Responsive layout for book */
-          @media (max-width: 768px) {
-            .book-body {
-              height: 380px !important;
-            }
-            .book-img-container {
-              height: 180px !important;
-            }
-            .book-caption-title {
-              font-size: 0.95rem !important;
-            }
           }
         `}</style>
 
@@ -2343,11 +2547,11 @@ export default function ExhibitionsSection({
               onClick={(e) => e.stopPropagation()}
               className="glass-card artist-bio-modal-card"
               style={{
-                width: '100%',
-                maxWidth: '1100px',
-                height: '75vh',
-                minHeight: '540px',
-                maxHeight: '85vh',
+                width: '94vw',
+                maxWidth: '1280px',
+                height: '84vh',
+                minHeight: '560px',
+                maxHeight: '90vh',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: '16px',
@@ -2521,7 +2725,7 @@ export default function ExhibitionsSection({
                     </div>
                   )}
 
-                  {/* Right Side: Work Slideshow */}
+                  {/* Right Side: Work Slideshow (No black strip, pure full painting) */}
                   <div className="bio-slides-column">
                     {selectedBioArtist.artworks && selectedBioArtist.artworks.length > 0 ? (
                       <div>
@@ -2533,22 +2737,6 @@ export default function ExhibitionsSection({
                             className="bio-slideshow-img"
                             key={currentBioSlideIndex}
                           />
-                          <div className="bio-slideshow-info">
-                            <span>{selectedBioArtist.artworks[currentBioSlideIndex].title}</span>
-                            <span>
-                              {selectedBioArtist.artworks[currentBioSlideIndex].status !== 'Available' && selectedBioArtist.artworks[currentBioSlideIndex].status !== 'not_sold' ? (
-                                <span style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444' }}>
-                                  Sold
-                                </span>
-                              ) : !guestSession ? (
-                                <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)' }}>
-                                  Inquiry
-                                </span>
-                              ) : (
-                                websiteSettings.hide_prices ? 'Price on Request' : formatPrice(selectedBioArtist.artworks[currentBioSlideIndex].price, currency, exchangeRates)
-                              )}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     ) : (
@@ -2764,12 +2952,14 @@ export default function ExhibitionsSection({
           .bio-slideshow-frame {
             position: relative;
             width: 100%;
-            height: 250px;
-            background: #111;
+            height: 380px;
+            min-height: 340px;
+            background: #0c0d10;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 1px solid var(--border-color);
+            border-radius: 12px;
             overflow: hidden;
           }
           @keyframes bioSlideIn {
@@ -2779,35 +2969,9 @@ export default function ExhibitionsSection({
           .bio-slideshow-img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            background-color: #000000;
             animation: bioSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          }
-          .bio-slideshow-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
-            padding: 0.5rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-          }
-          .bio-slideshow-info span:first-child {
-            font-size: 12px;
-            color: #ffffff;
-            font-weight: 100;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 70%;
-          }
-          .bio-slideshow-info span:last-child {
-            font-size: 12px;
-            color: var(--accent-gold);
-            font-weight: 100;
           }
           @media (max-width: 768px) {
             .bio-modal-layout {
@@ -2833,17 +2997,17 @@ export default function ExhibitionsSection({
   }
 
   return (
-    <div className="page-content exhibitions-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
+    <div className="page-content exhibitions-section-wrapper" style={{ animation: 'fadeIn 0.5s ease', paddingTop: '0.25rem' }}>
 
       {/* Horizontal Tabs selector */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        gap: '1.25rem',
-        marginBottom: '3rem',
+        gap: '1.5rem',
+        marginBottom: '1.25rem',
         borderBottom: '1px solid var(--border-color)',
-        paddingBottom: '1.5rem',
-        paddingTop: '2rem'
+        paddingBottom: '0.75rem',
+        paddingTop: '0.2rem'
       }}>
         {['previous', 'current', 'upcoming'].map(tab => (
           <button
@@ -2851,19 +3015,19 @@ export default function ExhibitionsSection({
             onClick={() => setActiveTab(tab)}
             className={`nav-btn ${activeTab === tab ? 'active' : ''}`}
             style={{
-              padding: '0.65rem 2rem',
+              padding: '0.5rem 1.5rem',
               fontSize: '12px',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              borderRadius: 'none',
-              border: activeTab === tab ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-              background: activeTab === tab ? 'linear-gradient(135deg, rgba(218, 217, 214, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%)' : 'rgba(255, 255, 255, 0.02)',
+              letterSpacing: '0.08em',
+              border: 'none',
+              outline: 'none',
+              background: activeTab === tab ? 'linear-gradient(135deg, rgba(218, 217, 214, 0.15) 0%, rgba(212, 175, 55, 0.08) 100%)' : 'transparent',
               color: activeTab === tab ? 'var(--accent-gold)' : 'var(--text-secondary)',
               cursor: 'pointer',
-              fontWeight: 400,
-              boxShadow: activeTab === tab ? '0 4px 15px rgba(212, 175, 55, 0.15)' : 'none',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              border: 'none'
+              fontWeight: activeTab === tab ? 500 : 300,
+              boxShadow: 'none',
+              borderRadius: '4px',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
             {tab} Shows
@@ -2871,7 +3035,7 @@ export default function ExhibitionsSection({
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         <div className="exhibits-cards-grid">
           {currentExhibitions.map((ex) => {
@@ -2894,8 +3058,8 @@ export default function ExhibitionsSection({
                 onClick={() => setSelectedExhibition(ex)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '5.8fr 4.2fr',
-                  height: '520px',
+                  gridTemplateColumns: '1.3fr 1fr',
+                  height: '420px',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   border: '1px solid var(--border-color)',
@@ -2905,6 +3069,7 @@ export default function ExhibitionsSection({
               >
                 <div className="exhibit-card-img-container" style={{
                   height: '100%',
+                  width: '100%',
                   overflow: 'hidden',
                   backgroundColor: '#0c0d10',
                   borderRight: '1px solid var(--border-color)',
@@ -2918,40 +3083,14 @@ export default function ExhibitionsSection({
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
+                      objectPosition: 'center 18%',
+                      display: 'block',
                       transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                   />
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    fontSize: '0.75rem',
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '30px',
-                    fontWeight: 600,
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    border: `1px solid ${status === 'current' ? 'rgba(16, 185, 129, 0.3)' : status === 'upcoming' ? 'white' : 'rgb  a(255,255,255,255)'}`,
-                    ...labelStyles[status]
-                  }}>
-                    <span
-                      className={status === 'current' ? 'pulse-green-dot' : ''}
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: status === 'current' ? 'var(--accent-green)' : status === 'upcoming' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                        display: 'inline-block'
-                      }}
-                    />
-                    {labelTexts[status]}
-                  </div>
                 </div>
                 <div className="exhibit-card-content" style={{
-                  padding: '1.5rem',
+                  padding: '1.75rem 2rem',
                   display: 'flex',
                   flexDirection: 'column',
                   height: '100%',
@@ -2959,11 +3098,13 @@ export default function ExhibitionsSection({
                 }}>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: 'auto 0' }}>
                     <h2 className="exhibit-card-title" style={{
-                      fontSize: '1.25rem',
+                      fontSize: '14px',
                       fontWeight: 100,
+                      fontFamily: 'Montserrat, sans-serif',
                       color: 'var(--text-primary)',
                       margin: '0 0 0.4rem 0',
                       lineHeight: '1.4',
+                      letterSpacing: '0.02em',
                       transition: 'color 0.3s ease'
                     }}>{ex.document_name}</h2>
                     <p className="exhibit-card-date" style={{
@@ -2976,7 +3117,6 @@ export default function ExhibitionsSection({
                       margin: '0 0 0.75rem 0',
                       letterSpacing: '0.02em'
                     }}>
-                      <Calendar size={13} style={{ flexShrink: 0 }} />
                       <span>{formatDate(ex.active_date)} - {formatDate(ex.exp_date) || 'Ongoing'}</span>
                     </p>
                     <p className="exhibit-card-desc" style={{
@@ -3039,7 +3179,7 @@ export default function ExhibitionsSection({
                       }}
                     >
                       {downloadingCatalogId === ex.id ? <Loader className="animate-spin" size={14} /> : <Download size={14} />}
-                      {downloadingCatalogId === ex.id ? 'Loading' : 'Catalog'}
+                      {downloadingCatalogId === ex.id ? 'Loading' : 'Catalogue'}
                     </button>
                   </div>
                 </div>

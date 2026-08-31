@@ -96,6 +96,8 @@ export default function CRMListView({ module }) {
     let path = `/api/${getModulePath(module)}`;
     if (['exhibitions', 'framerheaven', 'catalogues', 'flashimages', 'videos'].includes(module)) {
       path = `/api/crm/${module}`;
+    } else if (module === 'collections') {
+      path = `/api/artworks?limit=10000`;
     }
 
     fetch(getApiUrl(path))

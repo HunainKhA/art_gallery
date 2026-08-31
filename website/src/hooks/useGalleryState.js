@@ -13,7 +13,8 @@ import { fetchExchangeRates, FALLBACK_RATES } from '../services/currency';
 export default function useGalleryState() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    return hash || 'home';
+    if (hash) return hash;
+    return sessionStorage.getItem('activeTab') || 'home';
   }); // home, about, collections, artists, exhibitions, catalogues, framer_heaven, videos, contact, shop, detail
   const [exhibitionFilter, setExhibitionFilter] = useState('previous');
   const [framerHeavenTab, setFramerHeavenTab] = useState('Product');
@@ -26,8 +27,17 @@ export default function useGalleryState() {
     if (!saved) return null;
     return isNaN(saved) ? saved : parseInt(saved, 10);
   });
-  const [selectedArtist, setSelectedArtist] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedArtist, setSelectedArtist] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('selectedArtist');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    return sessionStorage.getItem('selectedCategory') || null;
+  });
   const [detailViewArtworksScope, setDetailViewArtworksScope] = useState(() => {
     try {
       const saved = sessionStorage.getItem('detailViewArtworksScope');
@@ -113,19 +123,15 @@ export default function useGalleryState() {
     }
   }, [activeTab]);
 
-  // Validate guest session on mount
+  // Keep guest session persisted across page refreshes (only expire if time has passed)
   useEffect(() => {
-    if (guestSession && guestSession.token) {
-      validateGuestToken(guestSession.token)
-        .then(res => {
-          if (!res.valid) {
-            handleGuestLogout();
-          }
-        })
-        .catch(err => {
-          console.error("Guest session validation failed:", err);
+    if (guestSession) {
+      if (guestSession.expiry) {
+        const isExpired = new Date(guestSession.expiry) <= new Date();
+        if (isExpired) {
           handleGuestLogout();
-        });
+        }
+      }
     }
   }, []);
 
@@ -139,33 +145,37 @@ export default function useGalleryState() {
     localStorage.removeItem('mainframe_guest_session');
   };
 
-  // Poll settings and flash images every 2 seconds for real-time updates from the dashboard
+  // Refresh settings and flash images periodically in background (every 60 seconds)
   useEffect(() => {
     const interval = setInterval(() => {
-      // 1. Poll settings
+      // 1. Refresh settings
       fetchWebsiteSettings()
         .then(data => {
-          setWebsiteSettings(prev => {
-            if (prev.hide_prices !== data.hide_prices || prev.hide_add_to_cart !== data.hide_add_to_cart) {
-              return data;
-            }
-            return prev;
-          });
+          if (data) {
+            setWebsiteSettings(prev => {
+              if (prev.hide_prices !== data.hide_prices || prev.hide_add_to_cart !== data.hide_add_to_cart) {
+                return data;
+              }
+              return prev;
+            });
+          }
         })
-        .catch(err => console.error("Error polling settings:", err));
+        .catch(err => console.error("Error refreshing settings:", err));
 
-      // 2. Poll flash images
+      // 2. Refresh flash images
       fetchFlashImages()
         .then(data => {
-          setFlashImages(prev => {
-            if (JSON.stringify(prev) !== JSON.stringify(data)) {
-              return data;
-            }
-            return prev;
-          });
+          if (data) {
+            setFlashImages(prev => {
+              if (JSON.stringify(prev) !== JSON.stringify(data)) {
+                return data;
+              }
+              return prev;
+            });
+          }
         })
-        .catch(err => console.error("Error polling flash images:", err));
-    }, 2000);
+        .catch(err => console.error("Error refreshing flash images:", err));
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -194,12 +204,37 @@ export default function useGalleryState() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // 4. Hash state sync
+  // 4. Hash state and sub-view persistence sync
   useEffect(() => {
+    sessionStorage.setItem('activeTab', activeTab);
     if (window.location.hash.replace('#', '') !== activeTab) {
       window.location.hash = activeTab;
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedArtist) {
+      sessionStorage.setItem('selectedArtist', JSON.stringify(selectedArtist));
+    } else {
+      sessionStorage.removeItem('selectedArtist');
+    }
+  }, [selectedArtist]);
+
+  useEffect(() => {
+    if (selectedCategory) {
+      sessionStorage.setItem('selectedCategory', selectedCategory);
+    } else {
+      sessionStorage.removeItem('selectedCategory');
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (selectedExhibition) {
+      sessionStorage.setItem('selectedExhibition', JSON.stringify(selectedExhibition));
+    } else {
+      sessionStorage.removeItem('selectedExhibition');
+    }
+  }, [selectedExhibition]);
 
   // Clear preSearchTab if the user manually switches tabs away from collections/detail/shop
   useEffect(() => {

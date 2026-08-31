@@ -1,39 +1,24 @@
 import React, { useState, useEffect } from 'react';
-
 import { fetchWebsiteSettings, getApiUrl } from '../services/api';
 
 export default function AboutSection() {
-
   const [settings, setSettings] = useState(null);
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-
     fetchWebsiteSettings()
-
       .then(data => {
-
         setSettings(data);
-
         setLoading(false);
-
       })
-
       .catch(err => {
-
         console.error("Error loading settings:", err);
-
         setLoading(false);
-
       });
-
   }, []);
 
   if (loading) {
-
     return (
-
       <div
         style={{
           display: 'flex',
@@ -48,7 +33,6 @@ export default function AboutSection() {
           fontFamily: 'Montserrat, sans-serif'
         }}
       >
-
         <div
           className="spin-animation"
           style={{
@@ -60,7 +44,6 @@ export default function AboutSection() {
             animation: 'spin 1s linear infinite'
           }}
         />
-
         <span
           style={{
             color: 'var(--text-primary)',
@@ -70,33 +53,20 @@ export default function AboutSection() {
         >
           Loading About Us...
         </span>
-
       </div>
-
     );
-
   }
 
-  const title = settings?.about_title || "About Mainframe";
-
-  const subtitle = settings?.about_subtitle || "A premier gallery for contemporary art collections and bespoke framing craftsmanship.";
-
   const storyTitle = settings?.about_story_title || "Our Story";
-
   const storyContent = settings?.about_story_content || "Established with a mission to showcase fine art and foster dialogues between contemporary artists and curators, Mainframe The Gallery has stood as a hallmark of creativity in Karachi. We represent master painters, sketchers, and sculptors, and display collections ranging from historic calligraphy to avant-garde abstract works.";
 
   const framingTitle = settings?.about_framing_title || "Our Journey";
-
   const framingContent = settings?.about_framing_content || "Since inception, Mainframe has grown from a humble passion project into a premier visual arts gallery. Over the years, we have hosted numerous exhibitions, supported emerging talents, and crafted a signature curation space that bridges local mastery with global art lovers.";
 
-  /* Vision & Mission Content */
-
   const visionTitle = settings?.about_vision_title || "Our Vision";
-
   const visionContent = settings?.about_vision_content || "To connect individuals with exquisite art and foster an inclusive ecosystem that inspires creativity, supports local artists, and brings world-class visual culture into daily life.";
 
   const missionTitle = settings?.about_mission_title || "Our Mission";
-
   const missionContent = settings?.about_mission_content || "To represent creative talent, preserve heritage through custom conservation-grade framing, and provide a premium, curation-first gallery space for art curators and collectors.";
 
   const storyImageUrl = settings?.about_story_image
@@ -116,366 +86,127 @@ export default function AboutSection() {
     : null;
 
   return (
-
-    <div
-      style={{
-        animation: 'fadeIn 0.5s ease',
-        width: '100%',
-        minHeight: '100vh',
-        backgroundColor: 'var(--background-color)',
-        color: 'var(--text-primary)',
-        fontFamily: 'Montserrat, sans-serif'
-      }}
-    >
-
+    <div className="about-page-wrapper">
       {/* Hero Banner Section */}
-
       {storyImageUrl && (
-
-        <div
-          className="about-hero-container"
-          style={{
-            backgroundImage: `url(${storyImageUrl})`
-          }}
-        />
-
+        <div className="about-hero-container">
+          <img
+            src={storyImageUrl}
+            alt={storyTitle}
+            className="about-hero-img"
+          />
+        </div>
       )}
 
       {/* Section 1: Our Story */}
-
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          padding: '4rem 0',
-          borderBottom: '1px solid var(--border-color)',
-          color: 'var(--text-primary)',
-          fontFamily: 'Montserrat, sans-serif'
-        }}
-      >
-
-        <div
-          style={{
-            width: '100%',
-            padding: '0 2rem',
-            boxSizing: 'border-box'
-          }}
-        >
-
-          <h2
-            className="about-story-heading"
-            style={{
-              color: 'var(--text-primary)',
-              marginBottom: '1.5rem',
-              fontSize: '14px',
-              fontWeight: 400,
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+      <div className="about-content-section">
+        <div className="about-content-inner">
+          <h2 className="about-heading about-story-heading">
             {storyTitle}
           </h2>
-
-          <p
-            style={{
-              color: 'var(--text-primary)',
-              whiteSpace: 'pre-line',
-              fontSize: '12px',
-              fontWeight: 400,
-              lineHeight: '1.8',
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+          <p className="about-paragraph">
             {storyContent}
           </p>
-
         </div>
-
       </div>
 
       {/* Section 2: Our Journey Image Banner */}
-
       {framingImageUrl && (
-
-        <div
-          className="about-hero-container"
-          style={{
-            backgroundImage: `url(${framingImageUrl})`
-          }}
-        />
-
+        <div className="about-hero-container">
+          <img
+            src={framingImageUrl}
+            alt={framingTitle}
+            className="about-hero-img"
+          />
+        </div>
       )}
 
       {/* Section 2: Our Journey Text */}
-
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          padding: '4rem 0',
-          borderBottom: '1px solid var(--border-color)',
-          color: 'var(--text-primary)',
-          fontFamily: 'Montserrat, sans-serif'
-        }}
-      >
-
-        <div
-          style={{
-            width: '100%',
-            padding: '0 2rem',
-            boxSizing: 'border-box'
-          }}
-        >
-
-          <h2
-            style={{
-              color: 'var(--text-primary)',
-              marginBottom: '1.5rem',
-              fontSize: '14px',
-              fontWeight: 400,
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+      <div className="about-content-section">
+        <div className="about-content-inner">
+          <h2 className="about-heading">
             {framingTitle}
           </h2>
-
-          <p
-            style={{
-              color: 'var(--text-primary)',
-              whiteSpace: 'pre-line',
-              fontSize: '12px',
-              fontWeight: 400,
-              lineHeight: '1.8',
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+          <p className="about-paragraph">
             {framingContent}
           </p>
-
         </div>
-
       </div>
 
       {/* Section 3: Vision Image Banner */}
-
       {visionImageUrl && (
-
-        <div
-          className="about-hero-container"
-          style={{
-            backgroundImage: `url(${visionImageUrl})`
-          }}
-        />
-
+        <div className="about-hero-container">
+          <img
+            src={visionImageUrl}
+            alt={visionTitle}
+            className="about-hero-img"
+          />
+        </div>
       )}
 
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          padding: '4rem 0',
-          borderBottom: '1px solid var(--border-color)',
-          color: 'var(--text-primary)',
-          fontFamily: 'Montserrat, sans-serif'
-        }}
-      >
-
-        <div
-          style={{
-            width: '100%',
-            padding: '0 2rem',
-            boxSizing: 'border-box'
-          }}
-        >
-
-          <h2
-            style={{
-              color: 'var(--text-primary)',
-              marginBottom: '1.5rem',
-              fontSize: '14px',
-              fontWeight: 400,
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+      {/* Section 3: Vision Text */}
+      <div className="about-content-section">
+        <div className="about-content-inner">
+          <h2 className="about-heading">
             {visionTitle}
           </h2>
-
-          <p
-            style={{
-              color: 'var(--text-primary)',
-              whiteSpace: 'pre-line',
-              fontSize: '12px',
-              fontWeight: 400,
-              lineHeight: '1.8',
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+          <p className="about-paragraph">
             {visionContent}
           </p>
-
         </div>
-
       </div>
 
       {/* Section 4: Mission Image Banner */}
-
       {missionImageUrl && (
-
-        <div
-          className="about-hero-container"
-          style={{
-            backgroundImage: `url(${missionImageUrl})`
-          }}
-        />
-
+        <div className="about-hero-container">
+          <img
+            src={missionImageUrl}
+            alt={missionTitle}
+            className="about-hero-img"
+          />
+        </div>
       )}
 
       {/* Section 4: Mission Text */}
-
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          padding: '4rem 0',
-          borderBottom: '1px solid var(--border-color)',
-          color: 'var(--text-primary)',
-          fontFamily: 'Montserrat, sans-serif'
-        }}
-      >
-
-        <div
-          style={{
-            width: '100%',
-            padding: '0 2rem',
-            boxSizing: 'border-box'
-          }}
-        >
-
-          <h2
-            style={{
-              color: 'var(--text-primary)',
-              marginBottom: '1.5rem',
-              fontSize: '14px',
-              fontWeight: 400,
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+      <div className="about-content-section">
+        <div className="about-content-inner">
+          <h2 className="about-heading">
             {missionTitle}
           </h2>
-
-          <p
-            style={{
-              color: 'var(--text-primary)',
-              whiteSpace: 'pre-line',
-              fontSize: '12px',
-              fontWeight: 400,
-              lineHeight: '1.8',
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
+          <p className="about-paragraph">
             {missionContent}
           </p>
-
         </div>
-
       </div>
 
-      {/* Section 5: Footer Location Details */}
-
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          padding: '4rem 0',
-          color: 'var(--text-primary)',
-          fontFamily: 'Montserrat, sans-serif'
-        }}
-      >
-
-        <div
-          style={{
-            width: '100%',
-            padding: '0 2rem',
-            boxSizing: 'border-box'
-          }}
-        >
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '3rem'
-            }}
-          >
-
-            <div>
-
-              <strong
-                style={{
-                  color: 'var(--text-primary)',
-                  display: 'block',
-                  marginBottom: '0.75rem',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  fontFamily: 'Montserrat, sans-serif'
-                }}
-              >
+      {/* Section 5: Location Details & Hours */}
+      <div className="about-content-section about-location-section">
+        <div className="about-content-inner">
+          <div className="about-location-grid">
+            <div className="about-location-col">
+              <strong className="about-location-title">
                 Gallery Location
               </strong>
-
-              <p
-                style={{
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  lineHeight: '1.6',
-                  fontFamily: 'Montserrat, sans-serif'
-                }}
-              >
+              <p className="about-paragraph">
                 F-73/9, Block 4 Clifton
                 <br />
                 Karachi, Pakistan
               </p>
-
             </div>
 
-            <div>
-
-              <strong
-                style={{
-                  color: 'var(--text-primary)',
-                  display: 'block',
-                  marginBottom: '0.75rem',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  fontFamily: 'Montserrat, sans-serif'
-                }}
-              >
+            <div className="about-location-col">
+              <strong className="about-location-title">
                 Opening Hours
               </strong>
-
-              <p
-                style={{
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  lineHeight: '1.6',
-                  fontFamily: 'Montserrat, sans-serif'
-                }}
-              >
+              <p className="about-paragraph">
                 Monday - Saturday: 11:00 AM - 8:00 PM
                 <br />
                 (Sunday Closed)
               </p>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-
   );
 }

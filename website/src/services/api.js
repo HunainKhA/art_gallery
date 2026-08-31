@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 export const getApiUrl = (path) => {
   return `${API_BASE}${path}`;
@@ -39,9 +39,24 @@ export const getArtworkImageUrl = (id) => {
   return `${API_BASE}/api/artworks/image/${id}`;
 };
 
-export const getArtistImageUrl = (filename) => {
-  if (!filename) return '';
-  if (filename.startsWith('http')) return filename;
+export const getArtistInitials = (name = '') => {
+  if (!name) return 'A';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'A';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+export const getArtistAvatarSvg = (name = 'Artist') => {
+  const initials = getArtistInitials(name);
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100%25' height='100%25'%3E%3Crect width='100' height='100' fill='%231a1a1a'/%3E%3Ctext x='50' y='56' font-family='Montserrat, -apple-system, sans-serif' font-size='34' font-weight='400' fill='%23d4af37' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'%3E${initials}%3C/text%3E%3C/svg%3E`;
+};
+
+export const getArtistImageUrl = (filename, artistName = 'Artist') => {
+  if (!filename || filename === 'NULL' || filename === 'null' || filename === '' || filename === 'undefined') {
+    return getArtistAvatarSvg(artistName);
+  }
+  if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
   return `${API_BASE}/api/artists/image/${filename}`;
 };
 

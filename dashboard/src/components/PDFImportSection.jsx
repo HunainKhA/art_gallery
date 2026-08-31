@@ -433,85 +433,91 @@ export default function PDFImportSection() {
             </div>
 
             {/* Pages Grid Editor */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2.5rem', maxHeight: '600px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2.5rem', maxHeight: '600px', overflowY: 'auto', paddingRight: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
               {previewList.map((item, idx) => (
                 <div key={item.temp_image_id} style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '0.8rem', 
-                  padding: '0.75rem', 
+                  flexWrap: 'wrap',
+                  gap: '0.85rem', 
+                  padding: '0.85rem 1rem', 
                   background: 'rgba(255,255,255,0.01)', 
                   border: '1px solid var(--border-color)', 
                   borderRadius: '12px',
                   opacity: item.selected ? 1 : 0.4,
-                  transition: 'opacity 0.2s ease'
+                  transition: 'opacity 0.2s ease',
+                  width: '100%',
+                  boxSizing: 'border-box'
                 }}>
                   
-                  {/* Select Checkbox */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px' }}>
-                    <input 
-                      type="checkbox"
-                      checked={!!item.selected}
-                      onChange={(e) => handleRowChange(idx, 'selected', e.target.checked)}
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        cursor: 'pointer',
-                        accentColor: 'var(--accent-gold)'
-                      }}
-                    />
+                  {/* Select Checkbox + Page Indicator + Thumbnail (Left Group) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px' }}>
+                      <input 
+                        type="checkbox"
+                        checked={!!item.selected}
+                        onChange={(e) => handleRowChange(idx, 'selected', e.target.checked)}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          accentColor: 'var(--accent-gold)'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, width: '55px', textAlign: 'center' }}>
+                      Page {item.page}
+                    </div>
+
+                    <div style={{ width: '80px', height: '110px', background: '#050505', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                      <img 
+                        src={getApiUrl(`/api/artworks/temp-image/${item.temp_image_id}`)} 
+                        alt={`Page ${item.page}`}
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Page Indicator */}
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, width: '50px', textAlign: 'center' }}>
-                    Page {item.page}
-                  </div>
-
-                  {/* Thumbnail Image */}
-                  <div style={{ width: '80px', height: '110px', background: '#050505', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
-                    <img 
-                      src={getApiUrl(`/api/artworks/temp-image/${item.temp_image_id}`)} 
-                      alt={`Page ${item.page}`}
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                    />
-                  </div>
-
-                  {/* Editable Inputs Grid */}
+                  {/* Editable Inputs Grid (Fluid & responsive, never overflows) */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: item.deal_type === 'Purchase_Basis'
-                      ? '1.8fr 1.5fr 1.5fr 1.3fr 1.2fr 0.8fr 0.8fr'
-                      : '2fr 1.8fr 1.8fr 1.4fr 1fr 1fr', 
-                    gap: '0.45rem', 
-                    flex: 1 
+                      ? 'repeat(auto-fit, minmax(115px, 1fr))'
+                      : 'repeat(auto-fit, minmax(125px, 1fr))', 
+                    gap: '0.6rem', 
+                    flex: 1,
+                    minWidth: '280px',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}>
                     
                     {/* Title */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Artwork Title</label>
                       <input 
                         type="text" 
                         value={item.title} 
                         onChange={(e) => handleRowChange(idx, 'title', e.target.value)}
-                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                       />
                     </div>
 
                     {/* Code */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>System Code</label>
                       <input 
                         type="text" 
                         value={item.code} 
                         onChange={(e) => handleRowChange(idx, 'code', e.target.value)}
-                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                       />
                     </div>
 
                     {/* Deal Type Switcher */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Deal Type</label>
-                      <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', height: '34px' }}>
+                      <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', height: '34px', width: '100%', boxSizing: 'border-box' }}>
                         <button
                           type="button"
                           onClick={() => handleRowChange(idx, 'deal_type', 'Sale_Basis')}
@@ -548,33 +554,33 @@ export default function PDFImportSection() {
                     </div>
 
                     {/* Price */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Price (PKR)</label>
                       <input 
                         type="number" 
                         min="0"
                         value={item.price} 
                         onChange={(e) => handleRowChange(idx, 'price', e.target.value)}
-                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                       />
                     </div>
 
                     {/* Conditional Buy Price (only for Purchase_Basis) */}
                     {item.deal_type === 'Purchase_Basis' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Buy Price (PKR)</label>
                         <input 
                           type="number" 
                           min="0"
                           value={item.purchase_price || ''} 
                           onChange={(e) => handleRowChange(idx, 'purchase_price', e.target.value)}
-                          style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                          style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                         />
                       </div>
                     )}
 
                     {/* Length */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Length (in)</label>
                       <input 
                         type="number" 
@@ -582,12 +588,12 @@ export default function PDFImportSection() {
                         min="0"
                         value={item.length} 
                         onChange={(e) => handleRowChange(idx, 'length', e.target.value)}
-                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                       />
                     </div>
 
                     {/* Width */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, width: '100%' }}>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Width (in)</label>
                       <input 
                         type="number" 
@@ -595,7 +601,7 @@ export default function PDFImportSection() {
                         min="0"
                         value={item.width} 
                         onChange={(e) => handleRowChange(idx, 'width', e.target.value)}
-                        style={{ padding: '0.55rem 0.35rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                        style={{ padding: '0.55rem 0.5rem', borderRadius: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                       />
                     </div>
 

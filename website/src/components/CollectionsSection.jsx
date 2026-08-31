@@ -22,28 +22,33 @@ export default function CollectionsSection({
 }) {
   // Pagination states for artworks
   const [currentPage, setCurrentPage] = useState(1);
-  const artworksPerPage = 12; // 12 artworks per page fits 3 or 4 columns beautifully
+  const [artworksPerPage, setArtworksPerPage] = useState(48); // Default 48 artworks per page
 
   // Reset page when category or search query changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, artworksPerPage]);
 
   const filteredArtworks = artworks;
 
   // Helper function to render pagination controls
   const renderPaginationControls = (activePage, totalPages) => {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: '3.5rem',
-        gap: '0.4rem'
-      }}>
+      <div
+        className="pagination-controls-wrapper"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginTop: '3.5rem',
+          gap: '0.4rem',
+          flexWrap: 'wrap'
+        }}
+      >
         <button
           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
           disabled={activePage === 1}
+          className="pagination-nav-btn"
           style={{
             background: 'var(--bg-input)',
             color: activePage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
@@ -65,7 +70,7 @@ export default function CollectionsSection({
             return (
               <React.Fragment key={page}>
                 {showEllipsis && (
-                  <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.75rem', alignSelf: 'flex-end' }}>...</span>
+                  <span style={{ color: 'var(--text-muted)', padding: '0.55rem 0.5rem', alignSelf: 'center' }}>...</span>
                 )}
                 <button
                   onClick={() => setCurrentPage(page)}
@@ -92,6 +97,7 @@ export default function CollectionsSection({
         <button
           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
           disabled={activePage === totalPages}
+          className="pagination-nav-btn"
           style={{
             background: 'var(--bg-input)',
             color: activePage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
@@ -137,7 +143,7 @@ export default function CollectionsSection({
           </div>
         ) : (
           <>
-            <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
+            <div className="artworks-grid">
               {currentSearchArtworks.map((art) => (
                 <div
                   key={art.id}
@@ -362,16 +368,22 @@ export default function CollectionsSection({
           @media (max-width: 1200px) {
             .categories-grid {
               grid-template-columns: repeat(3, 1fr);
+              gap: 2rem;
             }
           }
           @media (max-width: 992px) {
             .categories-grid {
               grid-template-columns: repeat(2, 1fr);
+              gap: 1.5rem;
             }
           }
-          @media (max-width: 768px) {
+          @media (max-width: 600px) {
             .categories-grid {
               grid-template-columns: 1fr;
+              gap: 1.25rem;
+            }
+            .category-img-box {
+              height: clamp(200px, 45vw, 260px) !important;
             }
           }
           .category-grid-card:hover {
@@ -411,7 +423,6 @@ export default function CollectionsSection({
   return (
     <div className="page-content collections-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
 
-
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -449,7 +460,7 @@ export default function CollectionsSection({
         </div>
       ) : (
         <>
-          <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
+          <div className="artworks-grid">
             {currentArtworks.map((art) => (
               <div
                 key={art.id}
@@ -554,7 +565,7 @@ export default function CollectionsSection({
                     {art.status === 'Available' || art.status === 'not_sold' ? (
                       <>
                         <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                          Inquiry
+                          {websiteSettings?.hide_prices ? 'Inquiry' : formatPrice(art.price, currency, exchangeRates)}
                         </span>
                         <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
                           Available

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   RefreshCw, Globe, FileText, ShoppingCart, Check, AlertCircle, Users, Plus, TrendingUp, Edit, Shield, Mail
 } from 'lucide-react';
+import { getApiUrl } from '../services/api';
 
 export default function DashboardOverviewSection({ stats, frames, loading, onRefresh, onNavigate }) {
   const [hoveredVisIdx, setHoveredVisIdx] = useState(null);
@@ -29,7 +30,7 @@ export default function DashboardOverviewSection({ stats, frames, loading, onRef
       fsize: f.fsize || null
     };
 
-    fetch(`http://localhost:8000/api/frames/${f.frame_id}`, {
+    fetch(getApiUrl(`/api/frames/${f.frame_id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

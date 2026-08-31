@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, X, Lock } from 'lucide-react';
-import { getArtworkImageUrl, getArtistImageUrl } from '../services/api';
+import { getArtworkImageUrl, getArtistImageUrl, getArtistAvatarSvg } from '../services/api';
 import { formatPrice, renderDimensions } from '../services/currency';
 
 export default function ArtistsSection({
@@ -357,29 +357,30 @@ export default function ArtistsSection({
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(6px);
           padding: 0.5rem 1rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+          z-index: 10;
         }
         
+        .bio-slideshow-info span,
         .bio-slideshow-info span:first-child {
-          font-size: 12px;
-          color: #ffffff;
-          font-weight: 100;
+          font-size: 12px !important;
+          color: #ffffff !important;
+          font-weight: 300 !important;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 70%;
         }
         
         .bio-slideshow-info span:last-child {
-          font-size: 12px;
-          color: var(--accent-gold);
-          font-weight: 100;
+          font-size: 12px !important;
+          color: #ffffff !important;
+          font-weight: 300 !important;
         }
         
         @media (max-width: 768px) {
@@ -404,7 +405,15 @@ export default function ArtistsSection({
           </button>
 
           <div className="glass-card" style={{ padding: '2rem', display: 'grid', gridTemplateColumns: '150px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '3rem' }}>
-            <img src={getArtistImageUrl(selectedArtist.profile_image) || ''} alt={selectedArtist.name} style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
+            <img
+              src={getArtistImageUrl(selectedArtist.profile_image, selectedArtist.name)}
+              alt={selectedArtist.name}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = getArtistAvatarSvg(selectedArtist.name);
+              }}
+              style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }}
+            />
             <div>
               <h1 style={{ fontSize: '14px', marginBottom: '0.5rem', marginTop: '0.25rem' }}>{selectedArtist.name}</h1>
               {selectedArtist.bio && selectedArtist.bio.trim() !== '' && selectedArtist.bio !== 'Biography not available.' ? (
@@ -512,12 +521,12 @@ export default function ArtistsSection({
                 >
                   <div className="artist-card-img-container">
                     <img
-                      src={getArtistImageUrl(artist.profile_image) || ''}
+                      src={getArtistImageUrl(artist.profile_image, artist.name)}
                       alt={artist.name}
                       className="artist-card-img"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '';
+                        e.target.src = getArtistAvatarSvg(artist.name);
                       }}
                     />
                   </div>
@@ -680,22 +689,6 @@ export default function ArtistsSection({
                           className="bio-slideshow-img"
                           key={currentSlideIndex}
                         />
-                        <div className="bio-slideshow-info">
-                          <span>{selectedArtist.artworks[currentSlideIndex].title}</span>
-                          <span>
-                            {selectedArtist.artworks[currentSlideIndex].status !== 'Available' && selectedArtist.artworks[currentSlideIndex].status !== 'not_sold' ? (
-                              <span style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444' }}>
-                                Sold
-                              </span>
-                            ) : !guestSession ? (
-                              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)' }}>
-                                Inquiry
-                              </span>
-                            ) : (
-                              websiteSettings.hide_prices ? 'Price on Request' : formatPrice(selectedArtist.artworks[currentSlideIndex].price, currency, exchangeRates)
-                            )}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   ) : (
