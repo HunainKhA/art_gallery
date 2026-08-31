@@ -119,7 +119,7 @@ export default function AboutSection() {
         }
         .about-content-section {
           width: 100% !important;
-          padding: 3rem 2rem !important;
+          padding: 2.5rem 2rem !important;
           box-sizing: border-box !important;
           display: flex !important;
           justify-content: center !important;
@@ -132,20 +132,20 @@ export default function AboutSection() {
           box-sizing: border-box !important;
         }
         .about-heading {
-          font-size: 16px !important;
-          font-weight: 400 !important;
-          letter-spacing: 0.1em !important;
+          font-size: 14px !important;
+          font-weight: 100 !important;
+          letter-spacing: 0.05em !important;
           text-transform: uppercase !important;
           color: var(--text-primary) !important;
-          margin: 0 0 1rem 0 !important;
+          margin: 0 0 0.75rem 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
         }
         .about-paragraph {
-          font-size: 13px !important;
-          font-weight: 300 !important;
-          line-height: 1.9 !important;
-          color: var(--text-secondary) !important;
+          font-size: 12px !important;
+          font-weight: 100 !important;
+          line-height: 1.85 !important;
+          color: var(--text-primary) !important;
           margin: 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
@@ -160,7 +160,7 @@ export default function AboutSection() {
           grid-template-columns: 1fr 1fr !important;
           gap: 3.5rem !important;
           margin-top: 0.5rem !important;
-          padding-top: 2rem !important;
+          padding-top: 1.5rem !important;
           border-top: 1px solid var(--border-color) !important;
           text-align: left !important;
         }
@@ -168,33 +168,34 @@ export default function AboutSection() {
           text-align: left !important;
         }
         .about-location-title {
-          font-size: 13px !important;
-          font-weight: 500 !important;
+          font-size: 14px !important;
+          font-weight: 100 !important;
           color: var(--text-primary) !important;
           text-transform: uppercase !important;
-          letter-spacing: 0.08em !important;
+          letter-spacing: 0.05em !important;
           display: block !important;
-          margin-bottom: 0.6rem !important;
+          margin-bottom: 0.5rem !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
         }
+
+        /* Light Theme pure black typography overrides */
+        body.light-theme .about-heading,
+        body.light-theme .about-location-title,
+        body.light-theme .about-paragraph {
+          color: #000000 !important;
+        }
+
         @media (max-width: 768px) {
           .about-content-section {
-            padding: 2.5rem 1rem !important;
+            padding: 2rem 1rem !important;
           }
           .about-hero-img {
             max-height: 50vh !important;
           }
-          .about-heading {
-            font-size: 15px !important;
-          }
-          .about-paragraph {
-            font-size: 12px !important;
-            line-height: 1.75 !important;
-          }
           .about-location-grid {
             grid-template-columns: 1fr !important;
-            gap: 2rem !important;
+            gap: 1.75rem !important;
           }
         }
       `}</style>
