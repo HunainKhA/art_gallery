@@ -400,16 +400,30 @@ body.light-theme .artwork-detail-page-wrapper .room-wall-modal-container svg {
   stroke: #ffffff !important;
 }
 
+.about-heading,
 .about-story-heading,
-h2.about-story-heading {
+.about-paragraph,
+.about-location-title,
+.about-page-wrapper,
+.about-page-wrapper h2,
+.about-page-wrapper p,
+.about-page-wrapper strong {
   color: var(--text-primary) !important;
-  font-weight: 400 !important;
 }
 
+body.light-theme .about-heading,
 body.light-theme .about-story-heading,
-body.light-theme h2.about-story-heading {
+body.light-theme .about-paragraph,
+body.light-theme .about-location-title,
+body.light-theme .about-page-wrapper,
+body.light-theme .about-page-wrapper h2,
+body.light-theme .about-page-wrapper p,
+body.light-theme .about-page-wrapper strong,
+body.light-theme .about-content-inner,
+body.light-theme .about-content-inner * {
   color: #000000 !important;
-  font-weight: 400 !important;
+  -webkit-text-fill-color: #000000 !important;
+  opacity: 1 !important;
 }
 
 /* Light Theme - Contact Section (Pure Solid Black Font & Weight 400) */
