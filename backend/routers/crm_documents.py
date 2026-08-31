@@ -157,10 +157,9 @@ def get_crm_documents(module: str):
         for r in results:
             if r.get("active_date"):
                 r["active_date"] = str(r["active_date"])
-            if r.get("exp_date"):
-                r["exp_date"] = str(r["exp_date"])
             if r.get("is_featured_c") is not None:
                 # Convert tinyint/boolean to integer 0/1 for response consistency
+                r["is_featured_c"] = 1 if r["is_featured_c"] else 0
             filtered_results.append(r)
             
         return filtered_results
