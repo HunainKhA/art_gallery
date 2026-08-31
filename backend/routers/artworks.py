@@ -1818,15 +1818,15 @@ def get_artwork_tag(artwork_id: str):
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     padding: 35px 45px;
                     display: flex;
-                    align-items: center;
-                    justify-content: center;
+                    align-items: stretch;
+                    justify-content: space-between;
                     position: relative;
                 }}
                 
                 .tag-content-row {{
                     display: flex;
                     flex-direction: row;
-                    align-items: center;
+                    align-items: stretch;
                     justify-content: space-between;
                     width: 100%;
                     height: 100%;
@@ -1864,6 +1864,7 @@ def get_artwork_tag(artwork_id: str):
                 
                 .right-col {{
                     flex: 0.9;
+                    height: 100%;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
@@ -1878,6 +1879,7 @@ def get_artwork_tag(artwork_id: str):
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
+                    margin-top: 0;
                     margin-bottom: auto;
                 }}
                 
@@ -1893,6 +1895,7 @@ def get_artwork_tag(artwork_id: str):
                     width: 100%;
                     text-align: left;
                     margin-top: auto;
+                    margin-bottom: 0;
                 }}
                 
                 .detail-line {{
@@ -2024,28 +2027,6 @@ def get_artwork_tag(artwork_id: str):
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
             <script>
-                // Align right column precisely with picture rendered height and bottom
-                function alignRightColToPicture() {{
-                    const img = document.getElementById('artworkImg');
-                    const rightCol = document.getElementById('rightCol');
-                    const leftCol = document.getElementById('leftCol');
-                    if (img && rightCol && leftCol) {{
-                        const imgHeight = img.clientHeight || img.offsetHeight;
-                        if (imgHeight > 50) {{
-                            rightCol.style.height = imgHeight + 'px';
-                            rightCol.style.maxHeight = imgHeight + 'px';
-                        }}
-                    }}
-                }}
-
-                window.addEventListener('load', function() {{
-                    alignRightColToPicture();
-                    setTimeout(alignRightColToPicture, 150);
-                    setTimeout(alignRightColToPicture, 500);
-                }});
-
-                window.addEventListener('resize', alignRightColToPicture);
-
                 // Download high quality PDF
                 function downloadPDF() {{
                     const element = document.getElementById('tagCard');
@@ -2082,7 +2063,7 @@ def get_artwork_tag(artwork_id: str):
                 <div class="tag-content-row">
                     <div class="left-col" id="leftCol">
                         <div class="painting-wrapper">
-                            <img id="artworkImg" class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}" onload="alignRightColToPicture()">
+                            <img id="artworkImg" class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
                         </div>
                     </div>
                     
