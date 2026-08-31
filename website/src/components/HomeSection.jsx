@@ -23,11 +23,20 @@ export default function HomeSection({ flashImages }) {
   }, [images]);
 
   if (!images || images.length === 0) {
-    return <div className="home-fullscreen-slider" style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }} />;
+    return (
+      <div
+        className="home-fullscreen-slider"
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'transparent'
+        }}
+      />
+    );
   }
 
   return (
-    <div 
+    <div
       className="home-fullscreen-slider"
       style={{
         position: 'relative',

@@ -101,7 +101,12 @@ body.light-theme span:not(.cart-count):not(.status-sold):not(.status-available):
    Headings (h1..h6): 14px, font-weight 100
    Body & Elements (p, span, button, a, label): 12px, font-weight 100
    ==================================================== */
-h1, h2, h3, h4, h5, h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .exhibit-card-title,
 .category-card-title,
 .artist-name,
@@ -113,9 +118,20 @@ h1, h2, h3, h4, h5, h6,
   font-family: 'Montserrat', sans-serif !important;
 }
 
-p, span:not(.cart-count):not(.status-badge),
-button, .nav-btn, .exhibit-btn-noborder, .btn-secondary, .btn-primary,
-a, label, li, small, .exhibit-card-desc, .exhibit-card-date, .exhibit-card-date span {
+p,
+span:not(.cart-count):not(.status-badge),
+button,
+.nav-btn,
+.exhibit-btn-noborder,
+.btn-secondary,
+.btn-primary,
+a,
+label,
+li,
+small,
+.exhibit-card-desc,
+.exhibit-card-date,
+.exhibit-card-date span {
   font-size: 12px !important;
   font-weight: 100 !important;
   font-family: 'Montserrat', sans-serif !important;
@@ -1863,8 +1879,11 @@ body.light-theme .floating-socials {
 .home-fullscreen-slider img {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+
+  /* IMPORTANT: image crop nahi hogi */
+  object-fit: contain !important;
   object-position: center center !important;
+
   display: block !important;
 }
 
@@ -1875,7 +1894,13 @@ body.light-theme .floating-socials {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 20%, transparent 75%, rgba(0, 0, 0, 0.6) 100%);
+
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.4) 0%,
+      transparent 20%,
+      transparent 75%,
+      rgba(0, 0, 0, 0.6) 100%);
+
   pointer-events: none;
   z-index: 1;
 }
@@ -2182,6 +2207,7 @@ body.light-theme .hamburger-btn svg {
     margin-top: 2rem;
     gap: 0.25rem;
   }
+
   .pagination-nav-btn,
   .pagination-page-btn {
     padding: 0.45rem 0.75rem !important;
