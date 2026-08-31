@@ -138,25 +138,25 @@ export default function AboutSection() {
         .about-heading,
         .about-location-title {
           font-size: 14px !important;
-          font-weight: 100 !important;
-          letter-spacing: 0.05em !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.04em !important;
           text-transform: uppercase !important;
           color: var(--text-primary) !important;
-          margin: 0 0 0.65rem 0 !important;
+          margin: 0 0 0.85rem 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
           display: block !important;
         }
         .about-paragraph {
-          font-size: 12px !important;
-          font-weight: 100 !important;
+          font-size: 13px !important;
+          font-weight: 400 !important;
           line-height: 1.85 !important;
           color: var(--text-primary) !important;
           margin: 0 !important;
           padding: 0 !important;
           text-align: left !important;
           font-family: 'Montserrat', sans-serif !important;
-          letter-spacing: 0.02em !important;
+          letter-spacing: 0.015em !important;
           max-width: 100% !important;
         }
         .about-location-section {
@@ -176,7 +176,7 @@ export default function AboutSection() {
           text-align: left !important;
         }
 
-        /* Dark Theme colors (Matching Our Story in dark theme) */
+        /* Dark Theme colors */
         body:not(.light-theme) .about-heading,
         body:not(.light-theme) .about-location-title,
         body:not(.light-theme) .about-story-heading,
@@ -187,15 +187,18 @@ export default function AboutSection() {
           -webkit-text-fill-color: var(--text-primary) !important;
         }
 
-        /* Light Theme pure black typography matching footer */
+        /* Light Theme pure solid dark black typography matching the entire website */
         body.light-theme .about-heading,
         body.light-theme .about-location-title,
         body.light-theme .about-story-heading,
         body.light-theme .about-paragraph,
+        body.light-theme .about-page-wrapper,
+        body.light-theme .about-content-section,
         body.light-theme .about-content-inner,
         body.light-theme .about-content-inner p,
         body.light-theme .about-content-inner h2,
-        body.light-theme .about-content-inner strong {
+        body.light-theme .about-content-inner strong,
+        body.light-theme .about-content-inner * {
           color: #000000 !important;
           -webkit-text-fill-color: #000000 !important;
           opacity: 1 !important;
