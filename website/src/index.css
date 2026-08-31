@@ -981,8 +981,8 @@ body.light-theme .gradient-title {
 .top-navbar {
   position: relative;
   height: 95px;
-  background: var(--bg-header);
-  backdrop-filter: blur(20px);
+  background: none;
+  backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -1866,26 +1866,32 @@ body.light-theme .floating-socials {
     color: var(--accent-gold, #d4af37) !important;
   }
 
-  /* Fullscreen Background Slider - Flawless Fit on iPad / iPhone / Android / Desktop */
-  .home-fullscreen-slider {
-    width: 100% !important;
-    max-width: 100vw !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    overflow: hidden !important;
-  }
+}
 
-  .home-fullscreen-slider img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: contain !important;
-    object-position: center center !important;
-  }
+/* Global Fullscreen Home Slider for all screens (Desktop, Tablet, Mobile) */
+.home-fullscreen-slider {
+  position: relative;
+  width: 100% !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  background-color: #0d0d0d;
+}
 
-  /* @media (max-width: 768px) {
-    .home-fullscreen-slider img {
-      object-position: center center !important;
-    } */
+.home-fullscreen-slider img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  display: block !important;
+}
+
+.app-wrapper.is-home-view .main-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100vw !important;
 }
 
 @media (max-width: 480px) {

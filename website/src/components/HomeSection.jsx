@@ -2,10 +2,37 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getArtworkImageUrl, getApiUrl } from '../services/api';
 
 export default function HomeSection({ flashImages = [], exhibitions = [], artworks = [] }) {
-  // Get image sources (prioritize actual Flash Images, fallback to exhibitions or latest artworks)
+  const [localImages, setLocalImages] = useState([]);
+
+  // Self-healing direct fetch if parent state is loading/empty
+  useEffect(() => {
+    if (flashImages.length === 0 && exhibitions.length === 0 && artworks.length === 0) {
+      fetch(getApiUrl('/api/crm/flashimages'))
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setLocalImages(data.map(f => getArtworkImageUrl(f.filename || f.id)));
+          } else {
+            return fetch(getApiUrl('/api/artworks?limit=8'))
+              .then(r => r.json())
+              .then(artData => {
+                if (Array.isArray(artData) && artData.length > 0) {
+                  setLocalImages(artData.map(a => getArtworkImageUrl(a.filename || a.id)));
+                }
+              });
+          }
+        })
+        .catch(e => console.warn("Fallback slider fetch error:", e));
+    }
+  }, [flashImages, exhibitions, artworks]);
+
+  // Get image sources (prioritize actual Flash Images, fallback to localImages, exhibitions or artworks)
   const images = useMemo(() => {
     if (flashImages && flashImages.length > 0) {
       return flashImages.map(flash => getArtworkImageUrl(flash.filename || flash.id));
+    }
+    if (localImages && localImages.length > 0) {
+      return localImages;
     }
     if (exhibitions && exhibitions.length > 0) {
       return exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
@@ -14,7 +41,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
       return artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
     }
     return [];
-  }, [flashImages, exhibitions, artworks]);
+  }, [flashImages, exhibitions, artworks, localImages]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 

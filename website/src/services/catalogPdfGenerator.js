@@ -215,12 +215,15 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     }
   };
 
+  // Clean Exhibition Title
+  const cleanTitle = (exhibition.document_name || 'EXHIBITION').replace(/["']/g, '').trim().toUpperCase();
+
   // =========================================================================
   // PAGE 1: FULL-BLEED ARTWORK FRONT COVER
   // =========================================================================
   const coverBg = coverData || artworksWithData[0]?.imgData;
   if (coverBg) {
-    // Calculate aspect fill for 210x210
+    // Render cover full bleed 210x210
     const scale = Math.max(pageSize / coverBg.width, pageSize / coverBg.height);
     const renderW = coverBg.width * scale;
     const renderH = coverBg.height * scale;
@@ -229,23 +232,25 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
 
     doc.addImage(coverBg.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
 
-    // Title Overlay
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(28);
-    doc.setTextColor(255, 255, 255);
-    doc.text(exhibitionTitle, 18, 30);
+    // Only add text overlay if using fallback artwork (if dedicated cover poster was uploaded, it already has design)
+    if (!coverData) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.setTextColor(255, 255, 255);
+      doc.text(cleanTitle, 18, 30);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.setTextColor(255, 255, 255);
-    doc.text(showTypeLabel, 18, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text(showTypeLabel, 18, 42);
+    }
   } else {
     drawPageBorder();
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(26);
+    doc.setFontSize(24);
     doc.setTextColor(34, 51, 102);
-    doc.text(exhibitionTitle, pageSize / 2, 80, { align: 'center' });
-    doc.setFontSize(13);
+    doc.text(cleanTitle, pageSize / 2, 80, { align: 'center' });
+    doc.setFontSize(12);
     doc.setTextColor(60, 60, 60);
     doc.text(showTypeLabel, pageSize / 2, 95, { align: 'center' });
   }
@@ -258,14 +263,14 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
 
   // Title in Deep Navy
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(24);
+  doc.setFontSize(22);
   doc.setTextColor(34, 51, 102); // #223366
-  doc.text(exhibitionTitle, pageSize - 18, 42, { align: 'right' });
+  doc.text(cleanTitle, pageSize - 18, 42, { align: 'right' });
 
   // Subtitle
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(80, 80, 80);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(11);
+  doc.setTextColor(70, 70, 70);
   doc.text(showTypeLabel, pageSize - 18, 52, { align: 'right' });
 
   // Dates & Timings in center
