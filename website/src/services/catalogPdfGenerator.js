@@ -130,8 +130,8 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   // 4. Group artworks by Artist (for Solo / Group exhibitions)
   const artistMap = new Map();
   for (const art of artworksWithData) {
-    const artistId = art.artist_id || 'unknown';
-    const artistName = (art.artist_name || '').trim() || 'Featured Artist';
+    const artistId = art.artist_id || exhibition.artist_id || 'unknown';
+    const artistName = (art.artist_name || exhibition.artist_name || '').trim() || 'Featured Artist';
     const rawBio = art.artist_bio || art.bio || '';
     const cleanBio = stripHtml(rawBio);
 
@@ -147,15 +147,30 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     artistMap.get(artistId).artworks.push(art);
   }
 
-  // Preload artist profile images if available
-  for (const [_, artistInfo] of artistMap.entries()) {
-    if (artistInfo.bio && artistInfo.id !== 'unknown') {
+  // Proactively fetch artist biography & profile picture from API if missing
+  for (const [artistId, artistInfo] of artistMap.entries()) {
+    const fetchId = (artistId && artistId !== 'unknown') ? artistId : exhibition.artist_id;
+    if (fetchId) {
       try {
-        const artistImgUrl = getApiUrl(`/api/artists/image/${artistInfo.id}`);
-        const pData = await loadImageData(artistImgUrl);
-        if (pData) artistInfo.profileImageData = pData;
-      } catch {
-        artistInfo.profileImageData = null;
+        const res = await fetch(getApiUrl(`/api/artists/${fetchId}`));
+        if (res.ok) {
+          const aData = await res.json();
+          if (aData) {
+            if (!artistInfo.bio && aData.bio) {
+              artistInfo.bio = stripHtml(aData.bio);
+            }
+            if (!artistInfo.name || artistInfo.name === 'Featured Artist') {
+              artistInfo.name = `${aData.first_name || ''} ${aData.last_name || ''}`.trim() || artistInfo.name;
+            }
+            if (!artistInfo.profileImageData) {
+              const artistImgUrl = getApiUrl(`/api/artists/image/${fetchId}`);
+              const pData = await loadImageData(artistImgUrl);
+              if (pData) artistInfo.profileImageData = pData;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch artist bio from API for", fetchId, e);
       }
     }
   }
@@ -321,17 +336,35 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
       doc.text('Bio', 20, cursorY);
       cursorY += 6;
 
-      // Bio Text
+      // Bio Text (Paginated safely within 12mm borders)
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(50, 50, 50);
 
       const splitBio = doc.splitTextToSize(artistInfo.bio, 170);
-      doc.text(splitBio, 20, cursorY, { align: 'left', lineHeightFactor: 1.4 });
-      cursorY += (splitBio.length * 4.2) + 8;
+      for (const line of splitBio) {
+        if (cursorY > pageSize - 22) {
+          doc.addPage([pageSize, pageSize], 'portrait');
+          drawPageBorder();
+          cursorY = 22;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(50, 50, 50);
+        }
+        doc.text(line, 20, cursorY);
+        cursorY += 4.3;
+      }
+      cursorY += 6;
 
       // Exhibition Statement (if available in exhibition description)
-      if (exhibition.description && cursorY < 165) {
+      const cleanDesc = stripHtml(exhibition.description || '');
+      if (cleanDesc) {
+        if (cursorY > pageSize - 36) {
+          doc.addPage([pageSize, pageSize], 'portrait');
+          drawPageBorder();
+          cursorY = 22;
+        }
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(20, 20, 20);
@@ -341,8 +374,19 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(50, 50, 50);
-        const splitStmt = doc.splitTextToSize(stripHtml(exhibition.description), 170);
-        doc.text(splitStmt, 20, cursorY, { align: 'left', lineHeightFactor: 1.4 });
+        const splitStmt = doc.splitTextToSize(cleanDesc, 170);
+        for (const line of splitStmt) {
+          if (cursorY > pageSize - 22) {
+            doc.addPage([pageSize, pageSize], 'portrait');
+            drawPageBorder();
+            cursorY = 22;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(50, 50, 50);
+          }
+          doc.text(line, 20, cursorY);
+          cursorY += 4.3;
+        }
       }
     }
 
