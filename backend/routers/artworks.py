@@ -1833,8 +1833,8 @@ def get_artwork_tag(artwork_id: str):
                 /* Certificate / Tag Card - iPad & Screen Layout */
                 .certificate-container {{
                     width: 100%;
-                    max-width: 1050px;
-                    min-height: 520px;
+                    max-width: 1100px;
+                    min-height: 540px;
                     aspect-ratio: 297 / 210;
                     margin: 0 auto;
                     background-color: #ffffff;
@@ -1854,11 +1854,11 @@ def get_artwork_tag(artwork_id: str):
                     justify-content: space-between;
                     width: 100%;
                     height: 100%;
-                    gap: 35px;
+                    gap: 40px;
                 }}
 
                 .left-col {{
-                    flex: 1.1;
+                    flex: 1.4;
                     height: 100%;
                     display: flex;
                     align-items: center;
@@ -1876,7 +1876,7 @@ def get_artwork_tag(artwork_id: str):
 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 430px;
+                    max-height: 480px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
@@ -1887,14 +1887,14 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .right-col {{
-                    flex: 0.9;
+                    flex: 0.65;
+                    min-width: 240px;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
                     align-items: flex-start;
                     box-sizing: border-box;
-                    min-width: 0;
-                    padding-left: 10px;
+                    padding-left: 20px;
                 }}
                 
                 .logo-container {{
@@ -1926,9 +1926,9 @@ def get_artwork_tag(artwork_id: str):
                     display: flex;
                     align-items: baseline;
                     gap: 8px;
-                    margin-bottom: 7px;
-                    font-size: 14.5px;
-                    line-height: 1.45;
+                    margin-bottom: 5px;
+                    font-size: 12.5px;
+                    line-height: 1.4;
                 }}
 
                 .detail-line:last-child {{
@@ -1939,14 +1939,14 @@ def get_artwork_tag(artwork_id: str):
                     font-weight: 400;
                     color: #555555;
                     white-space: nowrap;
-                    font-size: 14px;
-                    min-width: 90px;
+                    font-size: 12px;
+                    min-width: 82px;
                 }}
                 
                 .detail-value {{
                     font-weight: 600;
                     color: #111111;
-                    font-size: 14.5px;
+                    font-size: 12.5px;
                     word-break: break-word;
                 }}
 
@@ -1958,7 +1958,7 @@ def get_artwork_tag(artwork_id: str):
                 .detail-line.price-line .detail-value {{
                     font-weight: 700;
                     color: #000000;
-                    font-size: 15.5px;
+                    font-size: 13.5px;
                 }}
 
                 /* iPad / Tablet Responsiveness */
@@ -1968,7 +1968,7 @@ def get_artwork_tag(artwork_id: str):
                         min-height: 460px;
                     }}
                     .painting-image {{
-                        max-height: 380px;
+                        max-height: 420px;
                     }}
                     .logo-container {{
                         top: 25px !important;
@@ -1978,18 +1978,18 @@ def get_artwork_tag(artwork_id: str):
                         height: 65px;
                     }}
                     .detail-line {{
-                        font-size: 13.5px;
-                        margin-bottom: 6px;
+                        font-size: 11.5px;
+                        margin-bottom: 4px;
                     }}
                     .detail-label {{
-                        font-size: 13px;
-                        min-width: 80px;
+                        font-size: 11px;
+                        min-width: 72px;
                     }}
                     .detail-value {{
-                        font-size: 13.5px;
+                        font-size: 11.5px;
                     }}
                     .detail-line.price-line .detail-value {{
-                        font-size: 14.5px;
+                        font-size: 12.5px;
                     }}
                 }}
 
@@ -2024,7 +2024,7 @@ def get_artwork_tag(artwork_id: str):
                     }}
 
                     .painting-image {{
-                        max-height: 140mm !important;
+                        max-height: 155mm !important;
                     }}
 
                     .logo-container {{
@@ -2037,17 +2037,17 @@ def get_artwork_tag(artwork_id: str):
                     }}
 
                     .detail-line {{
-                        font-size: 11pt !important;
-                        margin-bottom: 3mm !important;
+                        font-size: 9.5pt !important;
+                        margin-bottom: 2.5mm !important;
                     }}
                     .detail-label {{
-                        font-size: 10.5pt !important;
+                        font-size: 9pt !important;
                     }}
                     .detail-value {{
-                        font-size: 11pt !important;
+                        font-size: 9.5pt !important;
                     }}
                     .detail-line.price-line .detail-value {{
-                        font-size: 12pt !important;
+                        font-size: 10.5pt !important;
                     }}
                     
                     @page {{
@@ -2088,7 +2088,7 @@ def get_artwork_tag(artwork_id: str):
                     const element = document.getElementById('tagCard');
                     const opt = {{
                         margin:       0,
-                        filename:     '{file_base_name}.pdf',
+                        filename:     '{file_base_name}_tag.pdf',
                         image:        {{ type: 'jpeg', quality: 0.98 }},
                         html2canvas:  {{ scale: 2.5, useCORS: true, logging: false }},
                         jsPDF:        {{ unit: 'mm', format: 'a4', orientation: 'landscape' }}
@@ -2096,21 +2096,29 @@ def get_artwork_tag(artwork_id: str):
                     html2pdf().from(element).set(opt).save();
                 }}
 
-                // Download high-res Tag Image (PNG)
+                // Download high-res Complete Tag Image (Canvas with Painting + Matter + Logo)
                 function downloadTagImage() {{
                     const element = document.getElementById('tagCard');
-                    html2canvas(element, {{ scale: 2.5, useCORS: true, backgroundColor: '#ffffff' }}).then(canvas => {{
+                    html2canvas(element, {{
+                        scale: 3,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    }}).then(canvas => {{
                         const link = document.createElement('a');
-                        link.download = '{file_base_name}.png';
-                        link.href = canvas.toDataURL('image/png');
+                        link.download = '{file_base_name}_tag.jpg';
+                        link.href = canvas.toDataURL('image/jpeg', 0.98);
                         link.click();
+                    }}).catch(err => {{
+                        console.error("Canvas export failed:", err);
                     }});
                 }}
             </script>
         </head>
         <body>
             <div class="print-controls">
-                <a href="/api/artworks/image/{artwork_id}" download="{file_base_name}.jpg" class="btn btn-raw-img">Download</a>
+                <button class="btn btn-raw-img" onclick="downloadTagImage()">Download</button>
                 <button class="btn btn-pdf" onclick="downloadPDF()">Download In PDF</button>
                 <button class="btn btn-print" onclick="window.print()">Print</button>
             </div>
