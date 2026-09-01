@@ -491,8 +491,18 @@ def get_artwork_image(artwork_id: str):
     except Exception as e:
         print(f"Database query failed in get_artwork_image: {e}")
 
-    # 4. If artwork_id is an artist ID (or artist with multiple artworks), scan all their artworks to find the latest valid painting file
+    # 4. If image not found or artwork_id is an artist ID, find artist and scan ALL their paintings on disk
     try:
+        artist_match = execute_query("""
+            SELECT rel.art_artists_art_collectionsart_artists_ida AS artist_id
+            FROM art_artists_art_collections_c rel
+            JOIN art_collections col ON rel.art_artists_art_collectionsart_collections_idb = col.id
+            WHERE (col.id = %s OR col.filename = %s) AND rel.deleted = 0
+            LIMIT 1;
+        """, (artwork_id, artwork_id), fetch="one")
+        
+        target_artist_id = artist_match["artist_id"] if artist_match else artwork_id
+        
         artist_arts = execute_query("""
             SELECT col.id, col.filename, col.document_name
             FROM art_collections col
@@ -500,9 +510,9 @@ def get_artwork_image(artwork_id: str):
               ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
             WHERE r2.art_artists_art_collectionsart_artists_ida = %s AND col.deleted = 0
             ORDER BY col.date_entered DESC;
-        """, (artwork_id,))
+        """, (target_artist_id,))
         for a_art in (artist_arts or []):
-            for cand in [a_art.get("id"), a_art.get("filename"), a_art.get("document_name")]:
+            for cand in [a_art.get("filename"), a_art.get("id"), a_art.get("document_name")]:
                 if not cand:
                     continue
                 cand_str = str(cand).strip()
@@ -514,7 +524,7 @@ def get_artwork_image(artwork_id: str):
                     if match:
                         return match
     except Exception as e:
-        print(f"Artist fallback query failed in get_artwork_image: {e}")
+        print(f"Artist fallback scan failed: {e}")
         
     placeholder_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
       <rect width="100%" height="100%" fill="#141416" />
