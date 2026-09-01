@@ -213,7 +213,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
           {fields.map(field => {
             const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name);
-            if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename') {
+            if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'subcategory_id') {
               const val = formData[field.name] || '';
               const isPdf = typeof val === 'string' && val.toLowerCase().endsWith('.pdf');
               const imageUrl = val && !isPdf
@@ -229,7 +229,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{field.label}</label>
                   <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.01)', border: '1px dashed var(--border-color)', padding: '1rem', borderRadius: '8px' }}>
 
-                    <div style={{ width: '80px', height: '80px', borderRadius: '8px', border: '1px solid var(--accent-gold)', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(212, 175, 55, 0.15)' }}>
+                    <div style={{ width: field.name === 'subcategory_id' ? '50px' : '80px', height: '80px', borderRadius: '8px', border: '1px solid var(--accent-gold)', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(212, 175, 55, 0.15)' }}>
                       {imageUrl ? (
                         <img src={imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : isPdf ? (
@@ -245,17 +245,17 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                       </span>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         <label className="btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
-                          <Upload size={12} /> Upload File
+                          <Upload size={12} /> Upload Image
                           <input
                             type="file"
-                            accept={field.name === 'profile_image' || field.name === 'image' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven' ? "image/*" : "*/*"}
+                            accept={field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven' ? "image/*" : "*/*"}
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               const file = e.target.files[0];
                               if (!file) return;
 
                               // Check size limit: 3MB for fullscreen Flash Images, 1MB for other modules
-                              const isImageField = field.name === 'profile_image' || field.name === 'image' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven';
+                              const isImageField = field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven';
                               if (isImageField) {
                                 const isFlash = module === 'flashimages';
                                 const maxSize = isFlash ? 3 * 1024 * 1024 : 1 * 1024 * 1024; // 3MB for flashimages, 1MB for others
@@ -301,9 +301,9 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                           </button>
                         )}
                       </div>
-                      {(field.name === 'profile_image' || field.name === 'image' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
+                      {(field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                          {module === 'flashimages' ? 'Max size: 3MB. Upload 1 image — it automatically optimizes & scales for Desktop, Tablet/iPad, and Mobile.' : 'Max size: 1MB. Recommended: 1200px+ width/height.'}
+                          {field.name === 'subcategory_id' ? 'Recommended: 1080x1920px (9:16 Portrait) for Mobile Phones. Max: 3MB.' : module === 'flashimages' ? 'Recommended: 1920x1080px (16:9 Landscape) for Desktop & Tablets. Max: 3MB.' : 'Max size: 1MB. Recommended: 1200px+ width/height.'}
                         </span>
                       )}
                     </div>
