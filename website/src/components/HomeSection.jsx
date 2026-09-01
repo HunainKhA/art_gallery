@@ -40,26 +40,33 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
   }, []);
 
   // Flash Images logic:
-  // Desktop/Tablet: strictly uses desktop landscape banner (f.filename)
-  // Mobile: media query activates and serves custom portrait mobile banner (f.mobile_filename || f.subcategory_id)
+  // Desktop/Tablet (>768px): strictly uses ONLY desktop landscape banners (flash.filename) - 9:16 mobile banners are excluded
+  // Mobile (<=768px): strictly uses ONLY 9:16 portrait mobile banners (flash.mobile_filename || flash.subcategory_id) - desktop banners are excluded
   const images = useMemo(() => {
     const flashList = (flashImages && flashImages.length > 0) ? flashImages : localImages;
 
     let list = [];
     if (flashList && flashList.length > 0) {
-      list = flashList
-        .filter(flash => flash && (flash.filename || flash.mobile_filename || flash.subcategory_id || flash.id))
-        .map(flash => {
-          if (isMobile) {
-            const src = flash.mobile_filename || flash.subcategory_id || flash.filename || flash.id;
-            return src ? getArtworkImageUrl(src) : null;
-          }
-          const src = flash.filename || flash.id;
-          return src ? getArtworkImageUrl(src) : null;
-        })
-        .filter(Boolean);
+      if (isMobile) {
+        // Mobile View: ONLY show 9:16 portrait mobile banners
+        list = flashList
+          .map(flash => {
+            const mobileSrc = flash.mobile_filename || flash.subcategory_id;
+            return mobileSrc ? getArtworkImageUrl(mobileSrc) : null;
+          })
+          .filter(Boolean);
+      } else {
+        // Desktop View: ONLY show desktop landscape banners (NEVER show mobile portrait banners)
+        list = flashList
+          .map(flash => {
+            const desktopSrc = flash.filename;
+            return desktopSrc ? getArtworkImageUrl(desktopSrc) : null;
+          })
+          .filter(Boolean);
+      }
     }
 
+    // Fallback if no specific banner exists for the active device
     if (list.length === 0) {
       if (exhibitions && exhibitions.length > 0) {
         list = exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
@@ -68,7 +75,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
       }
     }
 
-    // If only 1 flash image is currently uploaded, append artworks so the slider continues sliding seamlessly
+    // If only 1 flash image is currently available for this device, append fallback artworks so the slider continues sliding seamlessly
     if (list.length === 1 && artworks && artworks.length > 0) {
       const extras = artworks.slice(0, 6).map(art => getArtworkImageUrl(art.filename || art.id));
       list = [...list, ...extras];
