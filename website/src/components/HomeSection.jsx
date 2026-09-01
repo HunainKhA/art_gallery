@@ -94,9 +94,35 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: 'transparent'
+        backgroundColor: '#000000'
       }}
     >
+      <style>{`
+        .home-fullscreen-slider {
+          width: 100vw;
+          height: 100vh;
+          max-width: 100%;
+          background-color: #000000;
+        }
+        .home-slider-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center center;
+          display: block;
+        }
+        @media (max-width: 768px) {
+          .home-fullscreen-slider {
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+          }
+          .home-slider-img {
+            object-fit: contain !important;
+            object-position: center center !important;
+            background-color: #000000 !important;
+          }
+        }
+      `}</style>
       {images.map((imgSrc, index) => {
         let position = 'next';
         if (index === currentIndex) {
@@ -136,17 +162,20 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
               transform: transformVal,
               transition: transitionVal,
               zIndex: zIndexVal,
-              willChange: 'transform'
+              willChange: 'transform',
+              backgroundColor: '#000000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <img
               src={imgSrc}
               alt={`Slide ${index + 1}`}
+              className="home-slider-img"
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
                 display: 'block'
               }}
             />
