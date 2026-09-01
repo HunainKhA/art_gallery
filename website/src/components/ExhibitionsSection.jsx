@@ -1288,10 +1288,10 @@ export default function ExhibitionsSection({
                           </span>
                         ) : (
                           <>
-                            <span className="status-inquiry" style={{ fontSize: '12px', fontWeight: 400, color: '#000000', fontFamily: 'Montserrat, sans-serif' }}>
+                            <span className="status-inquiry" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
                               Inquiry
                             </span>
-                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
                               Available
                             </span>
                           </>

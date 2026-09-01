@@ -139,14 +139,14 @@ small,
 
 .status-sold {
   color: #ef4444 !important;
-  font-weight: 600 !important;
+  font-weight: 400 !important;
   font-size: 12px !important;
   font-family: 'Montserrat', sans-serif !important;
 }
 
 .status-available {
   color: #10b981 !important;
-  font-weight: 600 !important;
+  font-weight: 400 !important;
   font-size: 12px !important;
   font-family: 'Montserrat', sans-serif !important;
 }
@@ -154,14 +154,14 @@ small,
 .status-archive,
 .status-return {
   color: #f59e0b !important;
-  font-weight: 600 !important;
+  font-weight: 400 !important;
   font-size: 12px !important;
   font-family: 'Montserrat', sans-serif !important;
 }
 
 .status-inquiry {
-  color: #000000 !important;
-  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
   font-size: 12px !important;
   font-family: 'Montserrat', sans-serif !important;
 }
