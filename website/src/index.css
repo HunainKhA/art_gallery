@@ -1893,7 +1893,7 @@ body.light-theme .floating-socials {
 /* Global Fullscreen Home Slider for all screens (Desktop, Tablet, Mobile) */
 .home-fullscreen-slider {
   position: relative;
-  width: 100% !important;
+  width: 100vw !important;
   max-width: 100vw !important;
   height: 100vh !important;
   min-height: 100vh !important;
@@ -1902,9 +1902,9 @@ body.light-theme .floating-socials {
 }
 
 .home-fullscreen-slider img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
   object-position: center center !important;
   display: block !important;
 }
@@ -1912,7 +1912,7 @@ body.light-theme .floating-socials {
 .app-wrapper.is-home-view .main-content {
   padding: 0 !important;
   margin: 0 !important;
-  width: 100% !important;
+  width: 100vw !important;
   max-width: 100vw !important;
 }
 

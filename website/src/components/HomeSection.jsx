@@ -122,26 +122,31 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
     >
       <style>{`
         .home-fullscreen-slider {
-          width: 100%;
-          height: 100vh;
-          max-width: 100%;
+          position: relative;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: 100vw !important;
           background-color: #000000;
           box-sizing: border-box;
+          overflow: hidden !important;
         }
         .home-slider-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          object-fit: cover !important;
           object-position: center center !important;
           display: block;
         }
         @media (max-width: 768px) {
           .home-fullscreen-slider {
+            width: 100vw !important;
             height: 100dvh !important;
             min-height: 100dvh !important;
             padding: 0 !important;
           }
           .home-slider-img {
+            width: 100vw !important;
+            height: 100dvh !important;
             object-fit: contain !important;
             object-position: center center !important;
             background-color: #000000 !important;
