@@ -45,22 +45,27 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
   const images = useMemo(() => {
     const flashList = (flashImages && flashImages.length > 0) ? flashImages : localImages;
 
+    let list = [];
     if (flashList && flashList.length > 0) {
-      return flashList.map(flash => {
+      list = flashList.map(flash => {
         if (isMobile) {
           return getArtworkImageUrl(flash.mobile_filename || flash.subcategory_id || flash.filename || flash.id);
         }
         return getArtworkImageUrl(flash.filename || flash.id);
       });
+    } else if (exhibitions && exhibitions.length > 0) {
+      list = exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
+    } else if (artworks && artworks.length > 0) {
+      list = artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
     }
 
-    if (exhibitions && exhibitions.length > 0) {
-      return exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
+    // If only 1 flash image is currently uploaded, append artworks so the slider continues sliding seamlessly
+    if (list.length === 1 && artworks && artworks.length > 0) {
+      const extras = artworks.slice(0, 6).map(art => getArtworkImageUrl(art.filename || art.id));
+      list = [...list, ...extras];
     }
-    if (artworks && artworks.length > 0) {
-      return artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
-    }
-    return [];
+
+    return list;
   }, [flashImages, exhibitions, artworks, localImages, isMobile]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -70,10 +75,10 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
 
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 4000); // Stays on screen for 4 seconds before sliding
+    }, 4000); // 4 seconds per slide
 
     return () => clearInterval(interval);
-  }, [images]);
+  }, [images.length]);
 
   if (!images || images.length === 0) {
     return (
@@ -135,31 +140,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         }
       `}</style>
       {images.map((imgSrc, index) => {
-        let position = 'next';
-        if (index === currentIndex) {
-          position = 'active';
-        } else if (
-          index === (currentIndex - 1 + images.length) % images.length
-        ) {
-          position = 'prev';
-        }
-
-        let transformVal = 'translateX(100%)';
-        let zIndexVal = 1;
-        let transitionVal = 'transform 0.9s cubic-bezier(0.25, 1, 0.5, 1)';
-
-        if (position === 'active') {
-          transformVal = 'translateX(0)';
-          zIndexVal = 2;
-        } else if (position === 'prev') {
-          transformVal = 'translateX(-100%)';
-          zIndexVal = 1;
-        } else {
-          // Off-screen to the right without animation
-          transformVal = 'translateX(100%)';
-          zIndexVal = 0;
-          transitionVal = 'none';
-        }
+        const isActive = index === currentIndex;
 
         return (
           <div
@@ -170,10 +151,11 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
               left: 0,
               width: '100%',
               height: '100%',
-              transform: transformVal,
-              transition: transitionVal,
-              zIndex: zIndexVal,
-              willChange: 'transform',
+              opacity: isActive ? 1 : 0,
+              transform: isActive ? 'scale(1)' : 'scale(1.03)',
+              transition: 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.6s ease-out',
+              zIndex: isActive ? 2 : 1,
+              pointerEvents: isActive ? 'auto' : 'none',
               backgroundColor: '#000000',
               display: 'flex',
               alignItems: 'center',
