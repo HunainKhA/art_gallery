@@ -443,8 +443,8 @@ export default function ArtistsSection({
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
               {selectedArtist.artworks.map((art) => (
                 <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id, selectedArtist.artworks)}>
-                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '240px', backgroundColor: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
+                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '260px', width: '100%', backgroundColor: 'transparent' }}>
+                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
                     <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
                       <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>View Details <ArrowRight size={14} /></span>
                     </div>
