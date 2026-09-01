@@ -491,27 +491,28 @@ def get_artwork_image(artwork_id: str):
     except Exception as e:
         print(f"Database query failed in get_artwork_image: {e}")
 
-    # 4. If artwork_id is an artist ID, serve their latest artwork image
+    # 4. If artwork_id is an artist ID (or artist with multiple artworks), scan all their artworks to find the latest valid painting file
     try:
-        artist_art_query = """
-            SELECT COALESCE(NULLIF(col.filename, ''), col.id) AS art_img
+        artist_arts = execute_query("""
+            SELECT col.id, col.filename, col.document_name
             FROM art_collections col
             JOIN art_artists_art_collections_c r2 
               ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
             WHERE r2.art_artists_art_collectionsart_artists_ida = %s AND col.deleted = 0
-            ORDER BY col.date_entered DESC
-            LIMIT 1;
-        """
-        artist_art_res = execute_query(artist_art_query, (artwork_id,), fetch="one")
-        if artist_art_res and artist_art_res.get("art_img"):
-            art_img_name = artist_art_res["art_img"].strip()
-            match = try_serve(art_img_name)
-            if match:
-                return match
-            for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']:
-                match = try_serve(f"{art_img_name}{ext}")
+            ORDER BY col.date_entered DESC;
+        """, (artwork_id,))
+        for a_art in (artist_arts or []):
+            for cand in [a_art.get("id"), a_art.get("filename"), a_art.get("document_name")]:
+                if not cand:
+                    continue
+                cand_str = str(cand).strip()
+                match = try_serve(cand_str)
                 if match:
                     return match
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG', '_R.jpg']:
+                    match = try_serve(f"{cand_str}{ext}")
+                    if match:
+                        return match
     except Exception as e:
         print(f"Artist fallback query failed in get_artwork_image: {e}")
         

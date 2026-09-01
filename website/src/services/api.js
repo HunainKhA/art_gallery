@@ -40,21 +40,19 @@ export const getArtworkImageUrl = (id) => {
 };
 
 export const getArtistInitials = (name = '') => {
-  if (!name) return 'A';
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'A';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return '';
 };
 
-export const getArtistAvatarSvg = (name = 'Artist') => {
-  const initials = getArtistInitials(name);
-  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100%25' height='100%25'%3E%3Crect width='100' height='100' fill='%231a1a1a'/%3E%3Ctext x='50' y='56' font-family='Montserrat, -apple-system, sans-serif' font-size='34' font-weight='400' fill='%23d4af37' text-anchor='middle' dominant-baseline='middle' letter-spacing='1'%3E${initials}%3C/text%3E%3C/svg%3E`;
+export const getArtistAvatarSvg = (name = '') => {
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100%25' height='100%25'%3E%3Crect width='100' height='100' fill='%23141416'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23d4af37' stroke-width='1' opacity='0.3'/%3E%3C/svg%3E`;
 };
 
-export const getArtistImageUrl = (filename, artistName = 'Artist') => {
+export const getArtistImageUrl = (filename, artistIdOrLatestArt) => {
   if (!filename || filename === 'NULL' || filename === 'null' || filename === '' || filename === 'undefined') {
-    return getArtistAvatarSvg(artistName);
+    if (artistIdOrLatestArt) {
+      return getArtworkImageUrl(artistIdOrLatestArt);
+    }
+    return getArtistAvatarSvg();
   }
   if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
   return `${API_BASE}/api/artists/image/${filename}`;
