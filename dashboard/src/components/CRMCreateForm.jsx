@@ -314,16 +314,16 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                     <div style={{
                       marginTop: '1.25rem',
                       padding: '1.25rem',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      borderRadius: '10px',
-                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                      backgroundColor: 'var(--bg-input)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          ⚡ Universal Auto-Sizer & Screen Live Preview
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          Responsive Auto-Sizer & Screen Preview
                         </span>
                         {/* Device Switcher Tabs */}
-                        <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--card-bg)', padding: '0.25rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                           <button
                             type="button"
                             onClick={() => setPreviewDevice('desktop')}
@@ -333,12 +333,12 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                               borderRadius: '4px',
                               border: 'none',
                               background: previewDevice === 'desktop' ? 'var(--accent-gold)' : 'transparent',
-                              color: previewDevice === 'desktop' ? '#000' : 'var(--text-secondary)',
+                              color: previewDevice === 'desktop' ? '#000000' : 'var(--text-secondary)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              fontWeight: previewDevice === 'desktop' ? 700 : 400,
+                              fontWeight: previewDevice === 'desktop' ? 600 : 400,
                               transition: 'all 0.2s'
                             }}
                           >
@@ -353,12 +353,12 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                               borderRadius: '4px',
                               border: 'none',
                               background: previewDevice === 'tablet' ? 'var(--accent-gold)' : 'transparent',
-                              color: previewDevice === 'tablet' ? '#000' : 'var(--text-secondary)',
+                              color: previewDevice === 'tablet' ? '#000000' : 'var(--text-secondary)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              fontWeight: previewDevice === 'tablet' ? 700 : 400,
+                              fontWeight: previewDevice === 'tablet' ? 600 : 400,
                               transition: 'all 0.2s'
                             }}
                           >
@@ -373,12 +373,12 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                               borderRadius: '4px',
                               border: 'none',
                               background: previewDevice === 'mobile' ? 'var(--accent-gold)' : 'transparent',
-                              color: previewDevice === 'mobile' ? '#000' : 'var(--text-secondary)',
+                              color: previewDevice === 'mobile' ? '#000000' : 'var(--text-secondary)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              fontWeight: previewDevice === 'mobile' ? 700 : 400,
+                              fontWeight: previewDevice === 'mobile' ? 600 : 400,
                               transition: 'all 0.2s'
                             }}
                           >
@@ -388,10 +388,10 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                       </div>
 
                       {/* Dimensions & auto-sizer guide */}
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
-                        <span>⚡ <strong>Auto-Sizing:</strong> Automatic responsive scaling for all screen sizes</span>
-                        <span>🖥️ <strong>Live Preview Mode:</strong> {previewDevice === 'desktop' ? 'Desktop Widescreen (1920x1080)' : previewDevice === 'tablet' ? 'iPad / Tablet (1536x2048)' : 'Mobile Phone (1080x1920)'}</span>
-                        <span>✨ <strong>Homepage Display:</strong> Seamless Edge-to-Edge Fullscreen Cover</span>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', background: 'var(--card-bg)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <span><strong>Auto-Sizing:</strong> Automatic responsive scaling for all screen sizes</span>
+                        <span><strong>Live Preview:</strong> {previewDevice === 'desktop' ? 'Desktop Widescreen (1920x1080)' : previewDevice === 'tablet' ? 'iPad / Tablet (1536x2048)' : 'Mobile Phone (1080x1920)'}</span>
+                        <span><strong>Display:</strong> Seamless Fullscreen Cover</span>
                       </div>
 
                       {/* Interactive Responsive Viewport Frame */}
@@ -399,10 +399,10 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        background: '#09090b',
+                        background: 'var(--card-bg)',
                         padding: '1.5rem',
-                        borderRadius: '8px',
-                        border: '1px dashed rgba(255, 255, 255, 0.12)',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
                         minHeight: '260px'
                       }}>
                         {val ? (
@@ -410,13 +410,13 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                             width: previewDevice === 'desktop' ? '100%' : previewDevice === 'tablet' ? '260px' : '160px',
                             maxWidth: '100%',
                             height: previewDevice === 'desktop' ? '200px' : previewDevice === 'tablet' ? '280px' : '290px',
-                            borderRadius: previewDevice === 'desktop' ? '6px' : '16px',
+                            borderRadius: previewDevice === 'desktop' ? '4px' : '12px',
                             overflow: 'hidden',
                             position: 'relative',
-                            border: previewDevice === 'desktop' ? '2px solid #333' : '4px solid #3a3a3c',
-                            boxShadow: '0 12px 32px rgba(0,0,0,0.7)',
+                            border: '1.5px solid var(--border-color)',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                             transition: 'all 0.3s ease',
-                            background: '#000',
+                            background: '#000000',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -440,15 +440,15 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                               padding: '2px 8px',
                               borderRadius: '4px',
                               fontSize: '9px',
-                              color: '#fff',
+                              color: '#ffffff',
                               letterSpacing: '0.04em',
-                              fontWeight: 600
+                              fontWeight: 500
                             }}>
-                              {previewDevice.toUpperCase()} FULLSCREEN PREVIEW
+                              {previewDevice.toUpperCase()} PREVIEW
                             </div>
                           </div>
                         ) : (
-                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '2rem 1rem' }}>
+                          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '2rem 1rem' }}>
                             Upload a banner image above to see live responsive fullscreen preview for {previewDevice.toUpperCase()}.
                           </div>
                         )}
