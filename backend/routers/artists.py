@@ -82,12 +82,19 @@ def get_all_artists():
     """
     try:
         artists = execute_query(query)
-        # Combine first and last name
+        upload_dir = Config.UPLOAD_DIR
+        # Combine first and last name & verify profile_image existence
         for artist in artists:
             artist["name"] = f"{artist['first_name'] or ''} {artist['last_name'] or ''}".strip()
             # Convert decimal fields to float
             artist["artist_advance"] = float(artist["artist_advance"]) if artist["artist_advance"] is not None else 0.0
             artist["pending_amount"] = float(artist["pending_amount"]) if artist["pending_amount"] is not None else 0.0
+            
+            p_img = (artist.get("profile_image") or "").strip()
+            if p_img:
+                direct = os.path.join(upload_dir, p_img)
+                if not (os.path.exists(direct) and os.path.isfile(direct)):
+                    artist["profile_image"] = None
         
         # Robust Alphabetical sorting (A-Z) by display name
         artists.sort(key=lambda x: (x['name'] or '').strip().upper())
@@ -162,6 +169,13 @@ def get_artist_by_id(artist_id: str):
         artist["name"] = f"{artist['first_name'] or ''} {artist['last_name'] or ''}".strip()
         artist["artist_advance"] = float(artist["artist_advance"]) if artist["artist_advance"] is not None else 0.0
         artist["pending_amount"] = float(artist["pending_amount"]) if artist["pending_amount"] is not None else 0.0
+        
+        p_img = (artist.get("profile_image") or "").strip()
+        upload_dir = Config.UPLOAD_DIR
+        if p_img:
+            direct = os.path.join(upload_dir, p_img)
+            if not (os.path.exists(direct) and os.path.isfile(direct)):
+                artist["profile_image"] = None
         
         artworks = execute_query(artworks_query, (artist_id,))
         for art in artworks:
@@ -414,15 +428,37 @@ def get_artist_image(filename: str):
     # 2. Lookup by id or filename from database
     artist_name = "Artist"
     try:
-        query = "SELECT filename, first_name, last_name FROM art_artists WHERE (id = %s OR filename = %s) AND deleted = 0;"
+        query = """
+            SELECT a.id, a.filename, a.first_name, a.last_name,
+                   (
+                       SELECT COALESCE(NULLIF(col.filename, ''), col.id)
+                       FROM art_collections col
+                       JOIN art_artists_art_collections_c r2 
+                         ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
+                       WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
+                       ORDER BY col.date_entered DESC
+                       LIMIT 1
+                   ) AS latest_artwork_image
+            FROM art_artists a 
+            WHERE (a.id = %s OR a.filename = %s) AND a.deleted = 0;
+        """
         res = execute_query(query, (filename, filename), fetch="one")
         if res:
             if res.get("first_name") or res.get("last_name"):
                 artist_name = f"{res.get('first_name') or ''} {res.get('last_name') or ''}".strip()
             if res.get("filename"):
                 alt_path = os.path.join(upload_dir, res["filename"].strip())
-                if os.path.exists(alt_path):
+                if os.path.exists(alt_path) and os.path.isfile(alt_path):
                     return FileResponse(alt_path)
+            # If no profile picture file on disk, fallback to artist's latest artwork image
+            if res.get("latest_artwork_image"):
+                art_img = res["latest_artwork_image"].strip()
+                art_path = os.path.join(upload_dir, art_img)
+                if os.path.exists(art_path) and os.path.isfile(art_path):
+                    return FileResponse(art_path)
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                    if os.path.exists(os.path.join(upload_dir, f"{art_img}{ext}")):
+                        return FileResponse(os.path.join(upload_dir, f"{art_img}{ext}"))
     except Exception:
         pass
 

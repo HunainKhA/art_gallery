@@ -212,6 +212,31 @@ body.light-theme .exhibitions-section-wrapper svg:not(.status-available svg):not
   stroke: #000000 !important;
 }
 
+body.light-theme .exhibitions-section-wrapper .status-available {
+  color: #10b981 !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+}
+
+body.light-theme .exhibitions-section-wrapper .status-sold {
+  color: #ef4444 !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+}
+
+body.light-theme .exhibitions-section-wrapper .status-archive,
+body.light-theme .exhibitions-section-wrapper .status-return {
+  color: #f59e0b !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+}
+
+body.light-theme .exhibitions-section-wrapper .status-inquiry {
+  color: #000000 !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+}
+
 /* Light Theme - Collections Section (Pure Solid Black, Weight 400, Available Green, Sold Red) */
 body.light-theme .collections-section-wrapper,
 body.light-theme .collections-section-wrapper h1,
