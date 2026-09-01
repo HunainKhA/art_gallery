@@ -266,27 +266,64 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                                 }
                               }
 
-                              const uploadData = new FormData();
-                              uploadData.append('file', file);
+                              const proceedUpload = () => {
+                                const uploadData = new FormData();
+                                uploadData.append('file', file);
 
-                              const uploadEndpoint = field.name === 'profile_image'
-                                ? '/api/artists/upload-image'
-                                : '/api/artworks/upload-image';
+                                const uploadEndpoint = field.name === 'profile_image'
+                                  ? '/api/artists/upload-image'
+                                  : '/api/artworks/upload-image';
 
-                              fetch(getApiUrl(uploadEndpoint), {
-                                method: 'POST',
-                                body: uploadData
-                              })
-                                .then(res => {
-                                  if (!res.ok) throw new Error("Upload failed");
-                                  return res.json();
+                                fetch(getApiUrl(uploadEndpoint), {
+                                  method: 'POST',
+                                  body: uploadData
                                 })
-                                .then(resData => {
-                                  if (resData.filename) {
-                                    handleInputChange(field.name, resData.filename);
+                                  .then(res => {
+                                    if (!res.ok) throw new Error("Upload failed");
+                                    return res.json();
+                                  })
+                                  .then(resData => {
+                                    if (resData.filename) {
+                                      handleInputChange(field.name, resData.filename);
+                                    }
+                                  })
+                                  .catch(err => alert("Upload error: " + err.message));
+                              };
+
+                              // Strict Orientation & Ratio Validator for Flash Images
+                              if (module === 'flashimages' && file.type.startsWith('image/')) {
+                                const tempImg = new Image();
+                                const objUrl = URL.createObjectURL(file);
+                                tempImg.onload = () => {
+                                  const w = tempImg.naturalWidth || tempImg.width;
+                                  const h = tempImg.naturalHeight || tempImg.height;
+                                  URL.revokeObjectURL(objUrl);
+
+                                  if (field.name === 'filename') {
+                                    // Desktop & Tablet Banner MUST be Landscape (Width >= Height)
+                                    if (h > w) {
+                                      alert("⚠️ Ghalat Image Orientation!\n\nYeh 'Desktop & Tablet Banner' ka slot hai. Ismein sirf Horizontal / Landscape (Width ziada, Height kam, e.g. 1920x1080) banner upload ho sakta hai.\n\nVertical / Portrait banner ko baraye meharbani barabar wale 'Mobile Phone Banner' slot mein upload karein.");
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                  } else if (field.name === 'subcategory_id') {
+                                    // Mobile Phone Banner MUST be Portrait (Height >= Width)
+                                    if (w > h) {
+                                      alert("⚠️ Ghalat Image Orientation!\n\nYeh 'Mobile Phone Banner' ka slot hai. Ismein sirf Vertical / Portrait (Height ziada, Width kam, e.g. 1080x1920) banner upload ho sakta hai.\n\nHorizontal / Landscape banner ko baraye meharbani 'Desktop & Tablet Banner' slot mein upload karein.");
+                                      e.target.value = '';
+                                      return;
+                                    }
                                   }
-                                })
-                                .catch(err => alert("Upload error: " + err.message));
+                                  proceedUpload();
+                                };
+                                tempImg.onerror = () => {
+                                  URL.revokeObjectURL(objUrl);
+                                  proceedUpload();
+                                };
+                                tempImg.src = objUrl;
+                              } else {
+                                proceedUpload();
+                              }
                             }}
                           />
                         </label>
