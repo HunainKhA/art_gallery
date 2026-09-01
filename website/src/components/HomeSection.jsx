@@ -47,16 +47,25 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
 
     let list = [];
     if (flashList && flashList.length > 0) {
-      list = flashList.map(flash => {
-        if (isMobile) {
-          return getArtworkImageUrl(flash.mobile_filename || flash.subcategory_id || flash.filename || flash.id);
-        }
-        return getArtworkImageUrl(flash.filename || flash.id);
-      });
-    } else if (exhibitions && exhibitions.length > 0) {
-      list = exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
-    } else if (artworks && artworks.length > 0) {
-      list = artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
+      list = flashList
+        .filter(flash => flash && (flash.filename || flash.mobile_filename || flash.subcategory_id || flash.id))
+        .map(flash => {
+          if (isMobile) {
+            const src = flash.mobile_filename || flash.subcategory_id || flash.filename || flash.id;
+            return src ? getArtworkImageUrl(src) : null;
+          }
+          const src = flash.filename || flash.id;
+          return src ? getArtworkImageUrl(src) : null;
+        })
+        .filter(Boolean);
+    }
+
+    if (list.length === 0) {
+      if (exhibitions && exhibitions.length > 0) {
+        list = exhibitions.slice(0, 8).map(ex => getApiUrl(`/api/crm/exhibitions/image/${ex.id}`));
+      } else if (artworks && artworks.length > 0) {
+        list = artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
+      }
     }
 
     // If only 1 flash image is currently uploaded, append artworks so the slider continues sliding seamlessly

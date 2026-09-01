@@ -168,6 +168,29 @@ def get_crm_documents(module: str):
             if r.get("is_featured_c") is not None:
                 # Convert tinyint/boolean to integer 0/1 for response consistency
                 r["is_featured_c"] = 1 if r["is_featured_c"] else 0
+                
+            # For flashimages: ensure orphan records with nonexistent files are omitted
+            if module.lower() == "flashimages":
+                fname = (r.get("filename") or "").strip()
+                mob_name = (r.get("subcategory_id") or "").strip()
+                doc_id = (r.get("id") or "").strip()
+                
+                has_file = False
+                for test_f in [fname, mob_name, doc_id]:
+                    if test_f:
+                        direct = os.path.join(upload_dir, test_f)
+                        if os.path.exists(direct) and os.path.isfile(direct):
+                            has_file = True
+                            break
+                        for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
+                            if os.path.exists(os.path.join(upload_dir, f"{test_f}{ext}")):
+                                has_file = True
+                                break
+                    if has_file:
+                        break
+                if not has_file:
+                    continue
+
             filtered_results.append(r)
             
         return filtered_results
