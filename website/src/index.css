@@ -1921,7 +1921,6 @@ body.light-theme .floating-socials {
 }
 
 @media (max-width: 480px) {
-
   .app-wrapper.is-home-view,
   .app-wrapper.is-home-view .main-content,
   .home-fullscreen-slider {
@@ -1930,29 +1929,19 @@ body.light-theme .floating-socials {
     min-width: 0 !important;
   }
 
-
   .home-fullscreen-slider::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 20%, transparent 75%, rgba(0, 0, 0, 0.6) 100%);
-
     pointer-events: none;
     z-index: 1;
-
     background: linear-gradient(to bottom,
         rgba(0, 0, 0, 0.4) 0%,
         transparent 20%,
         transparent 75%,
         rgba(0, 0, 0, 0.6) 100%);
-
-    pointer-events: none;
-    z-index: 1;
   }
-
-
-
-
+}
 
   /* ====================================================
    About Page Responsive Layout & Image System
@@ -2567,4 +2556,3 @@ body.light-theme .floating-socials {
       gap: 0.5rem;
     }
   }
-}
