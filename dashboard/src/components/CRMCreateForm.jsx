@@ -180,7 +180,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
   if (!config) return <div style={{ color: 'var(--text-muted)' }}>Invalid CRM Module selected.</div>;
 
   return (
-    <div className="glass-card" style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+    <div className="glass-card" style={{ padding: '2rem', maxWidth: module === 'flashimages' ? '840px' : '700px', margin: '0 auto' }}>
       <h2 style={{ fontSize: '1.4rem', color: 'var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <Plus size={20} /> {isEdit ? 'Update' : 'Create'} {config.title}
       </h2>
@@ -211,7 +211,9 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
           {fields.map(field => {
-            const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name);
+            const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
+            const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
+
             if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'subcategory_id') {
               const val = formData[field.name] || '';
               const isPdf = typeof val === 'string' && val.toLowerCase().endsWith('.pdf');
@@ -224,27 +226,27 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                 : null;
 
               return (
-                <div key={field.name} style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{field.label}</label>
-                  <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.01)', border: '1px dashed var(--border-color)', padding: '1rem', borderRadius: '8px' }}>
+                <div key={field.name} style={{ gridColumn: isFlashUpload ? 'span 1' : 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{field.label}</label>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-input, rgba(255, 255, 255, 0.01))', border: '1px dashed var(--border-color)', padding: '0.85rem', borderRadius: '8px', minHeight: '95px' }}>
 
-                    <div style={{ width: field.name === 'subcategory_id' ? '50px' : '80px', height: '80px', borderRadius: '8px', border: '1px solid var(--accent-gold)', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(212, 175, 55, 0.15)' }}>
+                    <div style={{ width: field.name === 'subcategory_id' ? '45px' : '70px', height: '70px', borderRadius: '6px', border: '1px solid var(--accent-gold)', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                       {imageUrl ? (
                         <img src={imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : isPdf ? (
-                        <div style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', textAlign: 'center', padding: '0.25rem' }}>PDF File</div>
+                        <div style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', textAlign: 'center', padding: '0.25rem' }}>PDF</div>
                       ) : (
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', textAlign: 'center', padding: '0.25rem' }}>No File</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', textAlign: 'center', padding: '0.25rem' }}>No Pic</div>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-                        {val || "No file uploaded yet."}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
+                        {val || "No file uploaded"}
                       </span>
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <label className="btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
-                          <Upload size={12} /> Upload Image
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <label className="btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
+                          <Upload size={12} /> Upload
                           <input
                             type="file"
                             accept={field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven' ? "image/*" : "*/*"}
@@ -253,14 +255,13 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                               const file = e.target.files[0];
                               if (!file) return;
 
-                              // Check size limit: 3MB for fullscreen Flash Images, 1MB for other modules
                               const isImageField = field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven';
                               if (isImageField) {
                                 const isFlash = module === 'flashimages';
-                                const maxSize = isFlash ? 3 * 1024 * 1024 : 1 * 1024 * 1024; // 3MB for flashimages, 1MB for others
+                                const maxSize = isFlash ? 3 * 1024 * 1024 : 1 * 1024 * 1024;
                                 if (file.size > maxSize) {
                                   alert(`Error: File size exceeds ${isFlash ? '3MB' : '1MB'}. Please upload a smaller image.`);
-                                  e.target.value = ''; // Reset input
+                                  e.target.value = '';
                                   return;
                                 }
                               }
@@ -293,7 +294,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                           <button
                             type="button"
                             className="btn-secondary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'var(--accent-red)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                            style={{ padding: '0.3rem 0.5rem', fontSize: '0.72rem', color: 'var(--accent-red)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
                             onClick={() => handleInputChange(field.name, '')}
                           >
                             Remove
@@ -301,8 +302,8 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                         )}
                       </div>
                       {(field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                          {field.name === 'subcategory_id' ? 'Recommended: 1080x1920px (9:16 Portrait) for Mobile Phones. Max: 3MB.' : module === 'flashimages' ? 'Recommended: 1920x1080px (16:9 Landscape) for Desktop & Tablets. Max: 3MB.' : 'Max size: 1MB. Recommended: 1200px+ width/height.'}
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'block', lineHeight: 1.2 }}>
+                          {field.name === 'subcategory_id' ? '1080x1920 (9:16 Portrait)' : module === 'flashimages' ? '1920x1080 (16:9 Landscape)' : '1200px+ width/height'}
                         </span>
                       )}
                     </div>
