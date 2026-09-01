@@ -896,7 +896,7 @@ export default function ExhibitionsSection({
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=100';
+                          if (art && art.id) e.target.src = getArtworkImageUrl(art.id);
                         }}
                       />
                     </div>
@@ -924,7 +924,7 @@ export default function ExhibitionsSection({
                             alt={flipData.left.title}
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                              e.target.style.opacity = 0;
                             }}
                           />
                         </div>
@@ -957,7 +957,7 @@ export default function ExhibitionsSection({
                             alt={flipData.right.title}
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                              e.target.style.opacity = 0;
                             }}
                           />
                         </div>
@@ -988,7 +988,7 @@ export default function ExhibitionsSection({
                                   alt={flipData.flipFront.title}
                                   onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                                    e.target.style.opacity = 0;
                                   }}
                                 />
                               </div>
@@ -1016,7 +1016,7 @@ export default function ExhibitionsSection({
                                   alt={flipData.flipBack.title}
                                   onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                                    e.target.style.opacity = 0;
                                   }}
                                 />
                               </div>
@@ -1167,7 +1167,7 @@ export default function ExhibitionsSection({
                         className="art-grid-image"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1579783902882-c0d3dad7b119?w=400';
+                          if (art && art.id) e.target.src = getArtworkImageUrl(art.id);
                         }}
                       />
                       {/* Hover Overlay Button to View details */}
