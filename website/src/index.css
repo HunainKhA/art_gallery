@@ -139,19 +139,23 @@ small,
 
 .status-sold {
   color: #ef4444 !important;
+  font-weight: 500 !important;
 }
 
 .status-available {
   color: #10b981 !important;
+  font-weight: 500 !important;
 }
 
 .status-archive,
 .status-return {
   color: #f59e0b !important;
+  font-weight: 500 !important;
 }
 
 .status-inquiry {
-  color: #000000 !important;
+  color: inherit !important;
+  font-weight: 400 !important;
 }
 
 body.light-theme .exhibition-nav-link {
