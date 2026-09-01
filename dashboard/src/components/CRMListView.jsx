@@ -732,42 +732,50 @@ export default function CRMListView({ module }) {
                             <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>No Pic</span>
                           )}
                         </div>
-                      ) : (col.key === 'filename' && (module === 'framerheaven' || module === 'catalogues' || module === 'flashimages')) ? (
-                        <div 
-                          onClick={() => {
-                            if (row.filename && !row.filename.toLowerCase().endsWith('.pdf')) {
-                              setPreviewImage({
-                                url: getApiUrl(`/api/artworks/image/${row.filename}`),
-                                title: row.document_name,
-                                artist: module === 'framerheaven' ? (row.category_id || 'Product') : module === 'flashimages' ? 'Homepage Banner' : 'Catalogue Cover',
-                                code: null,
-                                price: null
-                              });
-                            }
-                          }}
-                          style={{ width: module === 'flashimages' ? '80px' : '40px', height: '40px', borderRadius: '4px', overflow: 'hidden', background: '#222', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (row.filename && !row.filename.toLowerCase().endsWith('.pdf')) ? 'pointer' : 'default' }}
-                          title={row.filename && !row.filename.toLowerCase().endsWith('.pdf') ? "Click to view large image" : ""}
-                        >
-                          {row.filename ? (
-                            row.filename.toLowerCase().endsWith('.pdf') ? (
-                              <div style={{ color: 'var(--accent-gold)', fontSize: '0.65rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <FileText size={16} />
-                                <span style={{ marginTop: '2px' }}>PDF</span>
-                              </div>
-                            ) : (
-                              <img 
-                                src={getApiUrl(`/api/artworks/image/${row.filename}`)} 
-                                alt={row.document_name} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                onError={(e) => {
-                                  e.target.src = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=100';
-                                }}
-                              />
-                            )
-                          ) : (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>No Pic</span>
-                          )}
-                        </div>
+                      ) : ((col.key === 'filename' || (col.key === 'subcategory_id' && module === 'flashimages')) && (module === 'framerheaven' || module === 'catalogues' || module === 'flashimages')) ? (
+                        (() => {
+                          const imgVal = row[col.key];
+                          const isMobileCol = col.key === 'subcategory_id';
+                          return (
+                            <div 
+                              onClick={() => {
+                                if (imgVal && !imgVal.toLowerCase().endsWith('.pdf')) {
+                                  setPreviewImage({
+                                    url: getApiUrl(`/api/artworks/image/${imgVal}`),
+                                    title: `${row.document_name} (${isMobileCol ? 'Mobile' : 'Desktop'})`,
+                                    artist: module === 'framerheaven' ? (row.category_id || 'Product') : module === 'flashimages' ? (isMobileCol ? 'Mobile Portrait Banner' : 'Desktop & Tablet Banner') : 'Catalogue Cover',
+                                    code: null,
+                                    price: null
+                                  });
+                                }
+                              }}
+                              style={{ width: isMobileCol ? '30px' : module === 'flashimages' ? '70px' : '40px', height: '40px', borderRadius: '4px', overflow: 'hidden', background: '#222', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (imgVal && !imgVal.toLowerCase().endsWith('.pdf')) ? 'pointer' : 'default' }}
+                              title={imgVal && !imgVal.toLowerCase().endsWith('.pdf') ? "Click to view large image" : (isMobileCol ? "No separate mobile image (uses desktop image automatically)" : "")}
+                            >
+                              {imgVal ? (
+                                imgVal.toLowerCase().endsWith('.pdf') ? (
+                                  <div style={{ color: 'var(--accent-gold)', fontSize: '0.65rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FileText size={16} />
+                                    <span style={{ marginTop: '2px' }}>PDF</span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={getApiUrl(`/api/artworks/image/${imgVal}`)} 
+                                    alt={row.document_name} 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                    onError={(e) => {
+                                      e.target.src = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=100';
+                                    }}
+                                  />
+                                )
+                              ) : (
+                                <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2px' }}>
+                                  {isMobileCol ? 'Auto' : 'No Pic'}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()
                       ) : col.key === 'image' ? (
                         <div 
                           onClick={() => {

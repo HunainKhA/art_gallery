@@ -389,9 +389,8 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
 
                       {/* Dimensions & auto-sizer guide */}
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', background: 'var(--card-bg)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                        <span><strong>Auto-Sizing:</strong> Automatic responsive scaling for all screen sizes</span>
-                        <span><strong>Live Preview:</strong> {previewDevice === 'desktop' ? 'Desktop Widescreen (1920x1080)' : previewDevice === 'tablet' ? 'iPad / Tablet (1536x2048)' : 'Mobile Phone (1080x1920)'}</span>
-                        <span><strong>Display:</strong> Seamless Fullscreen Cover</span>
+                        <span><strong>Desktop & Tablet Mode:</strong> Uses 16:9 / 3:4 Landscape Banner</span>
+                        <span><strong>Mobile Phone Mode:</strong> {formData.subcategory_id ? 'Uses Custom 9:16 Portrait Banner (Perfect Zero-Crop Fit)' : 'Using Desktop Banner (Upload Mobile Banner above for 100% full portrait fit)'}</span>
                       </div>
 
                       {/* Interactive Responsive Viewport Frame */}
@@ -405,53 +404,62 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                         border: '1px solid var(--border-color)',
                         minHeight: '260px'
                       }}>
-                        {val ? (
-                          <div style={{
-                            width: previewDevice === 'desktop' ? '100%' : previewDevice === 'tablet' ? '260px' : '160px',
-                            maxWidth: '100%',
-                            height: previewDevice === 'desktop' ? '200px' : previewDevice === 'tablet' ? '280px' : '290px',
-                            borderRadius: previewDevice === 'desktop' ? '4px' : '12px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            border: '1.5px solid var(--border-color)',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                            transition: 'all 0.3s ease',
-                            background: '#000000',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <img
-                              src={getApiUrl(`/api/artworks/image/${val}`)}
-                              alt="Banner preview"
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center center',
-                                display: 'block'
-                              }}
-                            />
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '6px',
-                              right: '8px',
-                              background: 'rgba(0,0,0,0.75)',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontSize: '9px',
-                              color: '#ffffff',
-                              letterSpacing: '0.04em',
-                              fontWeight: 500
-                            }}>
-                              {previewDevice.toUpperCase()} PREVIEW
+                        {(() => {
+                          const activePreviewImg = previewDevice === 'mobile'
+                            ? (formData.subcategory_id || formData.filename)
+                            : formData.filename;
+
+                          if (activePreviewImg) {
+                            return (
+                              <div style={{
+                                width: previewDevice === 'desktop' ? '100%' : previewDevice === 'tablet' ? '260px' : '160px',
+                                maxWidth: '100%',
+                                height: previewDevice === 'desktop' ? '200px' : previewDevice === 'tablet' ? '280px' : '290px',
+                                borderRadius: previewDevice === 'desktop' ? '4px' : '12px',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                border: '1.5px solid var(--border-color)',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                transition: 'all 0.3s ease',
+                                background: '#000000',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                <img
+                                  src={getApiUrl(`/api/artworks/image/${activePreviewImg}`)}
+                                  alt="Banner preview"
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    objectPosition: 'center center',
+                                    display: 'block'
+                                  }}
+                                />
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '6px',
+                                  right: '8px',
+                                  background: 'rgba(0,0,0,0.75)',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '9px',
+                                  color: '#ffffff',
+                                  letterSpacing: '0.04em',
+                                  fontWeight: 500
+                                }}>
+                                  {previewDevice === 'mobile' && formData.subcategory_id ? 'CUSTOM MOBILE BANNER' : `${previewDevice.toUpperCase()} PREVIEW`}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '2rem 1rem' }}>
+                              Upload a banner image above to see live responsive fullscreen preview for {previewDevice.toUpperCase()}.
                             </div>
-                          </div>
-                        ) : (
-                          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '2rem 1rem' }}>
-                            Upload a banner image above to see live responsive fullscreen preview for {previewDevice.toUpperCase()}.
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   )}

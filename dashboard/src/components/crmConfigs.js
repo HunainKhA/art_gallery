@@ -118,10 +118,11 @@ export const CONFIGS = {
     title: 'Flash Image Banner',
     fields: [
       { name: 'document_name', label: 'Banner Name *', type: 'text', required: true },
-      { name: 'filename', label: 'Banner Image File', type: 'text' },
+      { name: 'filename', label: 'Desktop & Tablet Banner (Landscape 16:9 / 3:4) *', type: 'text', placeholder: 'Upload high-res desktop & tablet banner' },
+      { name: 'subcategory_id', label: 'Mobile Phone Banner (Portrait 9:16 - Optional)', type: 'text', placeholder: 'Upload vertical mobile-optimized banner' },
       { name: 'description', label: 'Description / Notes', type: 'textarea' }
     ],
-    importFields: ['document_name', 'filename', 'description']
+    importFields: ['document_name', 'filename', 'subcategory_id', 'description']
   },
   videos: {
     title: 'Gallery Video',
@@ -203,7 +204,8 @@ export const LIST_COLUMNS = {
     { key: 'description', label: 'Description' }
   ],
   flashimages: [
-    { key: 'filename', label: 'Banner Preview' },
+    { key: 'filename', label: 'Desktop & Tab Preview' },
+    { key: 'subcategory_id', label: 'Mobile Preview' },
     { key: 'document_name', label: 'Banner Name' },
     { key: 'description', label: 'Description' }
   ],

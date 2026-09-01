@@ -84,6 +84,7 @@ class DocumentRequest(BaseModel):
     show_type: str = "solo"
     group_artist_ids: str = None
     video_url: str = None
+    subcategory_id: str = None
 
 class DocumentImportList(BaseModel):
     documents: list[DocumentRequest]
@@ -142,9 +143,16 @@ def get_crm_documents(module: str):
             WHERE t.deleted = 0
             ORDER BY t.date_entered DESC;
         """
+    elif module.lower() == "flashimages":
+        query = f"""
+            SELECT id, document_name, filename, subcategory_id AS mobile_filename, subcategory_id, description, active_date, exp_date, date_entered, category_id
+            FROM {table}
+            WHERE deleted = 0
+            ORDER BY date_entered DESC;
+        """
     else:
         query = f"""
-            SELECT id, document_name, filename, description, active_date, exp_date, date_entered, category_id
+            SELECT id, document_name, filename, description, active_date, exp_date, date_entered, category_id, subcategory_id
             FROM {table}
             WHERE deleted = 0
             ORDER BY date_entered DESC;
@@ -511,8 +519,8 @@ def create_crm_document(module: str, data: DocumentRequest):
     insert_query = f"""
         INSERT INTO {table} (
             id, date_entered, date_modified, modified_user_id, created_by, 
-            description, deleted, document_name, filename, active_date, exp_date, category_id
-        ) VALUES (%s, %s, %s, '1', '1', %s, 0, %s, %s, %s, %s, %s);
+            description, deleted, document_name, filename, active_date, exp_date, category_id, subcategory_id
+        ) VALUES (%s, %s, %s, '1', '1', %s, 0, %s, %s, %s, %s, %s, %s);
     """
     
     connection = get_db_connection()
@@ -520,7 +528,7 @@ def create_crm_document(module: str, data: DocumentRequest):
         with connection.cursor() as cursor:
             cursor.execute(insert_query, (
                 doc_id, now, now, data.description, data.document_name, data.filename,
-                data.active_date or None, data.exp_date or None, data.category_id or None
+                data.active_date or None, data.exp_date or None, data.category_id or None, data.subcategory_id or None
             ))
             
             if cstm_table:
@@ -563,7 +571,7 @@ def create_crm_document(module: str, data: DocumentRequest):
                 
                 # Sync relationships in art_exhibitions_art_collections_1_c
                 if data.artwork_ids:
-                    art_ids = [aid.strip() for aid in data.artwork_ids.split(",") if aid.strip()]
+                    art_ids = [aid.strip() for aid in data.artwork_ids.split(",") if art_id.strip()]
                     for art_id in art_ids:
                         rel_id = str(uuid.uuid4())
                         cursor.execute(
@@ -578,10 +586,10 @@ def create_crm_document(module: str, data: DocumentRequest):
                         )
                 
             connection.commit()
-            return {"success": True, "id": doc_id, "message": f"{module.capitalize()} record created successfully."}
+            return {"status": "success", "id": doc_id, "message": f"{module.capitalize()} document created successfully"}
     except Exception as e:
         connection.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create {module} document: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
         connection.close()
 
@@ -604,7 +612,8 @@ def update_crm_document(module: str, doc_id: str, data: DocumentRequest):
             filename = %s,
             active_date = %s,
             exp_date = %s,
-            category_id = %s
+            category_id = %s,
+            subcategory_id = %s
         WHERE id = %s AND deleted = 0;
     """
     
@@ -613,7 +622,7 @@ def update_crm_document(module: str, doc_id: str, data: DocumentRequest):
         with connection.cursor() as cursor:
             cursor.execute(update_query, (
                 now, data.description, data.document_name, data.filename,
-                data.active_date or None, data.exp_date or None, data.category_id or None,
+                data.active_date or None, data.exp_date or None, data.category_id or None, data.subcategory_id or None,
                 doc_id
             ))
             

@@ -26,12 +26,30 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
     }
   }, [flashImages, exhibitions, artworks]);
 
-  // Universal Flash Images sources (Automatically adapts to Desktop, iPad/Tablet, and Mobile)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 640;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Universal Flash Images sources (Serves dedicated mobile portrait banner on mobile, widescreen banner on desktop & tablet)
   const images = useMemo(() => {
     const flashList = (flashImages && flashImages.length > 0) ? flashImages : localImages;
 
     if (flashList && flashList.length > 0) {
-      return flashList.map(flash => getArtworkImageUrl(flash.filename || flash.id));
+      return flashList.map(flash => {
+        if (isMobile && (flash.mobile_filename || flash.subcategory_id)) {
+          return getArtworkImageUrl(flash.mobile_filename || flash.subcategory_id);
+        }
+        return getArtworkImageUrl(flash.filename || flash.id);
+      });
     }
 
     if (exhibitions && exhibitions.length > 0) {
@@ -41,7 +59,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
       return artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
     }
     return [];
-  }, [flashImages, exhibitions, artworks, localImages]);
+  }, [flashImages, exhibitions, artworks, localImages, isMobile]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
