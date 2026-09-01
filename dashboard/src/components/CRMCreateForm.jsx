@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload } from 'lucide-react';
+import { Plus, Upload, Smartphone, Tablet, Monitor } from 'lucide-react';
 import { CONFIGS } from './crmConfigs';
 import { getApiUrl } from '../services/api';
 import CatalogueBuilder from './CatalogueBuilder';
@@ -19,6 +19,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
   const [formData, setFormData] = useState({});
   const [lookups, setLookups] = useState({});
   const [saving, setSaving] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState('desktop');
 
   const isEdit = !!editRecord;
 
@@ -302,12 +303,158 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                       </div>
                       {(field.name === 'profile_image' || field.name === 'image' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                          Max size: {module === 'flashimages' ? '3MB (High Resolution for Fullscreen Slider)' : '1MB'}. Recommended: {module === 'flashimages' ? '1920x1080px+' : '1200px+ width/height'}.
+                          Max size: {module === 'flashimages' ? '3MB (High Resolution for Fullscreen Slider)' : '1MB'}. Recommended: {module === 'flashimages' ? (formData.category_id === 'Mobile' ? '1080x1920px (9:16 Portrait)' : formData.category_id === 'Tablet' ? '1536x2048px (3:4 Tablet)' : '1920x1080px (16:9 Widescreen)') : '1200px+ width/height'}.
                         </span>
                       )}
                     </div>
 
                   </div>
+
+                  {module === 'flashimages' && (
+                    <div style={{
+                      marginTop: '1.25rem',
+                      padding: '1.25rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          📱 Responsive Auto-Sizer & Screen Live Preview
+                        </span>
+                        {/* Device Switcher Tabs */}
+                        <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDevice('desktop')}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              fontSize: '0.72rem',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: previewDevice === 'desktop' ? 'var(--accent-gold)' : 'transparent',
+                              color: previewDevice === 'desktop' ? '#000' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: previewDevice === 'desktop' ? 700 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <Monitor size={12} /> Desktop (16:9)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDevice('tablet')}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              fontSize: '0.72rem',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: previewDevice === 'tablet' ? 'var(--accent-gold)' : 'transparent',
+                              color: previewDevice === 'tablet' ? '#000' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: previewDevice === 'tablet' ? 700 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <Tablet size={12} /> iPad / Tablet (3:4)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDevice('mobile')}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              fontSize: '0.72rem',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: previewDevice === 'mobile' ? 'var(--accent-gold)' : 'transparent',
+                              color: previewDevice === 'mobile' ? '#000' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: previewDevice === 'mobile' ? 700 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <Smartphone size={12} /> Mobile Phone (9:16)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Dimensions & auto-sizer guide */}
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
+                        <span>📐 <strong>Optimal Dimensions:</strong> {previewDevice === 'desktop' ? '1920 x 1080 px' : previewDevice === 'tablet' ? '1536 x 2048 px (or 1024x1366)' : '1080 x 1920 px'}</span>
+                        <span>🖥️ <strong>Aspect Ratio:</strong> {previewDevice === 'desktop' ? '16:9 Widescreen' : previewDevice === 'tablet' ? '3:4 Tablet' : '9:16 Portrait'}</span>
+                        <span>✨ <strong>Homepage Display:</strong> Fullscreen Edge-to-Edge Slider</span>
+                      </div>
+
+                      {/* Interactive Responsive Viewport Frame */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        background: '#09090b',
+                        padding: '1.5rem',
+                        borderRadius: '8px',
+                        border: '1px dashed rgba(255, 255, 255, 0.12)',
+                        minHeight: '260px'
+                      }}>
+                        {val ? (
+                          <div style={{
+                            width: previewDevice === 'desktop' ? '100%' : previewDevice === 'tablet' ? '260px' : '160px',
+                            maxWidth: '100%',
+                            height: previewDevice === 'desktop' ? '200px' : previewDevice === 'tablet' ? '280px' : '290px',
+                            borderRadius: previewDevice === 'desktop' ? '6px' : '16px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            border: previewDevice === 'desktop' ? '2px solid #333' : '4px solid #3a3a3c',
+                            boxShadow: '0 12px 32px rgba(0,0,0,0.7)',
+                            transition: 'all 0.3s ease',
+                            background: '#000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <img
+                              src={getApiUrl(`/api/artworks/image/${val}`)}
+                              alt="Banner preview"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: 'center center',
+                                display: 'block'
+                              }}
+                            />
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '6px',
+                              right: '8px',
+                              background: 'rgba(0,0,0,0.75)',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '9px',
+                              color: '#fff',
+                              letterSpacing: '0.04em',
+                              fontWeight: 600
+                            }}>
+                              {previewDevice.toUpperCase()} FULLSCREEN PREVIEW
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '2rem 1rem' }}>
+                            Upload a banner image above to see live responsive fullscreen preview for {previewDevice.toUpperCase()}.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }
