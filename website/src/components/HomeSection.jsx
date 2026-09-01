@@ -28,25 +28,27 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
 
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth <= 640;
+    return window.innerWidth <= 768;
   });
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 640);
+      setIsMobile(window.innerWidth <= 768);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Universal Flash Images sources (Serves dedicated mobile portrait banner on mobile, widescreen banner on desktop & tablet)
+  // Flash Images logic:
+  // Desktop/Tablet: strictly uses desktop landscape banner (f.filename)
+  // Mobile: media query activates and serves custom portrait mobile banner (f.mobile_filename || f.subcategory_id)
   const images = useMemo(() => {
     const flashList = (flashImages && flashImages.length > 0) ? flashImages : localImages;
 
     if (flashList && flashList.length > 0) {
       return flashList.map(flash => {
-        if (isMobile && (flash.mobile_filename || flash.subcategory_id)) {
-          return getArtworkImageUrl(flash.mobile_filename || flash.subcategory_id);
+        if (isMobile) {
+          return getArtworkImageUrl(flash.mobile_filename || flash.subcategory_id || flash.filename || flash.id);
         }
         return getArtworkImageUrl(flash.filename || flash.id);
       });
@@ -80,7 +82,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         style={{
           width: '100%',
           height: '100%',
-          backgroundColor: 'transparent'
+          backgroundColor: '#000000'
         }}
       />
     );
@@ -103,18 +105,27 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
           height: 100vh;
           max-width: 100%;
           background-color: #000000;
+          box-sizing: border-box;
         }
         .home-slider-img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
           object-position: center center;
           display: block;
+        }
+        @media (min-width: 1025px) {
+          .home-fullscreen-slider {
+            height: 100vh;
+            padding-top: 60px;
+            padding-bottom: 20px;
+          }
         }
         @media (max-width: 768px) {
           .home-fullscreen-slider {
             height: 100dvh !important;
             min-height: 100dvh !important;
+            padding: 0 !important;
           }
           .home-slider-img {
             object-fit: contain !important;
