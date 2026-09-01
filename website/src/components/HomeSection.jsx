@@ -140,9 +140,8 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         .home-slider-img {
           width: 100vw !important;
           height: 100vh !important;
-          object-fit: contain !important;
-          object-position: center center !important;
-          background-color: #000000 !important;
+          object-fit: cover !important;
+          object-position: center top !important;
           display: block;
         }
         @media (max-width: 768px) {
@@ -151,13 +150,15 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
             height: 100dvh !important;
             min-height: 100dvh !important;
             padding: 0 !important;
+            margin: 0 !important;
           }
           .home-slider-img {
             width: 100vw !important;
             height: 100dvh !important;
-            object-fit: contain !important;
+            min-height: 100dvh !important;
+            object-fit: cover !important;
             object-position: center center !important;
-            background-color: #000000 !important;
+            display: block !important;
           }
         }
       `}</style>

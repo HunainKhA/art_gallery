@@ -1935,15 +1935,14 @@ body.light-theme .floating-socials {
   height: 100vh !important;
   min-height: 100vh !important;
   overflow: hidden !important;
-  background-color: #0d0d0d;
+  background-color: #000000;
 }
 
 .home-fullscreen-slider img {
   width: 100vw !important;
   height: 100vh !important;
-  object-fit: contain !important;
-  object-position: center center !important;
-  background-color: #000000 !important;
+  object-fit: cover !important;
+  object-position: center top !important;
   display: block !important;
 }
 
@@ -1963,9 +1962,8 @@ body.light-theme .floating-socials {
   .home-fullscreen-slider img {
     width: 100vw !important;
     height: 100dvh !important;
-    object-fit: contain !important;
+    object-fit: cover !important;
     object-position: center center !important;
-    background-color: #000000 !important;
   }
 }
 
