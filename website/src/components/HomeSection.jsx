@@ -122,7 +122,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
     >
       <style>{`
         .home-fullscreen-slider {
-          width: 100vw;
+          width: 100%;
           height: 100vh;
           max-width: 100%;
           background-color: #000000;
