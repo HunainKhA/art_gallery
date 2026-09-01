@@ -64,7 +64,16 @@ def get_all_artists():
             c.artist_advance_c AS artist_advance,
             c.pending_amount_c AS pending_amount,
             c.artist_biography_c AS artist_biography,
-            e.email_address AS email
+            e.email_address AS email,
+            (
+                SELECT COALESCE(NULLIF(col.filename, ''), col.id)
+                FROM art_collections col
+                JOIN art_artists_art_collections_c r2 
+                  ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
+                WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
+                ORDER BY col.date_entered DESC
+                LIMIT 1
+            ) AS latest_artwork_image
         FROM art_artists a
         LEFT JOIN art_artists_cstm c ON a.id = c.id_c
         LEFT JOIN email_addr_bean_rel r ON a.id = r.bean_id AND r.bean_module = 'art_Artists' AND r.primary_address = 1 AND r.deleted = 0
@@ -114,7 +123,16 @@ def get_artist_by_id(artist_id: str):
             c.artist_advance_c AS artist_advance,
             c.pending_amount_c AS pending_amount,
             c.artist_biography_c AS artist_biography,
-            e.email_address AS email
+            e.email_address AS email,
+            (
+                SELECT COALESCE(NULLIF(col.filename, ''), col.id)
+                FROM art_collections col
+                JOIN art_artists_art_collections_c r2 
+                  ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
+                WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
+                ORDER BY col.date_entered DESC
+                LIMIT 1
+            ) AS latest_artwork_image
         FROM art_artists a
         LEFT JOIN art_artists_cstm c ON a.id = c.id_c
         LEFT JOIN email_addr_bean_rel r ON a.id = r.bean_id AND r.bean_module = 'art_Artists' AND r.primary_address = 1 AND r.deleted = 0

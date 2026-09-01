@@ -517,38 +517,50 @@ export default function ArtistsSection({
 
           {filteredArtists.length > 0 ? (
             <div className="artists-grid-4col">
-              {filteredArtists.map((artist) => (
-                <div
-                  key={artist.id}
-                  className="glass-card artist-grid-card"
-                  onClick={() => handleViewArtistDetail(artist.id)}
-                >
-                  <div className="artist-card-img-container">
-                    <img
-                      src={getArtistImageUrl(artist.profile_image, artist.name)}
-                      alt={artist.name}
-                      className="artist-card-img"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = getArtistAvatarSvg(artist.name);
-                      }}
-                    />
-                  </div>
-                  <div className="artist-card-content">
-                    <h2 className="artist-card-name">{artist.name}</h2>
-                    <span className="artist-card-title">{artist.title}</span>
-                    <p className="artist-card-bio">
-                      {artist.bio && artist.bio.trim() !== '' && artist.bio !== 'Biography not available.'
-                        ? (artist.bio.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '...')
-                        : 'Biography not available.'
-                      }
-                    </p>
-                    <div className="artist-card-link-text">
-                      View  →
+              {filteredArtists.map((artist) => {
+                const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '';
+                const fallbackWorkImg = artist.latest_artwork_image ? getArtworkImageUrl(artist.latest_artwork_image) : null;
+                const cardImgSrc = hasProfilePic
+                  ? getArtistImageUrl(artist.profile_image, artist.name)
+                  : (fallbackWorkImg || getArtistAvatarSvg(artist.name));
+
+                return (
+                  <div
+                    key={artist.id}
+                    className="glass-card artist-grid-card"
+                    onClick={() => handleViewArtistDetail(artist.id)}
+                  >
+                    <div className="artist-card-img-container">
+                      <img
+                        src={cardImgSrc}
+                        alt={artist.name}
+                        className="artist-card-img"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          if (fallbackWorkImg && e.target.src !== fallbackWorkImg) {
+                            e.target.src = fallbackWorkImg;
+                          } else {
+                            e.target.src = getArtistAvatarSvg(artist.name);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="artist-card-content">
+                      <h2 className="artist-card-name">{artist.name}</h2>
+                      <span className="artist-card-title">{artist.title}</span>
+                      <p className="artist-card-bio">
+                        {artist.bio && artist.bio.trim() !== '' && artist.bio !== 'Biography not available.'
+                          ? (artist.bio.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '...')
+                          : 'Biography not available.'
+                        }
+                      </p>
+                      <div className="artist-card-link-text">
+                        View  →
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
@@ -598,13 +610,29 @@ export default function ArtistsSection({
             <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 <img
-                  src={getArtistImageUrl(selectedArtist.profile_image) || ''}
+                  src={
+                    (selectedArtist.profile_image && selectedArtist.profile_image !== 'NULL' && selectedArtist.profile_image !== 'null' && selectedArtist.profile_image !== '')
+                      ? getArtistImageUrl(selectedArtist.profile_image)
+                      : (selectedArtist.latest_artwork_image
+                        ? getArtworkImageUrl(selectedArtist.latest_artwork_image)
+                        : (selectedArtist.artworks && selectedArtist.artworks.length > 0 ? getArtworkImageUrl(selectedArtist.artworks[0].id) : getArtistAvatarSvg(selectedArtist.name)))
+                  }
                   alt={selectedArtist.name}
                   style={{
                     width: '48px',
                     height: '48px',
                     objectFit: 'cover',
                     border: '1px solid var(--border-color)'
+                  }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    if (selectedArtist.latest_artwork_image) {
+                      e.target.src = getArtworkImageUrl(selectedArtist.latest_artwork_image);
+                    } else if (selectedArtist.artworks && selectedArtist.artworks.length > 0) {
+                      e.target.src = getArtworkImageUrl(selectedArtist.artworks[0].id);
+                    } else {
+                      e.target.src = getArtistAvatarSvg(selectedArtist.name);
+                    }
                   }}
                 />
                 <div>
