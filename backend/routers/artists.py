@@ -426,63 +426,56 @@ def get_artist_image(filename: str):
         return FileResponse(os.path.join(upload_dir, filename))
         
     # 2. Lookup by id or filename from database
-    artist_name = "Artist"
     try:
-        query = """
-            SELECT a.id, a.filename, a.first_name, a.last_name,
-                   (
-                       SELECT COALESCE(NULLIF(col.filename, ''), col.id)
-                       FROM art_collections col
-                       JOIN art_artists_art_collections_c r2 
-                         ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
-                       WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
-                       ORDER BY col.date_entered DESC
-                       LIMIT 1
-                   ) AS latest_artwork_image
-            FROM art_artists a 
-            WHERE (a.id = %s OR a.filename = %s) AND a.deleted = 0;
-        """
-        res = execute_query(query, (filename, filename), fetch="one")
-        if res:
-            if res.get("first_name") or res.get("last_name"):
-                artist_name = f"{res.get('first_name') or ''} {res.get('last_name') or ''}".strip()
-            if res.get("filename"):
-                alt_path = os.path.join(upload_dir, res["filename"].strip())
-                if os.path.exists(alt_path) and os.path.isfile(alt_path):
-                    return FileResponse(alt_path)
-            # If no profile picture file on disk, fallback to artist's latest artwork image
-            if res.get("latest_artwork_image"):
-                art_img = res["latest_artwork_image"].strip()
-                art_path = os.path.join(upload_dir, art_img)
-                if os.path.exists(art_path) and os.path.isfile(art_path):
-                    return FileResponse(art_path)
-                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
-                    if os.path.exists(os.path.join(upload_dir, f"{art_img}{ext}")):
-                        return FileResponse(os.path.join(upload_dir, f"{art_img}{ext}"))
-    except Exception:
-        pass
+        artist_res = execute_query(
+            "SELECT id, filename, first_name, last_name FROM art_artists WHERE (id = %s OR filename = %s) AND deleted = 0;",
+            (filename, filename),
+            fetch="one"
+        )
+        if artist_res:
+            # 1. Try uploaded profile image
+            p_img = (artist_res.get("filename") or "").strip()
+            if p_img:
+                direct = os.path.join(upload_dir, p_img)
+                if os.path.exists(direct) and os.path.isfile(direct):
+                    return FileResponse(direct)
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG', '.JPEG']:
+                    if os.path.exists(f"{direct}{ext}"):
+                        return FileResponse(f"{direct}{ext}")
 
-    # 3. Generate elegant luxury gold monogram SVG with artist initials
-    initials = "".join([part[0].upper() for part in artist_name.split() if part])[:2] or "MF"
-    svg_content = f"""<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
-      <defs>
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#141416" />
-          <stop offset="50%" stop-color="#1f1f23" />
-          <stop offset="100%" stop-color="#0b0b0d" />
-        </linearGradient>
-        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f3d078" />
-          <stop offset="50%" stop-color="#d4af37" />
-          <stop offset="100%" stop-color="#aa771c" />
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#bgGrad)" />
-      <circle cx="200" cy="200" r="140" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-dasharray="6,4" opacity="0.6" />
-      <circle cx="200" cy="200" r="120" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.8" />
-      <text x="50%" y="54%" font-family="Montserrat, 'Cinzel', serif, sans-serif" font-size="72" font-weight="600" fill="url(#goldGrad)" text-anchor="middle" dominant-baseline="middle" letter-spacing="4">{initials}</text>
+            # 2. Query artist's artworks in descending order and return the latest valid painting file
+            art_list = execute_query("""
+                SELECT col.id, col.filename, col.document_name
+                FROM art_collections col
+                JOIN art_artists_art_collections_c r2 
+                  ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
+                WHERE r2.art_artists_art_collectionsart_artists_ida = %s AND col.deleted = 0
+                ORDER BY col.date_entered DESC;
+            """, (artist_res["id"],))
+
+            for art in (art_list or []):
+                candidates = [art.get("id"), art.get("filename"), art.get("document_name")]
+                for cand in candidates:
+                    if not cand:
+                        continue
+                    c_str = str(cand).strip()
+                    c_path = os.path.join(upload_dir, c_str)
+                    if os.path.exists(c_path) and os.path.isfile(c_path):
+                        return FileResponse(c_path)
+                    for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG', '.JPEG']:
+                        if os.path.exists(f"{c_path}{ext}"):
+                            return FileResponse(f"{c_path}{ext}")
+    except Exception as e:
+        print(f"Artist image lookup error: {e}")
+
+    # 3. Fallback placeholder
+    placeholder_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+      <rect width="100%" height="100%" fill="#141416" />
+      <circle cx="300" cy="300" r="180" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.4" />
+      <text x="50%" y="48%" font-family="Montserrat, sans-serif" font-size="28" font-weight="500" fill="#d4af37" text-anchor="middle" letter-spacing="3">MAINFRAME</text>
+      <text x="50%" y="54%" font-family="Montserrat, sans-serif" font-size="14" font-weight="300" fill="#a0a0a0" text-anchor="middle" letter-spacing="4">THE GALLERY</text>
     </svg>"""
-    return Response(content=svg_content, media_type="image/svg+xml")
+    return Response(content=placeholder_svg, media_type="image/svg+xml")
 
 
 @router.get("/{artist_id}/portfolio-report")

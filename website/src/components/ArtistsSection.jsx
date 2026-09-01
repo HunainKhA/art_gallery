@@ -519,13 +519,9 @@ export default function ArtistsSection({
             <div className="artists-grid-4col">
               {filteredArtists.map((artist) => {
                 const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '' && !artist.profile_image.includes('undefined');
-                const fallbackWorkImg = artist.latest_artwork_image 
-                  ? getArtworkImageUrl(artist.latest_artwork_image) 
-                  : (artist.id ? getArtistImageUrl(artist.id, artist.name) : null);
-                
                 const cardImgSrc = hasProfilePic
-                  ? getArtistImageUrl(artist.profile_image, artist.name)
-                  : (fallbackWorkImg || getArtistAvatarSvg(artist.name));
+                  ? getArtistImageUrl(artist.profile_image)
+                  : getArtworkImageUrl(artist.latest_artwork_image || artist.id);
 
                 return (
                   <div
@@ -540,10 +536,8 @@ export default function ArtistsSection({
                         className="artist-card-img"
                         onError={(e) => {
                           e.target.onerror = null;
-                          if (fallbackWorkImg && e.target.src !== fallbackWorkImg) {
-                            e.target.src = fallbackWorkImg;
-                          } else {
-                            e.target.src = getArtistAvatarSvg(artist.name);
+                          if (artist.id) {
+                            e.target.src = getArtworkImageUrl(artist.id);
                           }
                         }}
                       />
@@ -616,9 +610,7 @@ export default function ArtistsSection({
                   src={
                     (selectedArtist.profile_image && selectedArtist.profile_image !== 'NULL' && selectedArtist.profile_image !== 'null' && selectedArtist.profile_image !== '')
                       ? getArtistImageUrl(selectedArtist.profile_image)
-                      : (selectedArtist.latest_artwork_image
-                        ? getArtworkImageUrl(selectedArtist.latest_artwork_image)
-                        : (selectedArtist.artworks && selectedArtist.artworks.length > 0 ? getArtworkImageUrl(selectedArtist.artworks[0].id) : getArtistAvatarSvg(selectedArtist.name)))
+                      : getArtworkImageUrl(selectedArtist.latest_artwork_image || selectedArtist.id)
                   }
                   alt={selectedArtist.name}
                   style={{
@@ -629,12 +621,8 @@ export default function ArtistsSection({
                   }}
                   onError={(e) => {
                     e.target.onerror = null;
-                    if (selectedArtist.latest_artwork_image) {
-                      e.target.src = getArtworkImageUrl(selectedArtist.latest_artwork_image);
-                    } else if (selectedArtist.artworks && selectedArtist.artworks.length > 0) {
-                      e.target.src = getArtworkImageUrl(selectedArtist.artworks[0].id);
-                    } else {
-                      e.target.src = getArtistAvatarSvg(selectedArtist.name);
+                    if (selectedArtist.id) {
+                      e.target.src = getArtworkImageUrl(selectedArtist.id);
                     }
                   }}
                 />
