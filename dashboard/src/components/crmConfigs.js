@@ -118,23 +118,10 @@ export const CONFIGS = {
     title: 'Flash Image Banner',
     fields: [
       { name: 'document_name', label: 'Banner Name *', type: 'text', required: true },
-      {
-        name: 'category_id',
-        label: 'Target Screen / Device *',
-        type: 'select',
-        options: [
-          { value: 'Desktop', label: '🖥️ Desktop / Widescreen (16:9 - 1920x1080)' },
-          { value: 'Mobile', label: '📱 Mobile Smartphone (9:16 - 1080x1920)' },
-          { value: 'Tablet', label: '📟 Tablet / iPad (3:4 - 1536x2048)' },
-          { value: 'All', label: '🌐 All Devices (Universal)' }
-        ],
-        required: true,
-        defaultValue: 'Desktop'
-      },
       { name: 'filename', label: 'Banner Image File', type: 'text' },
       { name: 'description', label: 'Description / Notes', type: 'textarea' }
     ],
-    importFields: ['document_name', 'category_id', 'filename', 'description']
+    importFields: ['document_name', 'filename', 'description']
   },
   videos: {
     title: 'Gallery Video',
@@ -218,16 +205,6 @@ export const LIST_COLUMNS = {
   flashimages: [
     { key: 'filename', label: 'Banner Preview' },
     { key: 'document_name', label: 'Banner Name' },
-    {
-      key: 'category_id',
-      label: 'Target Screen',
-      format: (v) => {
-        if (v === 'Mobile') return '📱 Mobile';
-        if (v === 'Tablet') return '📟 Tablet / iPad';
-        if (v === 'All') return '🌐 All Devices';
-        return '🖥️ Desktop';
-      }
-    },
     { key: 'description', label: 'Description' }
   ],
   videos: [

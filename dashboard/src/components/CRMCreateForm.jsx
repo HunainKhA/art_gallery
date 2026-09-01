@@ -303,7 +303,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                       </div>
                       {(field.name === 'profile_image' || field.name === 'image' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                          Max size: {module === 'flashimages' ? '3MB (High Resolution for Fullscreen Slider)' : '1MB'}. Recommended: {module === 'flashimages' ? (formData.category_id === 'Mobile' ? '1080x1920px (9:16 Portrait)' : formData.category_id === 'Tablet' ? '1536x2048px (3:4 Tablet)' : '1920x1080px (16:9 Widescreen)') : '1200px+ width/height'}.
+                          {module === 'flashimages' ? 'Max size: 3MB. Upload 1 image — it automatically optimizes & scales for Desktop, Tablet/iPad, and Mobile.' : 'Max size: 1MB. Recommended: 1200px+ width/height.'}
                         </span>
                       )}
                     </div>
@@ -320,7 +320,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          📱 Responsive Auto-Sizer & Screen Live Preview
+                          ⚡ Universal Auto-Sizer & Screen Live Preview
                         </span>
                         {/* Device Switcher Tabs */}
                         <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
@@ -389,9 +389,9 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
 
                       {/* Dimensions & auto-sizer guide */}
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
-                        <span>📐 <strong>Optimal Dimensions:</strong> {previewDevice === 'desktop' ? '1920 x 1080 px' : previewDevice === 'tablet' ? '1536 x 2048 px (or 1024x1366)' : '1080 x 1920 px'}</span>
-                        <span>🖥️ <strong>Aspect Ratio:</strong> {previewDevice === 'desktop' ? '16:9 Widescreen' : previewDevice === 'tablet' ? '3:4 Tablet' : '9:16 Portrait'}</span>
-                        <span>✨ <strong>Homepage Display:</strong> Fullscreen Edge-to-Edge Slider</span>
+                        <span>⚡ <strong>Auto-Sizing:</strong> Automatic responsive scaling for all screen sizes</span>
+                        <span>🖥️ <strong>Live Preview Mode:</strong> {previewDevice === 'desktop' ? 'Desktop Widescreen (1920x1080)' : previewDevice === 'tablet' ? 'iPad / Tablet (1536x2048)' : 'Mobile Phone (1080x1920)'}</span>
+                        <span>✨ <strong>Homepage Display:</strong> Seamless Edge-to-Edge Fullscreen Cover</span>
                       </div>
 
                       {/* Interactive Responsive Viewport Frame */}

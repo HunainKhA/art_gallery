@@ -4,30 +4,6 @@ import { getArtworkImageUrl, getApiUrl } from '../services/api';
 export default function HomeSection({ flashImages = [], exhibitions = [], artworks = [] }) {
   const [localImages, setLocalImages] = useState([]);
 
-  // Track device category for responsive auto-sizer slider (mobile, tablet, desktop)
-  const [deviceType, setDeviceType] = useState(() => {
-    if (typeof window === 'undefined') return 'desktop';
-    const width = window.innerWidth;
-    if (width <= 640) return 'mobile';
-    if (width <= 1024) return 'tablet';
-    return 'desktop';
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width <= 640) {
-        setDeviceType('mobile');
-      } else if (width <= 1024) {
-        setDeviceType('tablet');
-      } else {
-        setDeviceType('desktop');
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // Self-healing direct fetch if parent state is loading/empty
   useEffect(() => {
     if (flashImages.length === 0 && exhibitions.length === 0 && artworks.length === 0) {
@@ -50,38 +26,11 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
     }
   }, [flashImages, exhibitions, artworks]);
 
-  // Get image sources based on Responsive Device detection (Mobile, Tablet, Desktop)
+  // Universal Flash Images sources (Automatically adapts to Desktop, iPad/Tablet, and Mobile)
   const images = useMemo(() => {
     const flashList = (flashImages && flashImages.length > 0) ? flashImages : localImages;
 
     if (flashList && flashList.length > 0) {
-      if (deviceType === 'mobile') {
-        const mobileFlashes = flashList.filter(f => f.category_id === 'Mobile');
-        if (mobileFlashes.length > 0) {
-          return mobileFlashes.map(flash => getArtworkImageUrl(flash.filename || flash.id));
-        }
-        const tabFlashes = flashList.filter(f => f.category_id === 'Tablet' || f.category_id === 'All');
-        if (tabFlashes.length > 0) {
-          return tabFlashes.map(flash => getArtworkImageUrl(flash.filename || flash.id));
-        }
-      } else if (deviceType === 'tablet') {
-        const tabFlashes = flashList.filter(f => f.category_id === 'Tablet');
-        if (tabFlashes.length > 0) {
-          return tabFlashes.map(flash => getArtworkImageUrl(flash.filename || flash.id));
-        }
-        const mobFlashes = flashList.filter(f => f.category_id === 'Mobile' || f.category_id === 'All');
-        if (mobFlashes.length > 0) {
-          return mobFlashes.map(flash => getArtworkImageUrl(flash.filename || flash.id));
-        }
-      } else {
-        // Desktop
-        const deskFlashes = flashList.filter(f => !f.category_id || f.category_id === 'Desktop' || f.category_id === 'All');
-        if (deskFlashes.length > 0) {
-          return deskFlashes.map(flash => getArtworkImageUrl(flash.filename || flash.id));
-        }
-      }
-
-      // Universal fallback if no device-specific match
       return flashList.map(flash => getArtworkImageUrl(flash.filename || flash.id));
     }
 
@@ -92,7 +41,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
       return artworks.slice(0, 8).map(art => getArtworkImageUrl(art.filename || art.id));
     }
     return [];
-  }, [flashImages, exhibitions, artworks, localImages, deviceType]);
+  }, [flashImages, exhibitions, artworks, localImages]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
