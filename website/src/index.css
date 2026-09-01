@@ -1904,7 +1904,7 @@ body.light-theme .floating-socials {
 .home-fullscreen-slider img {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center center !important;
   display: block !important;
 }

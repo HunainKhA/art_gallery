@@ -131,8 +131,8 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         .home-slider-img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center center;
+          object-fit: contain !important;
+          object-position: center center !important;
           display: block;
         }
         @media (max-width: 768px) {
@@ -161,11 +161,11 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
           position = 'next';
         }
 
-        // Left-to-right sliding animation:
-        // Active slide enters from Left (-100%) and lands at center (0).
-        // Previous slide exits towards Right (+100%).
-        // Upcoming slides wait on the Left (-100%).
-        let transformVal = 'translateX(-100%)';
+        // Right-to-Left sliding animation:
+        // Active slide enters from Right (+100%) and lands at center (0).
+        // Previous slide exits towards Left (-100%).
+        // Upcoming slides wait on the Right (+100%).
+        let transformVal = 'translateX(100%)';
         let zIndexVal = 0;
         let transitionVal = 'none';
 
@@ -174,11 +174,11 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
           zIndexVal = 2;
           transitionVal = 'transform 0.95s cubic-bezier(0.25, 1, 0.5, 1)';
         } else if (position === 'prev') {
-          transformVal = 'translateX(100%)';
+          transformVal = 'translateX(-100%)';
           zIndexVal = 1;
           transitionVal = 'transform 0.95s cubic-bezier(0.25, 1, 0.5, 1)';
         } else {
-          transformVal = 'translateX(-100%)';
+          transformVal = 'translateX(100%)';
           zIndexVal = 0;
           transitionVal = 'none';
         }
