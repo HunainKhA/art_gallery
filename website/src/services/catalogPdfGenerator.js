@@ -13,6 +13,71 @@ export const stripHtml = (html) => {
 };
 
 /**
+ * Extracts ONLY the Artist Career / Qualification / Profile narrative
+ * and strictly EXCLUDES all "Art Shows", "Solo Shows", "Group Shows", "Exhibitions" lists.
+ */
+export const extractCareerBio = (bioHtml) => {
+  if (!bioHtml) return '';
+
+  const tmp = document.createElement('div');
+  tmp.innerHTML = bioHtml;
+
+  // 1. If structured as HTML table (standard CRM artist bio format)
+  const rows = tmp.querySelectorAll('tr');
+  if (rows && rows.length > 0) {
+    const careerParts = [];
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length >= 2) {
+        const label = (tds[0].textContent || '').trim();
+        const lowerLabel = label.toLowerCase();
+        // Strictly exclude art shows, exhibitions, solo/group shows, participations
+        if (/exhibition|show|solo|group|participat|art\s*show/i.test(lowerLabel)) {
+          return;
+        }
+        const text = (tds[1].textContent || '').trim().replace(/\s+/g, ' ');
+        if (text) {
+          careerParts.push(`${label}: ${text}`);
+        }
+      } else if (tds.length === 1) {
+        const text = (tds[0].textContent || '').trim().replace(/\s+/g, ' ');
+        if (text && !/^(solo|group|exhibition|shows|art\s*shows|selected\s*shows)/i.test(text)) {
+          careerParts.push(text);
+        }
+      }
+    });
+
+    if (careerParts.length > 0) {
+      return careerParts.join('\n\n');
+    }
+  }
+
+  // 2. If free text / HTML paragraphs, filter line by line
+  const rawText = (tmp.textContent || tmp.innerText || '').trim();
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const filteredLines = [];
+  let skipMode = false;
+
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    if (/solo\s*exhibition|solo\s*show|group\s*exhibition|group\s*show|selected\s*exhibition|exhibitions\s*:|art\s*shows\s*:/i.test(lowerLine)) {
+      skipMode = true;
+      continue;
+    }
+    if (skipMode) {
+      if (/education|awards|career|qualification|about\s*the\s*artist|artist\s*statement|profile/i.test(lowerLine)) {
+        skipMode = false;
+      } else {
+        continue;
+      }
+    }
+    filteredLines.push(line);
+  }
+
+  return filteredLines.join('\n\n');
+};
+
+/**
  * Loads an image from URL, draws to an offscreen canvas to guarantee CORS/Base64,
  * and returns the DataURL along with its natural width & height.
  */
@@ -156,8 +221,8 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
         if (res.ok) {
           const aData = await res.json();
           if (aData) {
-            if (!artistInfo.bio && aData.bio) {
-              artistInfo.bio = stripHtml(aData.bio);
+            if (aData.bio || aData.artist_biography) {
+              artistInfo.bio = aData.bio || aData.artist_biography;
             }
             if (!artistInfo.name || artistInfo.name === 'Featured Artist') {
               artistInfo.name = `${aData.first_name || ''} ${aData.last_name || ''}`.trim() || artistInfo.name;
@@ -306,8 +371,11 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   let artworkCounter = 0;
 
   for (const [_, artistInfo] of artistMap.entries()) {
-    // 1. RENDER ARTIST BIO & STATEMENT (ONLY IF BIO TEXT EXISTS)
-    if (artistInfo.bio && artistInfo.bio.trim().length > 15) {
+    // 1. RENDER ARTIST CAREER & SHOW DESCRIPTION (ONLY IF CAREER / DESC EXISTS, EXCLUDING ART SHOWS LISTS)
+    const cleanCareer = extractCareerBio(artistInfo.bio);
+    const cleanDesc = stripHtml(exhibition.description || '');
+
+    if (cleanCareer || cleanDesc) {
       doc.addPage([pageSize, pageSize], 'portrait');
       drawPageBorder();
 
@@ -334,36 +402,36 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
         cursorY += 16;
       }
 
-      // "Bio" Header
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(20, 20, 20);
-      doc.text('Bio', 20, cursorY);
-      cursorY += 6;
+      // "Career" Header & Text
+      if (cleanCareer && cleanCareer.trim().length > 10) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(20, 20, 20);
+        doc.text('Career', 20, cursorY);
+        cursorY += 6;
 
-      // Bio Text (Paginated safely within 12mm borders)
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(50, 50, 50);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(50, 50, 50);
 
-      const splitBio = doc.splitTextToSize(artistInfo.bio, 170);
-      for (const line of splitBio) {
-        if (cursorY > pageSize - 22) {
-          doc.addPage([pageSize, pageSize], 'portrait');
-          drawPageBorder();
-          cursorY = 22;
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8.5);
-          doc.setTextColor(50, 50, 50);
+        const splitBio = doc.splitTextToSize(cleanCareer, 170);
+        for (const line of splitBio) {
+          if (cursorY > pageSize - 22) {
+            doc.addPage([pageSize, pageSize], 'portrait');
+            drawPageBorder();
+            cursorY = 22;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(50, 50, 50);
+          }
+          doc.text(line, 20, cursorY);
+          cursorY += 4.3;
         }
-        doc.text(line, 20, cursorY);
-        cursorY += 4.3;
+        cursorY += 6;
       }
-      cursorY += 6;
 
-      // Exhibition Statement (if available in exhibition description)
-      const cleanDesc = stripHtml(exhibition.description || '');
-      if (cleanDesc) {
+      // Exhibition Statement / Show Description
+      if (cleanDesc && cleanDesc.trim().length > 10) {
         if (cursorY > pageSize - 36) {
           doc.addPage([pageSize, pageSize], 'portrait');
           drawPageBorder();
