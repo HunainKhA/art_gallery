@@ -518,8 +518,11 @@ export default function ArtistsSection({
           {filteredArtists.length > 0 ? (
             <div className="artists-grid-4col">
               {filteredArtists.map((artist) => {
-                const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '';
-                const fallbackWorkImg = artist.latest_artwork_image ? getArtworkImageUrl(artist.latest_artwork_image) : null;
+                const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '' && !artist.profile_image.includes('undefined');
+                const fallbackWorkImg = artist.latest_artwork_image 
+                  ? getArtworkImageUrl(artist.latest_artwork_image) 
+                  : (artist.id ? getArtistImageUrl(artist.id, artist.name) : null);
+                
                 const cardImgSrc = hasProfilePic
                   ? getArtistImageUrl(artist.profile_image, artist.name)
                   : (fallbackWorkImg || getArtistAvatarSvg(artist.name));

@@ -1,6 +1,7 @@
 import uuid
 import os
 import shutil
+import time
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Form
 from pydantic import BaseModel
@@ -489,6 +490,30 @@ def get_artwork_image(artwork_id: str):
                         return match
     except Exception as e:
         print(f"Database query failed in get_artwork_image: {e}")
+
+    # 4. If artwork_id is an artist ID, serve their latest artwork image
+    try:
+        artist_art_query = """
+            SELECT COALESCE(NULLIF(col.filename, ''), col.id) AS art_img
+            FROM art_collections col
+            JOIN art_artists_art_collections_c r2 
+              ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
+            WHERE r2.art_artists_art_collectionsart_artists_ida = %s AND col.deleted = 0
+            ORDER BY col.date_entered DESC
+            LIMIT 1;
+        """
+        artist_art_res = execute_query(artist_art_query, (artwork_id,), fetch="one")
+        if artist_art_res and artist_art_res.get("art_img"):
+            art_img_name = artist_art_res["art_img"].strip()
+            match = try_serve(art_img_name)
+            if match:
+                return match
+            for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']:
+                match = try_serve(f"{art_img_name}{ext}")
+                if match:
+                    return match
+    except Exception as e:
+        print(f"Artist fallback query failed in get_artwork_image: {e}")
         
     return RedirectResponse(url="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500")
 
