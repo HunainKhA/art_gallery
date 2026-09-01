@@ -140,8 +140,9 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         .home-slider-img {
           width: 100vw !important;
           height: 100vh !important;
-          object-fit: cover !important;
+          object-fit: contain !important;
           object-position: center center !important;
+          background-color: #000000 !important;
           display: block;
         }
         @media (max-width: 768px) {
