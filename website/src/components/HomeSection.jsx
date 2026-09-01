@@ -115,16 +115,9 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
         .home-slider-img {
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: cover;
           object-position: center center;
           display: block;
-        }
-        @media (min-width: 1025px) {
-          .home-fullscreen-slider {
-            height: 100vh;
-            padding-top: 60px;
-            padding-bottom: 20px;
-          }
         }
         @media (max-width: 768px) {
           .home-fullscreen-slider {
