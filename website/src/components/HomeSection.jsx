@@ -68,19 +68,26 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
     return list;
   }, [flashImages, exhibitions, artworks, localImages, isMobile]);
 
+  const displayImages = useMemo(() => {
+    if (images.length === 2 || images.length === 3) {
+      return [...images, ...images];
+    }
+    return images;
+  }, [images]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (displayImages.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % displayImages.length);
     }, 4000); // 4 seconds per slide
 
     return () => clearInterval(interval);
-  }, [images.length]);
+  }, [displayImages.length]);
 
-  if (!images || images.length === 0) {
+  if (!displayImages || displayImages.length === 0) {
     return (
       <div
         className="home-fullscreen-slider"
@@ -132,8 +139,40 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
           }
         }
       `}</style>
-      {images.map((imgSrc, index) => {
-        const isActive = index === currentIndex;
+      {displayImages.map((imgSrc, index) => {
+        let position = 'idle';
+
+        if (index === currentIndex) {
+          position = 'active';
+        } else if (
+          index === (currentIndex - 1 + displayImages.length) % displayImages.length
+        ) {
+          position = 'prev';
+        } else {
+          position = 'next';
+        }
+
+        // Left-to-right sliding animation:
+        // Active slide enters from Left (-100%) and lands at center (0).
+        // Previous slide exits towards Right (+100%).
+        // Upcoming slides wait on the Left (-100%).
+        let transformVal = 'translateX(-100%)';
+        let zIndexVal = 0;
+        let transitionVal = 'none';
+
+        if (position === 'active') {
+          transformVal = 'translateX(0)';
+          zIndexVal = 2;
+          transitionVal = 'transform 0.95s cubic-bezier(0.25, 1, 0.5, 1)';
+        } else if (position === 'prev') {
+          transformVal = 'translateX(100%)';
+          zIndexVal = 1;
+          transitionVal = 'transform 0.95s cubic-bezier(0.25, 1, 0.5, 1)';
+        } else {
+          transformVal = 'translateX(-100%)';
+          zIndexVal = 0;
+          transitionVal = 'none';
+        }
 
         return (
           <div
@@ -144,11 +183,10 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
               left: 0,
               width: '100%',
               height: '100%',
-              opacity: isActive ? 1 : 0,
-              transform: isActive ? 'scale(1)' : 'scale(1.03)',
-              transition: 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.6s ease-out',
-              zIndex: isActive ? 2 : 1,
-              pointerEvents: isActive ? 'auto' : 'none',
+              transform: transformVal,
+              transition: transitionVal,
+              zIndex: zIndexVal,
+              willChange: 'transform',
               backgroundColor: '#000000',
               display: 'flex',
               alignItems: 'center',
