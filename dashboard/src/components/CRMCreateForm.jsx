@@ -224,6 +224,8 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
             let gridColSpan = 'span 1';
             if (isFullWidth) {
               gridColSpan = `span ${totalCols}`;
+            } else if (module === 'collections' && field.name === 'image') {
+              gridColSpan = 'span 2';
             } else if (isTwoCols) {
               gridColSpan = 'span 2';
             } else if (isFlashUpload) {
