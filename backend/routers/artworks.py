@@ -1848,39 +1848,36 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .tag-content-row {{
-                    display: flex;
-                    flex-direction: row;
+                    display: grid;
+                    grid-template-columns: 1fr 250px;
                     align-items: stretch;
-                    justify-content: flex-start;
                     width: 100%;
                     height: 100%;
-                    gap: 22px;
+                    gap: 24px;
                 }}
 
                 .left-col {{
-                    flex: 0 1 auto;
+                    width: 100%;
                     height: 100%;
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start;
+                    justify-content: center;
                     min-width: 0;
-                    max-width: calc(100% - 250px);
                 }}
                 
                 .painting-wrapper {{
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: flex-start;
+                    width: 100%;
                     height: 100%;
-                    max-height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }}
 
                 .painting-image {{
-                    max-width: 100%;
+                    width: 100%;
+                    height: 100%;
                     max-height: 540px;
-                    width: auto;
-                    height: auto;
-                    object-fit: contain;
+                    object-fit: cover;
                     box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
                     border: 1px solid rgba(0, 0, 0, 0.08);
                     border-radius: 2px;
@@ -1888,9 +1885,7 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .right-col {{
-                    flex: 0 0 240px;
-                    width: 240px;
-                    min-width: 220px;
+                    width: 100%;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
