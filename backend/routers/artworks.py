@@ -1290,7 +1290,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
             <meta charset="utf-8">
             <title>Certificate of Authenticity - {title}</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Questrial&display=swap');
                 
                 * {{
                     box-sizing: border-box;
@@ -1300,8 +1300,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 body {{
                     background-color: #f1f3f5;
-                    font-family: 'Century Gothic', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    color: #111;
+                    font-family: 'Century Gothic', CenturyGothic, AppleGothic, 'Questrial', sans-serif;
+                    color: #000000;
                     min-height: 100vh;
                     display: flex;
                     flex-direction: column;
@@ -1338,7 +1338,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .btn {{
                     padding: 8px 16px;
-                    font-family: 'Montserrat', sans-serif;
+                    font-family: 'Century Gothic', CenturyGothic, sans-serif;
                     font-size: 13px;
                     font-weight: 600;
                     border: 1px solid transparent;
@@ -1374,6 +1374,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-start;
+                    font-family: 'Century Gothic', CenturyGothic, AppleGothic, 'Questrial', sans-serif;
                 }}
                 
                 .logo-container {{
@@ -1393,7 +1394,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .certificate-title {{
-                    font-size: 28px;
+                    font-size: 27px;
                     font-weight: 400;
                     letter-spacing: 0.5px;
                     color: #000000;
@@ -1412,20 +1413,20 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .details-table td {{
                     border: 2px solid #000000;
-                    padding: 9px 14px;
+                    padding: 8px 12px;
                     vertical-align: middle;
                 }}
                 
                 .cell-label {{
                     width: 165px;
                     font-weight: 700;
-                    font-size: 13.5px;
+                    font-size: 14px;
                     color: #000000;
                     text-align: center;
                 }}
                 
                 .cell-val {{
-                    font-size: 13.5px;
+                    font-size: 14px;
                     color: #000000;
                     text-align: center;
                 }}
@@ -1437,18 +1438,18 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .cell-size {{
                     font-weight: 400;
-                    font-size: 13.5px;
+                    font-size: 14px;
                 }}
                 
                 .cell-medium {{
                     font-weight: 400;
-                    font-size: 13px;
+                    font-size: 13.5px;
                     line-height: 1.4;
                 }}
                 
                 .cell-display {{
                     font-weight: 400;
-                    font-size: 13.5px;
+                    font-size: 14px;
                     text-align: left !important;
                     padding-left: 16px !important;
                 }}
@@ -1473,7 +1474,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 .statement-container {{
                     font-size: 13.5px;
                     font-weight: 400;
-                    color: #111111;
+                    color: #000000;
                     text-align: left;
                     line-height: 1.65;
                     margin: 28px 0 72px 0;
@@ -1502,7 +1503,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .sig-label {{
                     font-weight: 700;
-                    font-size: 13.5px;
+                    font-size: 14px;
                     color: #000000;
                     padding-bottom: 3px;
                 }}
@@ -1533,7 +1534,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     width: 100%;
                     text-align: center;
                     font-size: 9.5px;
-                    color: #333333;
+                    font-weight: 400;
+                    color: #222222;
                     line-height: 1.65;
                 }}
                 
