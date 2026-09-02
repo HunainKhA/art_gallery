@@ -1369,7 +1369,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     background-color: #ffffff;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     position: relative;
-                    padding: 22mm 20mm 18mm 20mm;
+                    padding: 20mm 20mm 26mm 20mm;
+                    box-sizing: border-box;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-start;
@@ -1523,12 +1524,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: block;
                 }}
                 
-                /* Footer - strictly pinned to bottom */
+                /* Footer - strictly pinned to the very bottom end of page */
                 .footer-container {{
                     position: absolute;
-                    bottom: 15mm;
-                    left: 20mm;
-                    right: 20mm;
+                    bottom: 6mm;
+                    left: 0;
+                    right: 0;
+                    width: 100%;
                     text-align: center;
                     font-size: 9.5px;
                     color: #333333;
@@ -1582,7 +1584,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         width: 210mm !important;
                         height: 297mm !important;
                         max-height: 297mm !important;
-                        padding: 18mm 20mm 16mm 20mm !important;
+                        padding: 18mm 20mm 24mm 20mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
                         page-break-inside: avoid !important;
@@ -1603,9 +1605,10 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     
                     .footer-container {{
                         position: absolute !important;
-                        bottom: 14mm !important;
-                        left: 20mm !important;
-                        right: 20mm !important;
+                        bottom: 6mm !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        width: 100% !important;
                     }}
                     
                     @page {{
