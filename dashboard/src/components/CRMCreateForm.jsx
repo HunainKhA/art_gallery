@@ -373,88 +373,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
             }
 
             if (field.name === 'authenticity_letter' && module === 'collections') {
-              const hasLetter = !!formData.authenticity_letter;
-              const isAuto = formData.authenticity_letter === 'auto';
-
-              return (
-                <div key={field.name} style={{ gridColumn: `span ${totalCols}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
-                    <input
-                      type="checkbox"
-                      checked={hasLetter}
-                      onChange={(e) => {
-                        handleInputChange('authenticity_letter', e.target.checked ? 'auto' : '');
-                      }}
-                      style={{ accentColor: 'var(--accent-gold)' }}
-                    />
-                    Issue Authenticity Letter?
-                  </label>
-
-                  {hasLetter && (
-                    <div style={{ marginLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.01)', border: '1px dashed var(--border-color)', padding: '1.5rem', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', gap: '1.5rem' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
-                          <input
-                            type="radio"
-                            name="letter_type"
-                            checked={isAuto}
-                            onChange={() => handleInputChange('authenticity_letter', 'auto')}
-                            style={{ accentColor: 'var(--accent-gold)' }}
-                          />
-                          Auto-Generate Official Certificate
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
-                          <input
-                            type="radio"
-                            name="letter_type"
-                            checked={!isAuto}
-                            onChange={() => handleInputChange('authenticity_letter', '')}
-                            style={{ accentColor: 'var(--accent-gold)' }}
-                          />
-                          Upload Custom Letter File
-                        </label>
-                      </div>
-
-                      {!isAuto && (
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem' }}>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-                            {formData.authenticity_letter && formData.authenticity_letter !== 'auto' ? formData.authenticity_letter : "No file uploaded yet."}
-                          </span>
-                          <label className="btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
-                            <Upload size={12} /> Upload File
-                            <input
-                              type="file"
-                              accept="image/*,application/pdf"
-                              style={{ display: 'none' }}
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
-                                const uploadData = new FormData();
-                                uploadData.append('file', file);
-
-                                fetch(getApiUrl('/api/artworks/upload-letter'), {
-                                  method: 'POST',
-                                  body: uploadData
-                                })
-                                  .then(res => {
-                                    if (!res.ok) throw new Error("Upload failed");
-                                    return res.json();
-                                  })
-                                  .then(resData => {
-                                    if (resData.filename) {
-                                      handleInputChange('authenticity_letter', resData.filename);
-                                    }
-                                  })
-                                  .catch(err => alert("Upload error: " + err.message));
-                              }}
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
+              return null;
             }
 
             if (field.name === 'purchase_price' && formData.deal_type !== 'Purchase_Basis') {
@@ -578,16 +497,109 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-          {onCancel && (
-            <button type="button" onClick={onCancel} className="btn-secondary" style={{ flex: 1, margin: 0, padding: '0.8rem' }}>
-              Cancel
+        {module === 'collections' ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+            {/* Left: Authenticity Letter Checkbox & Radio Options */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                <input
+                  type="checkbox"
+                  checked={!!formData.authenticity_letter}
+                  onChange={(e) => {
+                    handleInputChange('authenticity_letter', e.target.checked ? 'auto' : '');
+                  }}
+                  style={{ accentColor: 'var(--accent-gold)' }}
+                />
+                Issue Authenticity Letter?
+              </label>
+
+              {!!formData.authenticity_letter && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.01)', border: '1px dashed var(--border-color)', padding: '0.45rem 0.85rem', borderRadius: '8px', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="radio"
+                      name="letter_type"
+                      checked={formData.authenticity_letter === 'auto'}
+                      onChange={() => handleInputChange('authenticity_letter', 'auto')}
+                      style={{ accentColor: 'var(--accent-gold)' }}
+                    />
+                    Auto-Generate Official Certificate
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="radio"
+                      name="letter_type"
+                      checked={formData.authenticity_letter !== 'auto'}
+                      onChange={() => handleInputChange('authenticity_letter', '')}
+                      style={{ accentColor: 'var(--accent-gold)' }}
+                    />
+                    Upload Custom Letter File
+                  </label>
+
+                  {formData.authenticity_letter !== 'auto' && (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: '0.25rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {formData.authenticity_letter ? formData.authenticity_letter : "No file"}
+                      </span>
+                      <label className="btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', margin: 0 }}>
+                        <Upload size={11} /> Upload
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const uploadData = new FormData();
+                            uploadData.append('file', file);
+
+                            fetch(getApiUrl('/api/artworks/upload-letter'), {
+                              method: 'POST',
+                              body: uploadData
+                            })
+                              .then(res => {
+                                if (!res.ok) throw new Error("Upload failed");
+                                return res.json();
+                              })
+                              .then(resData => {
+                                if (resData.filename) {
+                                  handleInputChange('authenticity_letter', resData.filename);
+                                }
+                              })
+                              .catch(err => alert("Upload error: " + err.message));
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Submit & Cancel Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', minWidth: '220px' }}>
+              {onCancel && (
+                <button type="button" onClick={onCancel} className="btn-secondary" style={{ padding: '0.65rem 1.25rem', margin: 0, fontSize: '0.85rem' }}>
+                  Cancel
+                </button>
+              )}
+              <button type="submit" className="btn-primary" style={{ padding: '0.65rem 1.75rem', margin: 0, fontSize: '0.85rem', whiteSpace: 'nowrap' }} disabled={saving}>
+                {saving ? `${isEdit ? 'Updating' : 'Saving'} ${config.title}...` : `${isEdit ? 'Update' : 'Save'} ${config.title}`}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+            {onCancel && (
+              <button type="button" onClick={onCancel} className="btn-secondary" style={{ flex: 1, margin: 0, padding: '0.8rem' }}>
+                Cancel
+              </button>
+            )}
+            <button type="submit" className="btn-primary" style={{ flex: onCancel ? 2 : 1, padding: '0.8rem', margin: 0 }} disabled={saving}>
+              {saving ? `${isEdit ? 'Updating' : 'Saving'} ${config.title}...` : `${isEdit ? 'Update' : 'Save'} ${config.title}`}
             </button>
-          )}
-          <button type="submit" className="btn-primary" style={{ flex: onCancel ? 2 : 1, padding: '0.8rem', margin: 0 }} disabled={saving}>
-            {saving ? `${isEdit ? 'Updating' : 'Saving'} ${config.title}...` : `${isEdit ? 'Update' : 'Save'} ${config.title}`}
-          </button>
-        </div>
+          </div>
+        )}
       </form>
     </div>
   );
