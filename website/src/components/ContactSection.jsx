@@ -176,8 +176,10 @@ export default function ContactSection() {
               style={{
                 padding: '0.65rem 1.25rem',
                 fontSize: '12px',
+                fontWeight: 300,
                 marginTop: '0.25rem',
-                border: 'none'
+                border: 'none',
+                fontFamily: 'Montserrat, sans-serif'
               }}
             >
               Send Inquiry Message

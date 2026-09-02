@@ -2656,3 +2656,11 @@ body.light-theme .collection-status-filter-btn.active {
   border: 1.5px solid #000000 !important;
   font-weight: 500 !important;
 }
+
+/* Contact Form Button Font Weight */
+.contact-section-wrapper .btn-primary,
+body.light-theme .contact-section-wrapper .btn-primary {
+  font-weight: 300 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 12px !important;
+}
