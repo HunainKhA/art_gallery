@@ -1369,7 +1369,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     background-color: #ffffff;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     position: relative;
-                    padding: 18mm 20mm 16mm 20mm;
+                    padding: 22mm 20mm 18mm 20mm;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-start;
@@ -1379,24 +1379,26 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     width: 100%;
                     display: flex;
                     justify-content: flex-end;
-                    margin-bottom: 12px;
+                    margin-top: 5px;
+                    margin-bottom: 20px;
                 }}
                 
                 .logo {{
-                    height: 52px;
+                    height: 54px;
                     width: auto;
-                    max-width: 130px;
+                    max-width: 135px;
                     object-fit: contain;
                     display: block;
                 }}
                 
                 .certificate-title {{
-                    font-size: 27px;
+                    font-size: 28px;
                     font-weight: 400;
                     letter-spacing: 0.5px;
                     color: #000000;
                     text-align: center;
-                    margin-bottom: 22px;
+                    margin-top: 10px;
+                    margin-bottom: 30px;
                 }}
                 
                 /* Table with Solid Black Borders */
@@ -1404,11 +1406,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     width: 100%;
                     border-collapse: collapse;
                     border: 2px solid #000000;
+                    margin-bottom: 10px;
                 }}
                 
                 .details-table td {{
                     border: 2px solid #000000;
-                    padding: 8px 12px;
+                    padding: 9px 14px;
                     vertical-align: middle;
                 }}
                 
@@ -1467,12 +1470,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Statement Text */
                 .statement-container {{
-                    font-size: 13px;
+                    font-size: 13.5px;
                     font-weight: 400;
                     color: #111111;
                     text-align: left;
-                    line-height: 1.6;
-                    margin: 20px 0 52px 0;
+                    line-height: 1.65;
+                    margin: 28px 0 72px 0;
                     padding-left: 2px;
                 }}
                 
@@ -1486,7 +1489,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: flex-start;
                     align-items: flex-end;
-                    margin-bottom: 35px;
+                    margin-bottom: 45px;
                     padding-left: 2px;
                 }}
                 
@@ -1576,7 +1579,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         width: 210mm !important;
                         height: 297mm !important;
                         max-height: 297mm !important;
-                        padding: 16mm 20mm 14mm 20mm !important;
+                        padding: 18mm 20mm 16mm 20mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
                         page-break-inside: avoid !important;
@@ -1588,7 +1591,11 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
 
                     .statement-container {{
-                        margin: 18px 0 45px 0 !important;
+                        margin: 25px 0 65px 0 !important;
+                    }}
+                    
+                    .signature-section {{
+                        margin-bottom: 40px !important;
                     }}
                     
                     @page {{
