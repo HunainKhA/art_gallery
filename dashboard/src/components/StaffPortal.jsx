@@ -494,7 +494,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && <span>Frame Heavens Rates</span>}
         </button>
 
-        {/* Inventory Stock (Collapsible) */}
+        {/* Temporarily Hidden: Inventory Stock (Frames, Fittings, Sheets) - Kept for future use
         <div>
           <button 
             onClick={() => handleCategoryClick('inventory')}
@@ -523,6 +523,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
             </div>
           )}
         </div>
+        */}
 
         {/* Glass Sheet Sizer */}
         <button 
