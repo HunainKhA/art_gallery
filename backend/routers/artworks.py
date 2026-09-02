@@ -1435,7 +1435,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .cell-artist {{
-                    font-weight: 700;
+                    font-weight: 400;
                     font-size: 13px;
                     letter-spacing: 0.5px;
                 }}
