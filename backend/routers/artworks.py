@@ -1472,12 +1472,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Statement Text */
                 .statement-container {{
-                    font-size: 13.5px;
+                    font-size: 16.5px;
                     font-weight: 400;
                     color: #000000;
                     text-align: left;
-                    line-height: 1.65;
-                    margin: 28px 0 72px 0;
+                    line-height: 1.55;
+                    margin: 22px 0 65px 0;
                     padding-left: 2px;
                 }}
                 
@@ -1503,7 +1503,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .sig-label {{
                     font-weight: 700;
-                    font-size: 14px;
+                    font-size: 15px;
                     color: #000000;
                     padding-bottom: 3px;
                 }}
@@ -1598,7 +1598,9 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
 
                     .statement-container {{
-                        margin: 25px 0 65px 0 !important;
+                        font-size: 16px !important;
+                        line-height: 1.5 !important;
+                        margin: 20px 0 58px 0 !important;
                     }}
                     
                     .signature-section {{
