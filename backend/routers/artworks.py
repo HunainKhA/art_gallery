@@ -1871,13 +1871,13 @@ def get_artwork_tag(artwork_id: str):
                     align-items: center;
                     justify-content: flex-start;
                     width: 100%;
-                    height: 480px;
+                    height: 525px;
                 }}
 
                 .painting-image {{
                     width: 100%;
                     height: 100%;
-                    max-height: 480px;
+                    max-height: 525px;
                     object-fit: fill;
                     box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
                     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -1968,11 +1968,11 @@ def get_artwork_tag(artwork_id: str):
                         min-height: 460px;
                     }}
                     .painting-wrapper {{
-                        height: 420px;
+                        height: 450px;
                     }}
                     .painting-image {{
                         height: 100%;
-                        max-height: 420px;
+                        max-height: 450px;
                     }}
                     .right-col {{
                         flex: 0 0 215px;
@@ -2040,13 +2040,13 @@ def get_artwork_tag(artwork_id: str):
 
                     .painting-wrapper {{
                         width: 100% !important;
-                        height: 155mm !important;
+                        height: 172mm !important;
                     }}
 
                     .painting-image {{
                         width: 100% !important;
                         height: 100% !important;
-                        max-height: 155mm !important;
+                        max-height: 172mm !important;
                         object-fit: fill !important;
                     }}
 
