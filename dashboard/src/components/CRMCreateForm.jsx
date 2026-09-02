@@ -456,7 +456,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
             }
 
             if (field.name === 'purchase_price' && formData.deal_type !== 'Purchase_Basis') {
-              return null;
+              return <div key="purchase_price_placeholder" style={{ gridColumn: 'span 1' }} />;
             }
 
             if (field.type === 'checkbox') {
