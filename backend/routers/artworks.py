@@ -1384,9 +1384,9 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .logo {{
-                    height: 54px;
+                    height: 68px;
                     width: auto;
-                    max-width: 135px;
+                    max-width: 170px;
                     object-fit: contain;
                     display: block;
                 }}
@@ -1523,9 +1523,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: block;
                 }}
                 
-                /* Footer */
+                /* Footer - strictly pinned to bottom */
                 .footer-container {{
-                    margin-top: auto;
+                    position: absolute;
+                    bottom: 15mm;
+                    left: 20mm;
+                    right: 20mm;
                     text-align: center;
                     font-size: 9.5px;
                     color: #333333;
@@ -1596,6 +1599,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     
                     .signature-section {{
                         margin-bottom: 40px !important;
+                    }}
+                    
+                    .footer-container {{
+                        position: absolute !important;
+                        bottom: 14mm !important;
+                        left: 20mm !important;
+                        right: 20mm !important;
                     }}
                     
                     @page {{
