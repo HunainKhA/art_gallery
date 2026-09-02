@@ -1550,8 +1550,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     bottom: 2px;
                     left: 15px;
                     height: 50px;
-                    max-width: 260px;
-                    object-fit: contain;
+                    width: 145px;
+                    object-fit: fill;
                     display: block;
                 }}
                 
