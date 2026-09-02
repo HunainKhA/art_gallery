@@ -1848,46 +1848,47 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .tag-content-row {{
-                    display: grid;
-                    grid-template-columns: 1fr 250px;
+                    display: flex;
+                    flex-direction: row;
                     align-items: stretch;
+                    justify-content: flex-start;
                     width: 100%;
                     height: 100%;
-                    gap: 24px;
+                    gap: 20px;
                 }}
 
                 .left-col {{
-                    width: 100%;
+                    flex: 1 1 auto;
                     height: 100%;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: flex-start;
                     min-width: 0;
                 }}
                 
                 .painting-wrapper {{
-                    width: 100%;
-                    height: 540px;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    border-radius: 2px;
-                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
-                    border: 1px solid rgba(0, 0, 0, 0.08);
-                    background-color: #f8fafc;
+                    justify-content: flex-start;
+                    width: 100%;
+                    height: 480px;
                 }}
 
                 .painting-image {{
                     width: 100%;
                     height: 100%;
-                    object-fit: cover;
-                    object-position: center center;
+                    max-height: 480px;
+                    object-fit: fill;
+                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
+                    border: 1px solid rgba(0, 0, 0, 0.08);
+                    border-radius: 2px;
                     display: block;
                 }}
                 
                 .right-col {{
-                    width: 100%;
+                    flex: 0 0 240px;
+                    width: 240px;
+                    min-width: 220px;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
@@ -1967,10 +1968,11 @@ def get_artwork_tag(artwork_id: str):
                         min-height: 460px;
                     }}
                     .painting-wrapper {{
-                        height: 460px;
+                        height: 420px;
                     }}
                     .painting-image {{
                         height: 100%;
+                        max-height: 420px;
                     }}
                     .right-col {{
                         flex: 0 0 215px;
@@ -2031,20 +2033,21 @@ def get_artwork_tag(artwork_id: str):
                     }}
 
                     .tag-content-row {{
-                        grid-template-columns: 1fr 65mm !important;
+                        display: flex !important;
+                        flex-direction: row !important;
                         gap: 8mm !important;
                     }}
 
                     .painting-wrapper {{
-                        height: 178mm !important;
-                        box-shadow: none !important;
+                        width: 100% !important;
+                        height: 155mm !important;
                     }}
 
                     .painting-image {{
                         width: 100% !important;
                         height: 100% !important;
-                        object-fit: cover !important;
-                        object-position: center center !important;
+                        max-height: 155mm !important;
+                        object-fit: fill !important;
                     }}
 
                     .right-col {{
