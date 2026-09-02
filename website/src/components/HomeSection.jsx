@@ -151,14 +151,16 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
             min-height: 100dvh !important;
             padding: 0 !important;
             margin: 0 !important;
+            background-color: #000000 !important;
           }
           .home-slider-img {
             width: 100vw !important;
             height: 100dvh !important;
             min-height: 100dvh !important;
-            object-fit: cover !important;
+            object-fit: contain !important;
             object-position: center center !important;
             display: block !important;
+            background-color: #000000 !important;
           }
         }
       `}</style>
