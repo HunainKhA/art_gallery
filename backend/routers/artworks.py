@@ -1707,7 +1707,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 <div class="statement-container editable-text" contenteditable="true" title="Click to edit statement">
                     The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
-                    genuine and authentic Painting by <strong>{artist_display}.</strong>
+                    genuine and authentic Painting by <strong>{artist_display}</strong>.
                 </div>
                 
                 <div class="signature-section">
