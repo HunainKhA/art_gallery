@@ -180,7 +180,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
   if (!config) return <div style={{ color: 'var(--text-muted)' }}>Invalid CRM Module selected.</div>;
 
   return (
-    <div className="glass-card" style={{ padding: '2rem', maxWidth: module === 'flashimages' ? '840px' : '700px', margin: '0 auto' }}>
+    <div className="glass-card" style={{ padding: '2rem 2.5rem', maxWidth: module === 'artists' ? '1200px' : module === 'flashimages' ? '900px' : '1050px', margin: '0 auto', width: '100%' }}>
       <h2 style={{ fontSize: '1.4rem', color: 'var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <Plus size={20} /> {isEdit ? 'Update' : 'Create'} {config.title}
       </h2>
@@ -209,10 +209,17 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
       )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: module === 'artists' ? 'repeat(3, 1fr)' : '1fr 1fr', 
+          gap: '1.25rem' 
+        }}>
           {fields.map(field => {
             const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
+            const totalCols = module === 'artists' ? 3 : 2;
             const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
+            const isTwoCols = module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street');
+            const gridColSpan = isFullWidth ? `span ${totalCols}` : isTwoCols ? 'span 2' : isFlashUpload ? 'span 1' : field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' ? `span ${totalCols}` : 'span 1';
 
             if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'subcategory_id') {
               const val = formData[field.name] || '';
@@ -226,7 +233,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                 : null;
 
               return (
-                <div key={field.name} style={{ gridColumn: isFlashUpload ? 'span 1' : 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div key={field.name} style={{ gridColumn: gridColSpan, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{field.label}</label>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-input, rgba(255, 255, 255, 0.01))', border: '1px dashed var(--border-color)', padding: '0.85rem', borderRadius: '8px', minHeight: '95px' }}>
 
@@ -441,7 +448,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
 
             if (field.type === 'checkbox') {
               return (
-                <div key={field.name} style={{ gridColumn: isFullWidth ? 'span 2' : 'span 1', display: 'flex', alignItems: 'center', minHeight: '60px' }}>
+                <div key={field.name} style={{ gridColumn: gridColSpan, display: 'flex', alignItems: 'center', minHeight: '60px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', userSelect: 'none', width: '100%' }}>
                     <input
                       type="checkbox"
@@ -464,19 +471,20 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
 
             if (field.name === 'artist_biography' || (module === 'artists' && (field.name === 'artist_biography' || field.name === 'bio'))) {
               return (
-                <ArtistBioBuilder
-                  key={field.name}
-                  value={formData.artist_biography || formData.bio || ''}
-                  onChange={(val) => {
-                    handleInputChange('artist_biography', val);
-                    handleInputChange('bio', val);
-                  }}
-                />
+                <div key={field.name} style={{ gridColumn: `span ${totalCols}` }}>
+                  <ArtistBioBuilder
+                    value={formData.artist_biography || formData.bio || ''}
+                    onChange={(val) => {
+                      handleInputChange('artist_biography', val);
+                      handleInputChange('bio', val);
+                    }}
+                  />
+                </div>
               );
             }
 
             return (
-              <div key={field.name} style={{ gridColumn: isFullWidth ? 'span 2' : 'span 1' }}>
+              <div key={field.name} style={{ gridColumn: gridColSpan }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>{field.label}</label>
 
                 {field.type === 'textarea' ? (
