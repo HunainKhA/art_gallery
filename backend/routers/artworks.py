@@ -1360,6 +1360,21 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     transform: translateY(-1px);
                 }}
                 
+                .btn-edit {{
+                    background-color: #ffffff;
+                    color: #0f172a;
+                    border: 1px solid #cbd5e1;
+                }}
+                .btn-edit:hover {{
+                    background-color: #f8fafc;
+                    border-color: #94a3b8;
+                }}
+                .btn-edit.active {{
+                    background-color: #b45309;
+                    color: #ffffff;
+                    border-color: #b45309;
+                }}
+                
                 /* Certificate Container (A4 Portrait) */
                 .certificate-container {{
                     width: 210mm;
@@ -1487,18 +1502,18 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 /* Inline Editing Support */
-                [contenteditable="true"] {{
+                .editable-text {{
                     transition: all 0.15s ease;
                 }}
-                [contenteditable="true"]:hover {{
-                    outline: 1px dashed #94a3b8;
+                body.editing-active .editable-text {{
+                    outline: 1.5px dashed #d97706 !important;
+                    background-color: rgba(254, 240, 138, 0.25) !important;
                     border-radius: 3px;
                     cursor: text;
                 }}
-                [contenteditable="true"]:focus {{
-                    outline: 1.5px solid #000000;
-                    border-radius: 3px;
-                    background-color: rgba(254, 240, 138, 0.2);
+                body.editing-active .editable-text:focus {{
+                    outline: 2px solid #b45309 !important;
+                    background-color: rgba(254, 240, 138, 0.45) !important;
                 }}
                 
                 /* Signature Section */
@@ -1595,7 +1610,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         display: none !important;
                     }}
                     
-                    [contenteditable="true"]:hover, [contenteditable="true"]:focus {{
+                    .editable-text {{
                         outline: none !important;
                         background-color: transparent !important;
                     }}
@@ -1651,9 +1666,11 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         <input type="checkbox" id="sig-toggle" checked onchange="toggleSignature(this.checked)">
                         Include Owner Signature
                     </label>
-                    <span style="font-size: 12px; color: #64748b; font-weight: 500;">✏️ Click any text to edit directly</span>
                 </div>
-                <button class="btn btn-print" onclick="window.print()">Print Certificate</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button id="btn-edit" class="btn btn-edit" onclick="toggleEditMode()">✏️ Edit Certificate</button>
+                    <button class="btn btn-print" onclick="window.print()">Print Certificate</button>
+                </div>
             </div>
             
             <div class="certificate-container">
@@ -1661,20 +1678,20 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
                 </div>
                 
-                <div class="certificate-title" contenteditable="true" title="Click to edit">Certificate of Authenticity</div>
+                <div class="certificate-title editable-text" contenteditable="true" title="Click to edit">Certificate of Authenticity</div>
                 
                 <table class="details-table">
                     <tr>
-                        <td class="cell-label" contenteditable="true">Painting by:</td>
-                        <td class="cell-val cell-artist" contenteditable="true">{artist_display}</td>
+                        <td class="cell-label editable-text" contenteditable="true">Painting by:</td>
+                        <td class="cell-val cell-artist editable-text" contenteditable="true">{artist_display}</td>
                     </tr>
                     <tr>
-                        <td class="cell-label" contenteditable="true">Size:</td>
-                        <td class="cell-val cell-size" contenteditable="true">{dimensions}</td>
+                        <td class="cell-label editable-text" contenteditable="true">Size:</td>
+                        <td class="cell-val cell-size editable-text" contenteditable="true">{dimensions}</td>
                     </tr>
                     <tr>
-                        <td class="cell-label" contenteditable="true">Medium:</td>
-                        <td class="cell-val cell-medium" contenteditable="true">{medium}</td>
+                        <td class="cell-label editable-text" contenteditable="true">Medium:</td>
+                        <td class="cell-val cell-medium editable-text" contenteditable="true">{medium}</td>
                     </tr>
                     <tr>
                         <td class="cell-label">Image:</td>
@@ -1683,12 +1700,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         </td>
                     </tr>
                     <tr>
-                        <td class="cell-label" contenteditable="true">Painting display</td>
-                        <td class="cell-val cell-display" contenteditable="true">MainFrame The Gallery</td>
+                        <td class="cell-label editable-text" contenteditable="true">Painting display</td>
+                        <td class="cell-val cell-display editable-text" contenteditable="true">MainFrame The Gallery</td>
                     </tr>
                 </table>
                 
-                <div class="statement-container" contenteditable="true" title="Click to edit statement">
+                <div class="statement-container editable-text" contenteditable="true" title="Click to edit statement">
                     The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
                     genuine and authentic Painting by <strong>{artist_display}.</strong>
                 </div>
@@ -1703,7 +1720,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 </div>
                 
                 <div class="footer-container">
-                    <div class="footer-address">
+                    <div class="footer-address editable-text" contenteditable="true">
                         F-73/9, Block 4 , Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
                     </div>
                     <div class="footer-links">
@@ -1723,6 +1740,24 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     const sigImg = document.getElementById('sig-img');
                     if (sigImg) {{
                         sigImg.style.display = show ? 'block' : 'none';
+                    }}
+                }}
+                
+                let isEditing = false;
+                function toggleEditMode() {{
+                    isEditing = !isEditing;
+                    const btn = document.getElementById('btn-edit');
+                    const elements = document.querySelectorAll('.editable-text');
+                    
+                    if (isEditing) {{
+                        document.body.classList.add('editing-active');
+                        btn.classList.add('active');
+                        btn.innerHTML = '💾 Done Editing';
+                        elements.forEach(el => el.setAttribute('contenteditable', 'true'));
+                    }} else {{
+                        document.body.classList.remove('editing-active');
+                        btn.classList.remove('active');
+                        btn.innerHTML = '✏️ Edit Certificate';
                     }}
                 }}
             </script>
