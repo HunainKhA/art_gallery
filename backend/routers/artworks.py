@@ -1457,7 +1457,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 380px;
+                    max-height: 290px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
@@ -1472,7 +1472,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     color: #111111;
                     text-align: left;
                     line-height: 1.6;
-                    margin: 22px 0 26px 0;
+                    margin: 20px 0 52px 0;
                     padding-left: 2px;
                 }}
                 
@@ -1486,7 +1486,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: flex-start;
                     align-items: flex-end;
-                    margin-bottom: 30px;
+                    margin-bottom: 35px;
                     padding-left: 2px;
                 }}
                 
@@ -1584,7 +1584,11 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
                     
                     .painting-image {{
-                        max-height: 360px !important;
+                        max-height: 280px !important;
+                    }}
+
+                    .statement-container {{
+                        margin: 18px 0 45px 0 !important;
                     }}
                     
                     @page {{
