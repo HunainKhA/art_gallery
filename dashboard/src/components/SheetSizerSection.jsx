@@ -291,48 +291,25 @@ export default function SheetSizerSection() {
       });
   };
 
-  // Tab 3: Dynamic Cuts List row operations
-  const handleAddMixedRow = () => {
-    setMixedCuts(prev => [...prev, { id: Date.now(), label: '', length: '', width: '', qty: 1 }]);
-  };
-
-  const handleRemoveMixedRow = (id) => {
-    if (mixedCuts.length === 1) return;
-    setMixedCuts(prev => prev.filter(row => row.id !== id));
-  };
-
-  const handleMixedRowChange = (id, field, val) => {
-    setMixedCuts(prev => prev.map(row => {
-      if (row.id === id) {
-        return { ...row, [field]: val };
-      }
-      return row;
-    }));
-  };
-
-  const handleCalculateMixedYield = (e) => {
-    e.preventDefault();
-    setMixedResult(null);
-
+  // Dynamic Cuts List live calculation helper
+  const calculatePlan = (cuts, sheetId, customL, customW, sheetsList = sheets) => {
     const margin = 0.0;
     const rectsToPack = [];
 
-    for (let i = 0; i < mixedCuts.length; i++) {
-      const row = mixedCuts[i];
+    for (let i = 0; i < cuts.length; i++) {
+      const row = cuts[i];
       const l = parseFloat(row.length);
       const w = parseFloat(row.width);
       const qty = parseInt(row.qty, 10);
 
       if (isNaN(l) || isNaN(w) || isNaN(qty) || l <= 0 || w <= 0 || qty <= 0) {
-        alert(`Please enter valid positive numbers in row ${i + 1}.`);
-        return;
+        return null; // incomplete or invalid input
       }
 
-      // Add 'qty' copies of this target cut
       for (let q = 0; q < qty; q++) {
         rectsToPack.push({
-          w: w + 2 * margin,  // X size
-          h: l + 2 * margin,  // Y size
+          w: w + 2 * margin,
+          h: l + 2 * margin,
           origW: w,
           origH: l,
           baseLabel: row.label && row.label.trim() ? row.label.trim() : `Art ${String.fromCharCode(65 + i)}`
@@ -340,7 +317,8 @@ export default function SheetSizerSection() {
       }
     }
 
-    // Calculate dynamic sequence suffixes for duplicate names globally
+    if (rectsToPack.length === 0) return null;
+
     const labelCounts = {};
     rectsToPack.forEach(r => {
       labelCounts[r.baseLabel] = (labelCounts[r.baseLabel] || 0) + 1;
@@ -362,20 +340,15 @@ export default function SheetSizerSection() {
     let sheetName = "";
     let bestPreset = null;
 
-    if (selectedSheetId === 'auto') {
-      if (sheets.length === 0) {
-        alert("No glass sheet presets available for auto-selection.");
-        return;
-      }
+    if (sheetId === 'auto') {
+      if (sheetsList.length === 0) return null;
 
       const candidates = [];
-
-      for (const s of sheets) {
+      for (const s of sheetsList) {
         const tempL = parseFloat(s.length);
         const tempW = parseFloat(s.width);
         if (isNaN(tempL) || isNaN(tempW) || tempL <= 0 || tempW <= 0) continue;
 
-        // Run temporary packing to check fit metrics
         const packer = new GuillotinePacker(tempW, tempL);
         const packingResult = packer.pack(rectsToPack);
         
@@ -389,19 +362,14 @@ export default function SheetSizerSection() {
         });
       }
 
-      // Sort candidate sheets:
-      // 1. Prioritize sheets that fit ALL cuts (unpackedCount === 0)
       const perfectFits = candidates.filter(c => c.unpackedCount === 0);
-
       if (perfectFits.length > 0) {
-        // Sort by price ascending (cheapest first), then by raw area ascending (smallest first)
         perfectFits.sort((a, b) => {
           if (a.price !== b.price) return a.price - b.price;
           return a.area - b.area;
         });
         bestPreset = perfectFits[0].preset;
-      } else {
-        // Fallback: Pick preset fitting maximum cuts, break ties by highest utilization
+      } else if (candidates.length > 0) {
         candidates.sort((a, b) => {
           if (a.packedCount !== b.packedCount) return b.packedCount - a.packedCount;
           return b.utilization - a.utilization;
@@ -409,30 +377,24 @@ export default function SheetSizerSection() {
         bestPreset = candidates[0].preset;
       }
 
+      if (!bestPreset) return null;
       sheetL = parseFloat(bestPreset.length);
       sheetW = parseFloat(bestPreset.width);
       sheetName = `${bestPreset.name} (Auto-Selected)`;
-    } else if (selectedSheetId === 'custom') {
-      sheetL = parseFloat(customSheetLength);
-      sheetW = parseFloat(customSheetWidth);
+    } else if (sheetId === 'custom') {
+      sheetL = parseFloat(customL);
+      sheetW = parseFloat(customW);
       sheetName = "Custom Sheet";
     } else {
-      const selected = sheets.find(s => s.id.toString() === selectedSheetId);
-      if (!selected) {
-        alert("Selected sheet preset not found.");
-        return;
-      }
+      const selected = sheetsList.find(s => s.id.toString() === sheetId);
+      if (!selected) return null;
       sheetL = parseFloat(selected.length);
       sheetW = parseFloat(selected.width);
       sheetName = selected.name;
     }
 
-    if (isNaN(sheetL) || isNaN(sheetW) || sheetL <= 0 || sheetW <= 0) {
-      alert("Please enter valid sheet dimensions.");
-      return;
-    }
+    if (isNaN(sheetL) || isNaN(sheetW) || sheetL <= 0 || sheetW <= 0) return null;
 
-    // Run final Guillotine packer on the chosen sheet preset
     const packer = new GuillotinePacker(sheetW, sheetL);
     const packingResult = packer.pack(rectsToPack);
 
@@ -442,7 +404,7 @@ export default function SheetSizerSection() {
     const utilizationPercent = (utilizedArea / sheetArea) * 100;
     const wastagePercent = 100 - utilizationPercent;
 
-    setMixedResult({
+    return {
       sheetName,
       sheetLength: sheetL,
       sheetWidth: sheetW,
@@ -454,7 +416,55 @@ export default function SheetSizerSection() {
       wastageArea: Math.round(wastageArea * 10) / 10,
       utilizationPercent: Math.round(utilizationPercent * 100) / 100,
       wastagePercent: Math.round(wastagePercent * 100) / 100
+    };
+  };
+
+  // Tab 3: Dynamic Cuts List row operations
+  const handleAddMixedRow = () => {
+    const updated = [...mixedCuts, { id: Date.now(), label: '', length: '', width: '', qty: 1 }];
+    setMixedCuts(updated);
+    if (mixedResult) {
+      const liveResult = calculatePlan(updated, selectedSheetId, customSheetLength, customSheetWidth);
+      if (liveResult) setMixedResult(liveResult);
+    }
+  };
+
+  const handleRemoveMixedRow = (id) => {
+    if (mixedCuts.length === 1) return;
+    const updated = mixedCuts.filter(row => row.id !== id);
+    setMixedCuts(updated);
+    if (mixedResult) {
+      const liveResult = calculatePlan(updated, selectedSheetId, customSheetLength, customSheetWidth);
+      if (liveResult) setMixedResult(liveResult);
+    }
+  };
+
+  const handleMixedRowChange = (id, field, val) => {
+    const updated = mixedCuts.map(row => {
+      if (row.id === id) {
+        return { ...row, [field]: val };
+      }
+      return row;
     });
+    setMixedCuts(updated);
+    
+    // Live update cutting plan if already generated
+    if (mixedResult) {
+      const liveResult = calculatePlan(updated, selectedSheetId, customSheetLength, customSheetWidth);
+      if (liveResult) {
+        setMixedResult(liveResult);
+      }
+    }
+  };
+
+  const handleCalculateMixedYield = (e) => {
+    if (e) e.preventDefault();
+    const result = calculatePlan(mixedCuts, selectedSheetId, customSheetLength, customSheetWidth);
+    if (!result) {
+      alert("Please ensure all rows have valid positive numbers for Width, Height, and Qty.");
+      return;
+    }
+    setMixedResult(result);
   };
 
   // Open a print window with the visual layout and preset selection
@@ -1126,50 +1136,52 @@ export default function SheetSizerSection() {
                           height={rect.h}
                           fill={rect.color}
                           stroke="rgba(0, 0, 0, 0.6)"
-                          strokeWidth="0.1"
+                          strokeWidth="0.15"
                           style={{ transition: 'all 0.3s ease' }}
                         />
-                         {/* Text Dimensions Label */}
-                        {rect.w > 4 && rect.h > 3 ? (
-                          <>
-                            <text
-                              x={rect.x + rect.w / 2}
-                              y={rect.y + rect.h / 2 - (getFontSizeForBox(rect.label, rect.w, rect.h) * 0.35)}
-                              dominantBaseline="middle"
-                              textAnchor="middle"
-                              fill="#fff"
-                              fontSize={getFontSizeForBox(rect.label, rect.w, rect.h) * 0.75}
-                              fontWeight="300"
-                              style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
-                            >
-                              {fitTextToBox(rect.label, rect.w, rect.h)}
-                            </text>
-                            <text
-                              x={rect.x + rect.w / 2}
-                              y={rect.y + rect.h / 2 + (getFontSizeForBox(rect.label, rect.w, rect.h) * 0.45)}
-                              dominantBaseline="middle"
-                              textAnchor="middle"
-                              fill="var(--accent-gold)"
-                              fontSize={Math.min(2.8, getFontSizeForBox(rect.label, rect.w, rect.h) * 0.75)}
-                              fontWeight="300"
-                              style={{ pointerEvents: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
-                            >
+                        {/* Centered HTML ForeignObject for Exact 14px Name & 12px Dimensions */}
+                        <foreignObject
+                          x={rect.x}
+                          y={rect.y}
+                          width={rect.w}
+                          height={rect.h}
+                          style={{ overflow: 'hidden', pointerEvents: 'none' }}
+                        >
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            padding: '4px',
+                            boxSizing: 'border-box',
+                            userSelect: 'none'
+                          }}>
+                            <span style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: '#ffffff',
+                              lineHeight: 1.25,
+                              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8)',
+                              wordBreak: 'break-word',
+                              maxWidth: '100%'
+                            }}>
+                              {rect.label.replace(/\s+#\d+$/, '')}
+                            </span>
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#ffffff',
+                              lineHeight: 1.25,
+                              marginTop: '3px',
+                              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8)'
+                            }}>
                               {rect.origW}"x{rect.origH}"{rect.rotated ? ' (R)' : ''}
-                            </text>
-                          </>
-                        ) : (
-                          <text
-                            x={rect.x + rect.w / 2}
-                            y={rect.y + rect.h / 2}
-                            dominantBaseline="middle"
-                            textAnchor="middle"
-                            fill="#fff"
-                            fontSize="2"
-                            style={{ pointerEvents: 'none' }}
-                          >
-                            *
-                          </text>
-                        )}
+                            </span>
+                          </div>
+                        </foreignObject>
                       </g>
                     ))}
 
@@ -1177,10 +1189,6 @@ export default function SheetSizerSection() {
                     {mixedResult.free && mixedResult.free.map((rect, idx) => {
                       const label = `${rect.w}" x ${rect.h}" Left`;
                       const isRotated = rect.h > rect.w && rect.w < 6;
-                      const textW = isRotated ? rect.h : rect.w;
-                      const textH = isRotated ? rect.w : rect.h;
-                      const fs = Math.max(0.6, Math.min(1.8, getFontSizeForBox(label, textW, textH) * 0.85));
-                      const canShowText = rect.w >= 1 && rect.h >= 1;
                       
                       return (
                         <g key={`free-${idx}`}>
@@ -1189,41 +1197,41 @@ export default function SheetSizerSection() {
                             y={rect.y}
                             width={rect.w}
                             height={rect.h}
-                            fill="rgba(255, 255, 255, 0.02)"
-                            stroke="rgba(255, 255, 255, 0.2)"
-                            strokeWidth="0.1"
-                            strokeDasharray="1,1"
+                            fill="rgba(220, 220, 225, 0.55)"
+                            stroke="rgba(0, 0, 0, 0.4)"
+                            strokeWidth="0.15"
+                            strokeDasharray="0.8,0.8"
                           />
-                          {canShowText ? (
-                            isRotated ? (
-                              <text
-                                x={rect.x + rect.w / 2}
-                                y={rect.y + rect.h / 2}
-                                transform={`rotate(-90, ${rect.x + rect.w / 2}, ${rect.y + rect.h / 2})`}
-                                dominantBaseline="middle"
-                                textAnchor="middle"
-                                fill="rgba(255, 255, 255, 0.35)"
-                                fontSize={fs}
-                                fontWeight="300"
-                                style={{ pointerEvents: 'none' }}
-                              >
-                                {fitTextToBox(label, rect.h, rect.w)}
-                              </text>
-                            ) : (
-                              <text
-                                x={rect.x + rect.w / 2}
-                                y={rect.y + rect.h / 2}
-                                dominantBaseline="middle"
-                                textAnchor="middle"
-                                fill="rgba(255, 255, 255, 0.35)"
-                                fontSize={fs}
-                                fontWeight="300"
-                                style={{ pointerEvents: 'none' }}
-                              >
-                                {fitTextToBox(label, rect.w, rect.h)}
-                              </text>
-                            )
-                          ) : null}
+                          {rect.w >= 1.5 && rect.h >= 1.5 && (
+                            <foreignObject
+                              x={rect.x}
+                              y={rect.y}
+                              width={rect.w}
+                              height={rect.h}
+                              style={{ overflow: 'hidden', pointerEvents: 'none' }}
+                            >
+                              <div style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                padding: '2px',
+                                boxSizing: 'border-box'
+                              }}>
+                                <span style={{
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  color: '#000000',
+                                  transform: isRotated ? 'rotate(-90deg)' : 'none',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {label}
+                                </span>
+                              </div>
+                            </foreignObject>
+                          )}
                         </g>
                       );
                     })}
