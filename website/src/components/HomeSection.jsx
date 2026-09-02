@@ -149,6 +149,7 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
             width: 100vw !important;
             height: 100dvh !important;
             min-height: 100dvh !important;
+            max-height: 100dvh !important;
             padding: 0 !important;
             margin: 0 !important;
             background-color: #000000 !important;
@@ -157,10 +158,10 @@ export default function HomeSection({ flashImages = [], exhibitions = [], artwor
             width: 100vw !important;
             height: 100dvh !important;
             min-height: 100dvh !important;
-            object-fit: contain !important;
+            max-height: 100dvh !important;
+            object-fit: fill !important;
             object-position: center center !important;
             display: block !important;
-            background-color: #000000 !important;
           }
         }
       `}</style>
