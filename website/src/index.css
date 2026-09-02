@@ -2614,41 +2614,45 @@ body.light-theme .floating-socials {
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   user-select: none !important;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .collection-status-filter-btn:hover {
-  border-color: var(--accent-gold);
-  color: var(--text-primary);
+  border-color: var(--accent-gold) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
 .collection-status-filter-btn.active {
-  background: #ffffff !important;
-  color: #000000 !important;
-  -webkit-text-fill-color: #000000 !important;
-  border-color: #ffffff !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1.5px solid #ffffff !important;
   font-weight: 500 !important;
 }
 
 /* Light Theme Styling for Collection Status Filter Buttons */
 body.light-theme .collection-status-filter-btn {
+  background-color: #ffffff !important;
   background: #ffffff !important;
-  color: #111111 !important;
-  -webkit-text-fill-color: #111111 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
   border: 1px solid #d1d5db !important;
   font-weight: 400 !important;
 }
 
 body.light-theme .collection-status-filter-btn:hover {
-  border-color: #18181b !important;
+  border-color: #000000 !important;
 }
 
 body.light-theme .collection-status-filter-btn.active {
-  background: #18181b !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border: 1px solid #18181b !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  border: 1.5px solid #000000 !important;
   font-weight: 500 !important;
 }
