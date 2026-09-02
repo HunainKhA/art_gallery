@@ -180,7 +180,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
   if (!config) return <div style={{ color: 'var(--text-muted)' }}>Invalid CRM Module selected.</div>;
 
   return (
-    <div className="glass-card" style={{ padding: '2rem 2.5rem', maxWidth: module === 'artists' ? '1200px' : module === 'flashimages' ? '900px' : '1050px', margin: '0 auto', width: '100%' }}>
+    <div className="glass-card" style={{ padding: '2rem 2.5rem', maxWidth: ['artists', 'collections'].includes(module) ? '1240px' : module === 'flashimages' ? '900px' : '1050px', margin: '0 auto', width: '100%' }}>
       <h2 style={{ fontSize: '1.4rem', color: 'var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <Plus size={20} /> {isEdit ? 'Update' : 'Create'} {config.title}
       </h2>
@@ -211,17 +211,30 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: module === 'artists' ? 'repeat(3, 1fr)' : '1fr 1fr', 
+          gridTemplateColumns: ['artists', 'collections'].includes(module) ? 'repeat(3, 1fr)' : '1fr 1fr', 
           gap: '1.25rem' 
         }}>
           {fields.map(field => {
             const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
-            const totalCols = module === 'artists' ? 3 : 2;
+            const totalCols = ['artists', 'collections'].includes(module) ? 3 : 2;
             const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
             const isTwoCols = module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street');
-            const gridColSpan = isFullWidth ? `span ${totalCols}` : isTwoCols ? 'span 2' : isFlashUpload ? 'span 1' : field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' ? `span ${totalCols}` : 'span 1';
+            const isImageUpload = ['profile_image', 'image', 'filename', 'subcategory_id', 'tag_photo'].includes(field.name);
 
-            if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'subcategory_id') {
+            let gridColSpan = 'span 1';
+            if (isFullWidth) {
+              gridColSpan = `span ${totalCols}`;
+            } else if (isTwoCols) {
+              gridColSpan = 'span 2';
+            } else if (isFlashUpload) {
+              gridColSpan = 'span 1';
+            } else if (module === 'collections' && (field.name === 'filename' || field.name === 'tag_photo')) {
+              gridColSpan = 'span 1';
+            } else if (isImageUpload) {
+              gridColSpan = `span ${totalCols}`;
+            }
+
+            if (field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'subcategory_id' || field.name === 'tag_photo') {
               const val = formData[field.name] || '';
               const isPdf = typeof val === 'string' && val.toLowerCase().endsWith('.pdf');
               const imageUrl = val && !isPdf
@@ -256,13 +269,13 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                           <Upload size={12} /> Upload
                           <input
                             type="file"
-                            accept={field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven' ? "image/*" : "*/*"}
+                            accept={field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'tag_photo' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven' ? "image/*" : "*/*"}
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               const file = e.target.files[0];
                               if (!file) return;
 
-                              const isImageField = field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven';
+                              const isImageField = field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'tag_photo' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven';
                               if (isImageField) {
                                 const isFlash = module === 'flashimages';
                                 const maxSize = isFlash ? 3 * 1024 * 1024 : 1 * 1024 * 1024;
@@ -345,7 +358,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                           </button>
                         )}
                       </div>
-                      {(field.name === 'profile_image' || field.name === 'image' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
+                      {(field.name === 'profile_image' || field.name === 'image' || field.name === 'filename' || field.name === 'tag_photo' || field.name === 'subcategory_id' || module === 'flashimages' || module === 'exhibitions' || module === 'framerheaven') && (
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'block', lineHeight: 1.2 }}>
                           {field.name === 'subcategory_id' ? '1080x1920 (9:16 Portrait)' : module === 'flashimages' ? '1920x1080 (16:9 Landscape)' : '1200px+ width/height'}
                         </span>
@@ -362,7 +375,7 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
               const isAuto = formData.authenticity_letter === 'auto';
 
               return (
-                <div key={field.name} style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div key={field.name} style={{ gridColumn: `span ${totalCols}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
                     <input
                       type="checkbox"
