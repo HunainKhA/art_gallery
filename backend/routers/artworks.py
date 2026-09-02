@@ -1280,7 +1280,9 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 except Exception:
                     pass
             
-        # HTML template
+        # HTML template matching exact user PDF certificate design
+        artist_display = artist.upper() if artist else "UNKNOWN ARTIST"
+        
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -1288,34 +1290,44 @@ def get_artwork_authenticity_letter(artwork_id: str):
             <meta charset="utf-8">
             <title>Certificate of Authenticity - {title}</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
                 
-                body {{
+                * {{
+                    box-sizing: border-box;
                     margin: 0;
                     padding: 0;
-                    background-color: #f5f5f5;
+                }}
+                
+                body {{
+                    background-color: #f1f3f5;
                     font-family: 'Montserrat', sans-serif;
+                    color: #111;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    padding: 15px 15px 40px;
                 }}
                 
                 .print-controls {{
-                    max-width: 8.5in;
-                    margin: 15px auto;
-                    padding: 12px 20px;
-                    background: rgba(255, 255, 255, 0.85);
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: 12px;
-                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+                    width: 100%;
+                    max-width: 210mm;
+                    margin: 10px auto 16px;
+                    padding: 10px 18px;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    box-sizing: border-box;
+                    gap: 10px;
+                    flex-wrap: wrap;
                 }}
                 
                 .checkbox-container {{
-                    font-family: sans-serif;
-                    font-size: 14px;
+                    font-size: 13.5px;
                     font-weight: 500;
                     color: #333;
                     display: flex;
@@ -1325,37 +1337,39 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .btn {{
-                    padding: 10px 20px;
-                    font-family: sans-serif;
-                    font-size: 14px;
+                    padding: 8px 16px;
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 13px;
                     font-weight: 600;
-                    border: none;
+                    border: 1px solid transparent;
                     border-radius: 6px;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    transition: all 0.2s ease;
                 }}
                 
                 .btn-print {{
-                    background-color: #bda04c;
-                    color: #fff;
-                    box-shadow: 0 2px 8px rgba(189, 160, 76, 0.3);
+                    background-color: #111827;
+                    color: #ffffff;
                 }}
-                
                 .btn-print:hover {{
-                    background-color: #a48539;
+                    background-color: #374151;
                     transform: translateY(-1px);
                 }}
                 
+                /* Certificate Container (A4 Portrait) */
                 .certificate-container {{
                     width: 210mm;
+                    min-height: 297mm;
                     height: 297mm;
-                    margin: 20px auto;
-                    background-color: #fff;
-                    box-shadow: none;
-                    border: none;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     position: relative;
-                    box-sizing: border-box;
-                    padding: 0.6in 0.8in 0.6in 0.8in;
+                    padding: 20mm 22mm 16mm 22mm;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
@@ -1363,143 +1377,170 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .certificate-header {{
                     position: relative;
-                    text-align: center;
                     width: 100%;
-                    margin-bottom: 0.15in;
-                    padding-top: 0.1in;
+                    min-height: 65px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    min-height: 60px;
+                    margin-bottom: 22px;
                 }}
                 
                 .logo {{
                     position: absolute;
                     top: 0;
-                    left: 0;
-                    height: 50px;
+                    right: 0;
+                    height: 52px;
+                    width: auto;
+                    max-width: 130px;
                     object-fit: contain;
+                    display: block;
                 }}
                 
                 .certificate-title {{
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 16px;
+                    font-family: 'Playfair Display', Georgia, serif;
+                    font-size: 26px;
                     font-weight: 600;
-                    letter-spacing: 2px;
-                    text-transform: uppercase;
-                    color: #000;
-                    margin: 0;
+                    letter-spacing: 0.5px;
+                    color: #1a1a1a;
+                    text-align: center;
+                    margin-top: 15px;
                 }}
                 
+                /* Table with Solid Black Borders */
                 .details-table {{
                     width: 100%;
                     border-collapse: collapse;
+                    border: 1.5px solid #000000;
                     font-family: 'Montserrat', sans-serif;
-                    font-size: 11.5px;
-                    color: #000;
-                    margin-top: 0.1in;
                 }}
                 
                 .details-table td {{
-                    padding: 4px 6px;
+                    border: 1.5px solid #000000;
+                    padding: 9px 14px;
                     vertical-align: middle;
                 }}
                 
                 .cell-label {{
-                    width: 130px;
-                    font-weight: 400;
-                    color: #000;
-                }}
-                
-                .cell-val {{
-                    font-weight: 400;
-                    color: #000;
-                }}
-                
-                .text-bold {{
+                    width: 165px;
                     font-weight: 700;
-                }}
-                
-                .text-left {{
+                    font-size: 13px;
+                    color: #000000;
                     text-align: left;
                 }}
                 
-                .label-image {{
-                    vertical-align: middle !important;
+                .cell-val {{
+                    font-size: 12.5px;
+                    color: #000000;
+                    text-align: center;
+                }}
+                
+                .cell-artist {{
+                    font-weight: 700;
+                    font-size: 13px;
+                    letter-spacing: 0.5px;
+                }}
+                
+                .cell-size {{
+                    font-weight: 500;
+                    font-size: 12.5px;
+                }}
+                
+                .cell-medium {{
+                    font-weight: 400;
+                    font-size: 12px;
+                    line-height: 1.4;
+                }}
+                
+                .cell-display {{
+                    font-weight: 600;
+                    font-size: 12.5px;
                 }}
                 
                 .cell-img-val {{
-                    padding: 8px 0;
+                    padding: 14px 10px;
                     text-align: center;
+                    background-color: #ffffff;
                 }}
                 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 3.5in;
+                    max-height: 310px;
+                    width: auto;
+                    height: auto;
                     object-fit: contain;
                     display: block;
                     margin: 0 auto;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
                 }}
                 
+                /* Statement Text */
                 .statement-container {{
                     font-family: 'Montserrat', sans-serif;
-                    font-size: 13px;
-                    color: #000;
-                    line-height: 1.6;
-                    margin-top: 0.1in;
-                    margin-bottom: 0.25in;
+                    font-size: 12.5px;
+                    color: #222222;
+                    text-align: center;
+                    line-height: 1.55;
+                    margin: 20px 0 16px 0;
+                    padding: 0 10px;
                 }}
                 
+                .statement-container strong {{
+                    font-weight: 700;
+                    color: #000000;
+                }}
+                
+                /* Signature Section */
                 .signature-section {{
                     display: flex;
                     justify-content: flex-start;
                     align-items: flex-end;
-                    margin-top: 0.1in;
-                    margin-bottom: 0.25in;
+                    margin-bottom: 22px;
+                    padding-left: 2px;
                 }}
                 
                 .sig-line-container {{
                     display: flex;
                     align-items: flex-end;
-                    gap: 8px;
+                    gap: 12px;
                 }}
                 
                 .sig-label {{
                     font-weight: 700;
                     font-size: 14px;
-                    color: #000;
+                    color: #000000;
                     padding-bottom: 4px;
                 }}
                 
                 .sig-line {{
                     position: relative;
-                    border-bottom: 1.5px solid #000;
-                    width: 280px;
-                    height: 40px;
+                    border-bottom: 1.5px solid #000000;
+                    width: 250px;
+                    height: 42px;
                 }}
                 
                 #sig-img {{
                     position: absolute;
                     bottom: 2px;
-                    left: 20px;
-                    height: 55px;
+                    left: 15px;
+                    height: 52px;
+                    max-width: 200px;
                     object-fit: contain;
                     display: block;
                 }}
                 
+                /* Footer */
                 .footer-container {{
+                    border-top: 1px solid #e5e7eb;
+                    padding-top: 12px;
                     text-align: center;
                     font-family: 'Montserrat', sans-serif;
                     font-size: 10px;
-                    color: #333;
+                    color: #4b5563;
                     line-height: 1.6;
-                    padding-top: 0.1in;
                 }}
                 
                 .footer-address {{
                     font-weight: 500;
-                    margin-bottom: 4px;
+                    margin-bottom: 3px;
                     letter-spacing: 0.2px;
                 }}
                 
@@ -1507,39 +1548,47 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    gap: 20px;
+                    gap: 18px;
                 }}
                 
                 .footer-link-item {{
                     display: flex;
                     align-items: center;
-                    gap: 6px;
+                    gap: 5px;
+                    color: #4b5563;
+                    text-decoration: none;
                 }}
                 
                 .footer-icon-inline {{
                     width: 12px;
                     height: 12px;
-                    stroke-width: 2px;
                 }}
                 
                 @media print {{
                     body {{
-                        background-color: #fff;
-                        margin: 0;
-                        padding: 0;
+                        background-color: #ffffff !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }}
                     
                     .print-controls {{
-                        display: none;
+                        display: none !important;
                     }}
                     
                     .certificate-container {{
-                        margin: 0;
-                        box-shadow: none;
-                        width: 210mm;
-                        height: 297mm;
-                        page-break-after: avoid;
-                        page-break-before: avoid;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                        width: 210mm !important;
+                        height: 297mm !important;
+                        min-height: 297mm !important;
+                        padding: 18mm 20mm 14mm 20mm !important;
+                        page-break-after: avoid !important;
+                        page-break-before: avoid !important;
+                    }}
+                    
+                    .painting-image {{
+                        max-height: 310px !important;
                     }}
                     
                     @page {{
@@ -1559,69 +1608,65 @@ def get_artwork_authenticity_letter(artwork_id: str):
             </div>
             
             <div class="certificate-container">
-                <div class="certificate-header">
-                    <div class="certificate-title">Certificate of Authenticity</div>
-                    <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
-                </div>
-                
-                <table class="details-table">
-                    <tr>
-                        <td class="cell-label">Date:</td>
-                        <td class="cell-val text-bold">{date_str}</td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label">Reg: Code</td>
-                        <td class="cell-val text-bold">{code}</td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label">Painting by:</td>
-                        <td class="cell-val text-bold">{artist}</td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label">Size:</td>
-                        <td class="cell-val">{dimensions}</td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label">Medium:</td>
-                        <td class="cell-val">{medium}</td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label label-image">Image:</td>
-                        <td class="cell-img-val">
-                            <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="cell-label">Painting display</td>
-                        <td class="cell-val text-left">MainFrame The Gallery</td>
-                    </tr>
-                </table>
-                
-                <div class="statement-container">
-                    The MainFrame The Gallery assumes full responsibility for this Artwork being a genuine and authentic Painting by <strong>{artist}</strong>.
-                </div>
-                
-                <div class="signature-section">
-                    <div class="sig-line-container">
-                        <span class="sig-label">Signature:</span>
-                        <div class="sig-line">
-                            <img id="sig-img" src="/api/artworks/signature" alt="Signature">
-                        </div>
+                <div>
+                    <div class="certificate-header">
+                        <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
+                        <div class="certificate-title">Certificate of Authenticity</div>
+                    </div>
+                    
+                    <table class="details-table">
+                        <tr>
+                            <td class="cell-label">Painting by:</td>
+                            <td class="cell-val cell-artist">{artist_display}</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-label">Size:</td>
+                            <td class="cell-val cell-size">{dimensions}</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-label">Medium:</td>
+                            <td class="cell-val cell-medium">{medium}</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-label">Image:</td>
+                            <td class="cell-img-val">
+                                <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="cell-label">Painting display</td>
+                            <td class="cell-val cell-display">MainFrame The Gallery</td>
+                        </tr>
+                    </table>
+                    
+                    <div class="statement-container">
+                        The MainFrame The Gallery assumes full responsibility for this Artwork being a genuine<br>and authentic Painting by <strong>{artist_display}</strong>.
                     </div>
                 </div>
                 
-                <div class="footer-container">
-                    <div class="footer-address">
-                        F-73/9, Block-4, Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4155 &nbsp;&nbsp;|&nbsp;&nbsp; +92 300 829 5500
-                    </div>
-                    <div class="footer-links">
-                        <div class="footer-link-item">
-                            <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            mainframethegallery@gmail.com
+                <div>
+                    <div class="signature-section">
+                        <div class="sig-line-container">
+                            <span class="sig-label">Signature:</span>
+                            <div class="sig-line">
+                                <img id="sig-img" src="{sig_src}" alt="Signature">
+                            </div>
                         </div>
-                        <div class="footer-link-item">
-                            <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                            www.mainframethegallery.com
+                    </div>
+                    
+                    <div class="footer-container">
+                        <div class="footer-address">
+                            F-73/9, Block 4, Clifton Karachi Pakistan. &nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
+                        </div>
+                        <div class="footer-links">
+                            <div class="footer-link-item">
+                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                mainframethegallery@gmail.com
+                            </div>
+                            <div class="footer-link-item">
+                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                www.mainframethegallery.com
+                            </div>
                         </div>
                     </div>
                 </div>
