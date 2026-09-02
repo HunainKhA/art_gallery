@@ -1867,20 +1867,22 @@ def get_artwork_tag(artwork_id: str):
                 
                 .painting-wrapper {{
                     width: 100%;
-                    height: 100%;
+                    height: 540px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    overflow: hidden;
+                    border-radius: 2px;
+                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
+                    border: 1px solid rgba(0, 0, 0, 0.08);
+                    background-color: #f8fafc;
                 }}
 
                 .painting-image {{
                     width: 100%;
                     height: 100%;
-                    max-height: 540px;
                     object-fit: cover;
-                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
-                    border: 1px solid rgba(0, 0, 0, 0.08);
-                    border-radius: 2px;
+                    object-position: center center;
                     display: block;
                 }}
                 
@@ -1964,8 +1966,11 @@ def get_artwork_tag(artwork_id: str):
                         padding: 16px 20px;
                         min-height: 460px;
                     }}
+                    .painting-wrapper {{
+                        height: 460px;
+                    }}
                     .painting-image {{
-                        max-height: 460px;
+                        height: 100%;
                     }}
                     .right-col {{
                         flex: 0 0 215px;
@@ -2025,8 +2030,21 @@ def get_artwork_tag(artwork_id: str):
                         page-break-inside: avoid !important;
                     }}
 
+                    .tag-content-row {{
+                        grid-template-columns: 1fr 65mm !important;
+                        gap: 8mm !important;
+                    }}
+
+                    .painting-wrapper {{
+                        height: 178mm !important;
+                        box-shadow: none !important;
+                    }}
+
                     .painting-image {{
-                        max-height: 178mm !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: cover !important;
+                        object-position: center center !important;
                     }}
 
                     .right-col {{
