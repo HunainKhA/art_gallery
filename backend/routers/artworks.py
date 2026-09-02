@@ -1369,26 +1369,20 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     background-color: #ffffff;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     position: relative;
-                    padding: 18mm 20mm 14mm 20mm;
+                    padding: 18mm 20mm 16mm 20mm;
                     display: flex;
                     flex-direction: column;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                 }}
                 
-                .certificate-header {{
-                    position: relative;
+                .logo-container {{
                     width: 100%;
-                    min-height: 60px;
                     display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-bottom: 22px;
+                    justify-content: flex-end;
+                    margin-bottom: 12px;
                 }}
                 
                 .logo {{
-                    position: absolute;
-                    top: 0;
-                    right: 0;
                     height: 52px;
                     width: auto;
                     max-width: 130px;
@@ -1397,12 +1391,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .certificate-title {{
-                    font-size: 26px;
+                    font-size: 27px;
                     font-weight: 400;
                     letter-spacing: 0.5px;
                     color: #000000;
                     text-align: center;
-                    margin-top: 15px;
+                    margin-bottom: 22px;
                 }}
                 
                 /* Table with Solid Black Borders */
@@ -1456,14 +1450,14 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .cell-img-val {{
-                    padding: 12px 10px;
+                    padding: 14px 10px;
                     text-align: center;
                     background-color: #ffffff;
                 }}
                 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 310px;
+                    max-height: 380px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
@@ -1492,7 +1486,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: flex-start;
                     align-items: flex-end;
-                    margin-bottom: 26px;
+                    margin-bottom: 30px;
                     padding-left: 2px;
                 }}
                 
@@ -1528,6 +1522,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Footer */
                 .footer-container {{
+                    margin-top: auto;
                     text-align: center;
                     font-size: 9.5px;
                     color: #333333;
@@ -1581,7 +1576,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         width: 210mm !important;
                         height: 297mm !important;
                         max-height: 297mm !important;
-                        padding: 16mm 20mm 12mm 20mm !important;
+                        padding: 16mm 20mm 14mm 20mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
                         page-break-inside: avoid !important;
@@ -1589,7 +1584,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
                     
                     .painting-image {{
-                        max-height: 285px !important;
+                        max-height: 360px !important;
                     }}
                     
                     @page {{
@@ -1609,65 +1604,62 @@ def get_artwork_authenticity_letter(artwork_id: str):
             </div>
             
             <div class="certificate-container">
-                <div>
-                    <div class="certificate-header">
-                        <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
-                        <div class="certificate-title">Certificate of Authenticity</div>
-                    </div>
-                    
-                    <table class="details-table">
-                        <tr>
-                            <td class="cell-label">Painting by:</td>
-                            <td class="cell-val cell-artist">{artist_display}</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-label">Size:</td>
-                            <td class="cell-val cell-size">{dimensions}</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-label">Medium:</td>
-                            <td class="cell-val cell-medium">{medium}</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-label">Image:</td>
-                            <td class="cell-img-val">
-                                <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="cell-label">Painting display</td>
-                            <td class="cell-val cell-display">MainFrame The Gallery</td>
-                        </tr>
-                    </table>
-                    
-                    <div class="statement-container">
-                        The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
-                        genuine and authentic Painting by <strong>{artist_display}.</strong>
+                <div class="logo-container">
+                    <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
+                </div>
+                
+                <div class="certificate-title">Certificate of Authenticity</div>
+                
+                <table class="details-table">
+                    <tr>
+                        <td class="cell-label">Painting by:</td>
+                        <td class="cell-val cell-artist">{artist_display}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Size:</td>
+                        <td class="cell-val cell-size">{dimensions}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Medium:</td>
+                        <td class="cell-val cell-medium">{medium}</td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Image:</td>
+                        <td class="cell-img-val">
+                            <img class="painting-image" src="/api/artworks/image/{artwork_id}" alt="{title}">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="cell-label">Painting display</td>
+                        <td class="cell-val cell-display">MainFrame The Gallery</td>
+                    </tr>
+                </table>
+                
+                <div class="statement-container">
+                    The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
+                    genuine and authentic Painting by <strong>{artist_display}.</strong>
+                </div>
+                
+                <div class="signature-section">
+                    <div class="sig-line-container">
+                        <span class="sig-label">Signature:</span>
+                        <div class="sig-line">
+                            <img id="sig-img" src="{sig_src}" alt="Signature">
+                        </div>
                     </div>
                 </div>
                 
-                <div>
-                    <div class="signature-section">
-                        <div class="sig-line-container">
-                            <span class="sig-label">Signature:</span>
-                            <div class="sig-line">
-                                <img id="sig-img" src="{sig_src}" alt="Signature">
-                            </div>
-                        </div>
+                <div class="footer-container">
+                    <div class="footer-address">
+                        F-73/9, Block 4 , Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
                     </div>
-                    
-                    <div class="footer-container">
-                        <div class="footer-address">
-                            F-73/9, Block 4 , Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
+                    <div class="footer-links">
+                        <div class="footer-link-item">
+                            <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            mainframethegallery@gmail.com
                         </div>
-                        <div class="footer-links">
-                            <div class="footer-link-item">
-                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                mainframethegallery@gmail.com
-                            </div>
-                            <div class="footer-link-item">
-                                www.mainframethegallery.com
-                            </div>
+                        <div class="footer-link-item">
+                            www.mainframethegallery.com
                         </div>
                     </div>
                 </div>
