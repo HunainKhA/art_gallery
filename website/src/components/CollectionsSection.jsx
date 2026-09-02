@@ -504,19 +504,6 @@ export default function CollectionsSection({
               key={tab.key}
               onClick={() => setStatusFilter(tab.key)}
               className={`collection-status-filter-btn ${isActive ? 'active' : ''}`}
-              style={{
-                padding: '0.45rem 1.4rem',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 400,
-                fontFamily: 'Montserrat, sans-serif',
-                border: isActive ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                background: isActive ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.02)',
-                color: isActive ? '#000000' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: isActive ? '0 0 12px rgba(212, 175, 55, 0.25)' : 'none'
-              }}
             >
               {tab.label}
             </button>

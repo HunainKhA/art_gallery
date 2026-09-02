@@ -2603,3 +2603,52 @@ body.light-theme .floating-socials {
       gap: 0.5rem;
     }
   }
+
+/* Collection Status Filter Buttons (All, Available, Sold) */
+.collection-status-filter-btn {
+  padding: 6px 18px !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.collection-status-filter-btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+}
+
+.collection-status-filter-btn.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  border-color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+/* Light Theme Styling for Collection Status Filter Buttons */
+body.light-theme .collection-status-filter-btn {
+  background: #ffffff !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  border: 1px solid #d1d5db !important;
+  font-weight: 400 !important;
+}
+
+body.light-theme .collection-status-filter-btn:hover {
+  border-color: #18181b !important;
+}
+
+body.light-theme .collection-status-filter-btn.active {
+  background: #18181b !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #18181b !important;
+  font-weight: 500 !important;
+}
