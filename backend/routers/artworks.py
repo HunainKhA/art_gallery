@@ -1854,11 +1854,11 @@ def get_artwork_tag(artwork_id: str):
                     justify-content: flex-start;
                     width: 100%;
                     height: 100%;
-                    gap: 20px;
+                    gap: 24px;
                 }}
 
                 .left-col {{
-                    flex: 1 1 auto;
+                    flex: 0 1 auto;
                     height: 100%;
                     display: flex;
                     align-items: center;
@@ -1867,19 +1867,19 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .painting-wrapper {{
-                    display: flex;
+                    display: inline-flex;
                     align-items: center;
                     justify-content: flex-start;
-                    width: 100%;
-                    height: 525px;
+                    max-height: 100%;
                 }}
 
                 .painting-image {{
-                    width: 100%;
-                    height: 100%;
-                    max-height: 525px;
-                    object-fit: fill;
-                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
+                    max-width: 100%;
+                    max-height: 480px;
+                    width: auto;
+                    height: auto;
+                    object-fit: contain;
+                    box-shadow: 10px 12px 28px rgba(0, 0, 0, 0.18);
                     border: 1px solid rgba(0, 0, 0, 0.08);
                     border-radius: 2px;
                     display: block;
@@ -1967,12 +1967,8 @@ def get_artwork_tag(artwork_id: str):
                         padding: 16px 20px;
                         min-height: 460px;
                     }}
-                    .painting-wrapper {{
-                        height: 450px;
-                    }}
                     .painting-image {{
-                        height: 100%;
-                        max-height: 450px;
+                        max-height: 420px;
                     }}
                     .right-col {{
                         flex: 0 0 215px;
@@ -2039,15 +2035,16 @@ def get_artwork_tag(artwork_id: str):
                     }}
 
                     .painting-wrapper {{
-                        width: 100% !important;
-                        height: 172mm !important;
+                        display: inline-flex !important;
+                        max-height: 155mm !important;
                     }}
 
                     .painting-image {{
-                        width: 100% !important;
-                        height: 100% !important;
-                        max-height: 172mm !important;
-                        object-fit: fill !important;
+                        max-height: 155mm !important;
+                        max-width: 100% !important;
+                        width: auto !important;
+                        height: auto !important;
+                        object-fit: contain !important;
                     }}
 
                     .right-col {{
