@@ -454,7 +454,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && <span>Dashboard Overview</span>}
         </button>
 
-        {/* POS Invoice Billing */}
+        {/* POS Billing */}
         <button 
           onClick={() => setCurrentSection('billing')} 
           className={`nav-btn ${currentSection === 'billing' ? 'active' : ''}`}
@@ -474,10 +474,10 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && <span>POS Invoice Billing</span>}
         </button>
 
-        {/* Frame Heavens Rates */}
+        {/* Glass Sheets Inventory */}
         <button 
-          onClick={() => setCurrentSection('frame_heavens_rates')} 
-          className={`nav-btn ${currentSection === 'frame_heavens_rates' ? 'active' : ''}`}
+          onClick={() => setCurrentSection('inventory_sheets')} 
+          className={`nav-btn ${currentSection === 'inventory_sheets' ? 'active' : ''}`}
           style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -488,42 +488,11 @@ export default function StaffPortal({ theme, toggleTheme }) {
             padding: '0.75rem 1rem', 
             borderRadius: '8px' 
           }}
-          title={isSidebarCollapsed ? "Frame Heavens Rates" : ""}
+          title={isSidebarCollapsed ? "Glass Sheets Inventory" : ""}
         >
-          <DollarSign size={18} color={currentSection === 'frame_heavens_rates' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>Frame Heavens Rates</span>}
+          <Package size={18} color={currentSection === 'inventory_sheets' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Glass Sheets Inventory</span>}
         </button>
-
-        {/* Temporarily Hidden: Inventory Stock (Frames, Fittings, Sheets) - Kept for future use
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('inventory')}
-            className={`nav-btn`}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '8px' 
-            }}
-            title={isSidebarCollapsed ? "Inventory Stock" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <Package size={18} /> 
-              {!isSidebarCollapsed && <span>Inventory Stock</span>}
-            </span>
-            {!isSidebarCollapsed && (collapsedMenus.inventory ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.inventory && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('inventory_frames')} className={`submenu-btn ${currentSection === 'inventory_frames' ? 'active' : ''}`}>• Frames Inventory</button>
-              <button onClick={() => setCurrentSection('inventory_fittings')} className={`submenu-btn ${currentSection === 'inventory_fittings' ? 'active' : ''}`}>• Fittings Inventory</button>
-              <button onClick={() => setCurrentSection('inventory_sheets')} className={`submenu-btn ${currentSection === 'inventory_sheets' ? 'active' : ''}`}>• Glass Sheets Inventory</button>
-            </div>
-          )}
-        </div>
-        */}
 
         {/* Glass Sheet Sizer */}
         <button 

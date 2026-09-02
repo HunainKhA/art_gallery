@@ -3,7 +3,7 @@ import { Edit, Trash2, Plus } from 'lucide-react';
 import { getApiUrl } from '../services/api';
 
 export default function InventorySection({ frames, fittings, sheets, defaultTab, onRefresh }) {
-  const [activeSubTab, setActiveSubTab] = useState(defaultTab || 'frames');
+  const [activeSubTab, setActiveSubTab] = useState(defaultTab || 'sheets');
   
   useEffect(() => {
     if (defaultTab) {
@@ -408,6 +408,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
       
       {/* Sub Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+        {/* Temporarily Hidden: Frames & Fittings Tabs - Kept for future use
         <button 
           onClick={() => setActiveSubTab('frames')}
           className={`nav-btn ${activeSubTab === 'frames' ? 'active' : ''}`}
@@ -422,6 +423,7 @@ export default function InventorySection({ frames, fittings, sheets, defaultTab,
         >
           Fittings Inventory
         </button>
+        */}
         <button 
           onClick={() => setActiveSubTab('sheets')}
           className={`nav-btn ${activeSubTab === 'sheets' ? 'active' : ''}`}
