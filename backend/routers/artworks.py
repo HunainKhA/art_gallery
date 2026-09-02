@@ -1833,17 +1833,17 @@ def get_artwork_tag(artwork_id: str):
                 /* Certificate / Tag Card - iPad & Screen Layout */
                 .certificate-container {{
                     width: 100%;
-                    max-width: 1120px;
+                    max-width: 1160px;
                     min-height: 540px;
                     aspect-ratio: 297 / 210;
                     margin: 0 auto;
                     background-color: #ffffff;
                     border-radius: 6px;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
-                    padding: 24px 32px;
+                    padding: 20px 28px;
                     display: flex;
                     align-items: stretch;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     position: relative;
                 }}
                 
@@ -1851,34 +1851,33 @@ def get_artwork_tag(artwork_id: str):
                     display: flex;
                     flex-direction: row;
                     align-items: stretch;
-                    justify-content: space-between;
+                    justify-content: flex-start;
                     width: 100%;
                     height: 100%;
-                    gap: 18px;
+                    gap: 22px;
                 }}
 
                 .left-col {{
-                    flex: 1 1 auto;
+                    flex: 0 1 auto;
                     height: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: flex-start;
                     min-width: 0;
+                    max-width: calc(100% - 250px);
                 }}
                 
                 .painting-wrapper {{
                     display: inline-flex;
                     align-items: center;
                     justify-content: flex-start;
-                    width: 100%;
                     height: 100%;
-                    max-width: 100%;
                     max-height: 100%;
                 }}
 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 525px;
+                    max-height: 540px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
@@ -1889,21 +1888,21 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .right-col {{
-                    flex: 0 0 250px;
-                    width: 250px;
-                    min-width: 230px;
+                    flex: 0 0 240px;
+                    width: 240px;
+                    min-width: 220px;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
                     align-items: flex-start;
                     box-sizing: border-box;
-                    padding-left: 6px;
+                    padding-left: 0;
                 }}
                 
                 .logo-container {{
                     position: absolute;
-                    top: 24px;
-                    right: 32px;
+                    top: 20px;
+                    right: 28px;
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
@@ -1911,9 +1910,9 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .logo {{
-                    height: 72px;
+                    height: 70px;
                     width: auto;
-                    max-width: 175px;
+                    max-width: 170px;
                     object-fit: contain;
                     display: block;
                 }}
@@ -1967,23 +1966,23 @@ def get_artwork_tag(artwork_id: str):
                 /* iPad / Tablet Responsiveness */
                 @media screen and (max-width: 1024px) {{
                     .certificate-container {{
-                        padding: 18px 24px;
+                        padding: 16px 20px;
                         min-height: 460px;
                     }}
                     .painting-image {{
-                        max-height: 450px;
+                        max-height: 460px;
                     }}
                     .right-col {{
-                        flex: 0 0 220px;
-                        width: 220px;
-                        min-width: 200px;
+                        flex: 0 0 215px;
+                        width: 215px;
+                        min-width: 195px;
                     }}
                     .logo-container {{
-                        top: 18px !important;
-                        right: 24px !important;
+                        top: 16px !important;
+                        right: 20px !important;
                     }}
                     .logo {{
-                        height: 60px;
+                        height: 58px;
                     }}
                     .detail-line {{
                         font-size: 11.5px;
@@ -2025,14 +2024,14 @@ def get_artwork_tag(artwork_id: str):
                         max-width: 297mm !important;
                         min-height: 210mm !important;
                         aspect-ratio: auto !important;
-                        padding: 12mm 16mm !important;
+                        padding: 10mm 14mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
                         page-break-inside: avoid !important;
                     }}
 
                     .painting-image {{
-                        max-height: 172mm !important;
+                        max-height: 178mm !important;
                     }}
 
                     .right-col {{
@@ -2041,8 +2040,8 @@ def get_artwork_tag(artwork_id: str):
                     }}
 
                     .logo-container {{
-                        top: 12mm !important;
-                        right: 16mm !important;
+                        top: 10mm !important;
+                        right: 14mm !important;
                     }}
 
                     .logo {{
