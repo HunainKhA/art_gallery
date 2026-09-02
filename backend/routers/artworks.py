@@ -1281,7 +1281,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     pass
             
         # HTML template matching exact user PDF certificate design
-        artist_display = artist.upper() if artist else "UNKNOWN ARTIST"
+        artist_display = artist.title() if artist else "Unknown Artist"
         
         html_content = f"""
         <!DOCTYPE html>
@@ -1290,7 +1290,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
             <meta charset="utf-8">
             <title>Certificate of Authenticity - {title}</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
                 
                 * {{
                     box-sizing: border-box;
@@ -1300,7 +1300,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 body {{
                     background-color: #f1f3f5;
-                    font-family: 'Montserrat', sans-serif;
+                    font-family: 'Century Gothic', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     color: #111;
                     min-height: 100vh;
                     display: flex;
@@ -1369,7 +1369,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     background-color: #ffffff;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
                     position: relative;
-                    padding: 20mm 22mm 16mm 22mm;
+                    padding: 18mm 20mm 14mm 20mm;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
@@ -1378,7 +1378,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 .certificate-header {{
                     position: relative;
                     width: 100%;
-                    min-height: 65px;
+                    min-height: 60px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -1397,11 +1397,10 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 .certificate-title {{
-                    font-family: 'Playfair Display', Georgia, serif;
                     font-size: 26px;
-                    font-weight: 600;
+                    font-weight: 400;
                     letter-spacing: 0.5px;
-                    color: #1a1a1a;
+                    color: #000000;
                     text-align: center;
                     margin-top: 15px;
                 }}
@@ -1410,54 +1409,54 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 .details-table {{
                     width: 100%;
                     border-collapse: collapse;
-                    border: 1.5px solid #000000;
-                    font-family: 'Montserrat', sans-serif;
+                    border: 2px solid #000000;
                 }}
                 
                 .details-table td {{
-                    border: 1.5px solid #000000;
-                    padding: 9px 14px;
+                    border: 2px solid #000000;
+                    padding: 8px 12px;
                     vertical-align: middle;
                 }}
                 
                 .cell-label {{
                     width: 165px;
                     font-weight: 700;
-                    font-size: 13px;
+                    font-size: 13.5px;
                     color: #000000;
-                    text-align: left;
+                    text-align: center;
                 }}
                 
                 .cell-val {{
-                    font-size: 12.5px;
+                    font-size: 13.5px;
                     color: #000000;
                     text-align: center;
                 }}
                 
                 .cell-artist {{
                     font-weight: 400;
-                    font-size: 13px;
-                    letter-spacing: 0.5px;
+                    font-size: 15px;
                 }}
                 
                 .cell-size {{
-                    font-weight: 500;
-                    font-size: 12.5px;
+                    font-weight: 400;
+                    font-size: 13.5px;
                 }}
                 
                 .cell-medium {{
                     font-weight: 400;
-                    font-size: 12px;
+                    font-size: 13px;
                     line-height: 1.4;
                 }}
                 
                 .cell-display {{
-                    font-weight: 600;
-                    font-size: 12.5px;
+                    font-weight: 400;
+                    font-size: 13.5px;
+                    text-align: left !important;
+                    padding-left: 16px !important;
                 }}
                 
                 .cell-img-val {{
-                    padding: 14px 10px;
+                    padding: 12px 10px;
                     text-align: center;
                     background-color: #ffffff;
                 }}
@@ -1474,13 +1473,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Statement Text */
                 .statement-container {{
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 12.5px;
-                    color: #222222;
-                    text-align: center;
-                    line-height: 1.55;
-                    margin: 20px 0 16px 0;
-                    padding: 0 10px;
+                    font-size: 13px;
+                    font-weight: 400;
+                    color: #111111;
+                    text-align: left;
+                    line-height: 1.6;
+                    margin: 22px 0 26px 0;
+                    padding-left: 2px;
                 }}
                 
                 .statement-container strong {{
@@ -1493,53 +1492,50 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: flex-start;
                     align-items: flex-end;
-                    margin-bottom: 22px;
+                    margin-bottom: 26px;
                     padding-left: 2px;
                 }}
                 
                 .sig-line-container {{
                     display: flex;
                     align-items: flex-end;
-                    gap: 12px;
+                    gap: 8px;
                 }}
                 
                 .sig-label {{
                     font-weight: 700;
-                    font-size: 14px;
+                    font-size: 13.5px;
                     color: #000000;
-                    padding-bottom: 4px;
+                    padding-bottom: 3px;
                 }}
                 
                 .sig-line {{
                     position: relative;
                     border-bottom: 1.5px solid #000000;
-                    width: 250px;
-                    height: 42px;
+                    width: 320px;
+                    height: 38px;
                 }}
                 
                 #sig-img {{
                     position: absolute;
                     bottom: 2px;
                     left: 15px;
-                    height: 52px;
-                    max-width: 200px;
+                    height: 50px;
+                    max-width: 260px;
                     object-fit: contain;
                     display: block;
                 }}
                 
                 /* Footer */
                 .footer-container {{
-                    border-top: 1px solid #e5e7eb;
-                    padding-top: 12px;
                     text-align: center;
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 10px;
-                    color: #4b5563;
-                    line-height: 1.6;
+                    font-size: 9.5px;
+                    color: #333333;
+                    line-height: 1.65;
                 }}
                 
                 .footer-address {{
-                    font-weight: 500;
+                    font-weight: 400;
                     margin-bottom: 3px;
                     letter-spacing: 0.2px;
                 }}
@@ -1548,20 +1544,20 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    gap: 18px;
+                    gap: 16px;
                 }}
                 
                 .footer-link-item {{
                     display: flex;
                     align-items: center;
                     gap: 5px;
-                    color: #4b5563;
+                    color: #333333;
                     text-decoration: none;
                 }}
                 
                 .footer-icon-inline {{
-                    width: 12px;
-                    height: 12px;
+                    width: 11px;
+                    height: 11px;
                 }}
                 
                 @media print {{
@@ -1645,7 +1641,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     </table>
                     
                     <div class="statement-container">
-                        The MainFrame The Gallery assumes full responsibility for this Artwork being a genuine<br>and authentic Painting by <strong>{artist_display}</strong>.
+                        The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
+                        genuine and authentic Painting by <strong>{artist_display}.</strong>
                     </div>
                 </div>
                 
@@ -1661,15 +1658,14 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     
                     <div class="footer-container">
                         <div class="footer-address">
-                            F-73/9, Block 4, Clifton Karachi Pakistan. &nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
+                            F-73/9, Block 4 , Clifton Karachi Pakistan. &nbsp;&nbsp;&nbsp;&nbsp; +92 21 3582 4455 &nbsp;|&nbsp; +92 300 828 5600
                         </div>
                         <div class="footer-links">
                             <div class="footer-link-item">
-                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                                 mainframethegallery@gmail.com
                             </div>
                             <div class="footer-link-item">
-                                <svg class="footer-icon-inline" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                                 www.mainframethegallery.com
                             </div>
                         </div>
