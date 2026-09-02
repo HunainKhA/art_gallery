@@ -2664,3 +2664,31 @@ body.light-theme .contact-section-wrapper .btn-primary {
   font-family: 'Montserrat', sans-serif !important;
   font-size: 12px !important;
 }
+
+/* Framer's Heaven Tab Buttons */
+.framer-tab-btn {
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+.framer-tab-btn.active {
+  font-weight: 500 !important;
+  opacity: 1 !important;
+  border-bottom-color: var(--text-primary) !important;
+}
+
+body.light-theme .framer-tab-btn {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 400 !important;
+}
+
+body.light-theme .framer-tab-btn.active {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 500 !important;
+  border-bottom-color: #000000 !important;
+}

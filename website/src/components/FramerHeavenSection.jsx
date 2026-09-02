@@ -63,19 +63,20 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
           style={{
             padding: '0.6rem 1.8rem',
             fontSize: '12px',
-            fontWeight: 100,
+            fontWeight: activeTab.toLowerCase() === 'product' ? 500 : 400,
             borderRadius: '0px',
             border: 'none',
-            borderBottom: activeTab.toLowerCase() === 'product' ? '2px solid #000000' : '2px solid transparent',
-            background: '#ffffff',
-            color: '#000000',
+            borderBottom: activeTab.toLowerCase() === 'product' ? '2px solid var(--text-primary)' : '2px solid transparent',
+            background: 'transparent',
+            color: 'var(--text-primary)',
+            fontFamily: 'Montserrat, sans-serif',
             cursor: 'pointer',
             transition: 'all 0.25s ease',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
-            opacity: activeTab.toLowerCase() === 'product' ? 1 : 0.6
+            opacity: activeTab.toLowerCase() === 'product' ? 1 : 0.75
           }}
-          className="framer-tab-btn"
+          className={`framer-tab-btn ${activeTab.toLowerCase() === 'product' ? 'active' : ''}`}
         >
           Products
         </button>
@@ -84,19 +85,20 @@ export default function FramerHeavenSection({ activeTab = 'Product', setActiveTa
           style={{
             padding: '0.6rem 1.8rem',
             fontSize: '12px',
-            fontWeight: 100,
+            fontWeight: activeTab.toLowerCase() === 'service' ? 500 : 400,
             borderRadius: '0px',
             border: 'none',
-            borderBottom: activeTab.toLowerCase() === 'service' ? '2px solid #000000' : '2px solid transparent',
-            background: '#ffffff',
-            color: '#000000',
+            borderBottom: activeTab.toLowerCase() === 'service' ? '2px solid var(--text-primary)' : '2px solid transparent',
+            background: 'transparent',
+            color: 'var(--text-primary)',
+            fontFamily: 'Montserrat, sans-serif',
             cursor: 'pointer',
             transition: 'all 0.25s ease',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
-            opacity: activeTab.toLowerCase() === 'service' ? 1 : 0.6
+            opacity: activeTab.toLowerCase() === 'service' ? 1 : 0.75
           }}
-          className="framer-tab-btn"
+          className={`framer-tab-btn ${activeTab.toLowerCase() === 'service' ? 'active' : ''}`}
         >
           Services
         </button>
