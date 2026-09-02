@@ -1235,7 +1235,9 @@ def get_artwork_authenticity_letter(artwork_id: str):
         len_str = str(int(length_inch)) if length_inch.is_integer() else str(length_inch)
         wid_str = str(int(width_inch)) if width_inch.is_integer() else str(width_inch)
         
-        dimensions_inch = f'{len_str}" x {wid_str}"' if (length_inch > 0 or width_inch > 0) else 'N/A'
+        dimensions_inch = f'{wid_str}"x{len_str}"' if (length_inch > 0 or width_inch > 0) else 'N/A'
+        dimensions_cm = f'{width_cm}x{length_cm} cm' if (length_cm > 0 or width_cm > 0) else 'N/A'
+        
         if dimensions_inch != 'N/A' and dimensions_cm != 'N/A':
             dimensions = f"{dimensions_inch} | {dimensions_cm}"
         else:
