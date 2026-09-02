@@ -1833,14 +1833,14 @@ def get_artwork_tag(artwork_id: str):
                 /* Certificate / Tag Card - iPad & Screen Layout */
                 .certificate-container {{
                     width: 100%;
-                    max-width: 1100px;
+                    max-width: 1120px;
                     min-height: 540px;
                     aspect-ratio: 297 / 210;
                     margin: 0 auto;
                     background-color: #ffffff;
                     border-radius: 6px;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
-                    padding: 35px 45px;
+                    padding: 24px 32px;
                     display: flex;
                     align-items: stretch;
                     justify-content: space-between;
@@ -1854,53 +1854,56 @@ def get_artwork_tag(artwork_id: str):
                     justify-content: space-between;
                     width: 100%;
                     height: 100%;
-                    gap: 40px;
+                    gap: 18px;
                 }}
 
                 .left-col {{
-                    flex: 1.4;
+                    flex: 1 1 auto;
                     height: 100%;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: flex-start;
                     min-width: 0;
                 }}
                 
                 .painting-wrapper {{
                     display: inline-flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: flex-start;
+                    width: 100%;
+                    height: 100%;
                     max-width: 100%;
                     max-height: 100%;
                 }}
 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 480px;
+                    max-height: 525px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
-                    box-shadow: 10px 12px 28px rgba(0, 0, 0, 0.18);
+                    box-shadow: 8px 10px 24px rgba(0, 0, 0, 0.16);
                     border: 1px solid rgba(0, 0, 0, 0.08);
                     border-radius: 2px;
                     display: block;
                 }}
                 
                 .right-col {{
-                    flex: 0.65;
-                    min-width: 240px;
+                    flex: 0 0 250px;
+                    width: 250px;
+                    min-width: 230px;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
                     align-items: flex-start;
                     box-sizing: border-box;
-                    padding-left: 20px;
+                    padding-left: 6px;
                 }}
                 
                 .logo-container {{
                     position: absolute;
-                    top: 35px;
-                    right: 45px;
+                    top: 24px;
+                    right: 32px;
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
@@ -1908,9 +1911,9 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .logo {{
-                    height: 75px;
+                    height: 72px;
                     width: auto;
-                    max-width: 180px;
+                    max-width: 175px;
                     object-fit: contain;
                     display: block;
                 }}
@@ -1925,10 +1928,10 @@ def get_artwork_tag(artwork_id: str):
                 .detail-line {{
                     display: flex;
                     align-items: baseline;
-                    gap: 8px;
-                    margin-bottom: 5px;
+                    gap: 6px;
+                    margin-bottom: 4.5px;
                     font-size: 12.5px;
-                    line-height: 1.4;
+                    line-height: 1.35;
                 }}
 
                 .detail-line:last-child {{
@@ -1940,7 +1943,7 @@ def get_artwork_tag(artwork_id: str):
                     color: #555555;
                     white-space: nowrap;
                     font-size: 12px;
-                    min-width: 82px;
+                    min-width: 80px;
                 }}
                 
                 .detail-value {{
@@ -1964,26 +1967,31 @@ def get_artwork_tag(artwork_id: str):
                 /* iPad / Tablet Responsiveness */
                 @media screen and (max-width: 1024px) {{
                     .certificate-container {{
-                        padding: 25px 30px;
+                        padding: 18px 24px;
                         min-height: 460px;
                     }}
                     .painting-image {{
-                        max-height: 420px;
+                        max-height: 450px;
+                    }}
+                    .right-col {{
+                        flex: 0 0 220px;
+                        width: 220px;
+                        min-width: 200px;
                     }}
                     .logo-container {{
-                        top: 25px !important;
-                        right: 30px !important;
+                        top: 18px !important;
+                        right: 24px !important;
                     }}
                     .logo {{
-                        height: 65px;
+                        height: 60px;
                     }}
                     .detail-line {{
                         font-size: 11.5px;
-                        margin-bottom: 4px;
+                        margin-bottom: 3.5px;
                     }}
                     .detail-label {{
                         font-size: 11px;
-                        min-width: 72px;
+                        min-width: 70px;
                     }}
                     .detail-value {{
                         font-size: 11.5px;
@@ -2017,28 +2025,33 @@ def get_artwork_tag(artwork_id: str):
                         max-width: 297mm !important;
                         min-height: 210mm !important;
                         aspect-ratio: auto !important;
-                        padding: 0.6in 0.8in !important;
+                        padding: 12mm 16mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
                         page-break-inside: avoid !important;
                     }}
 
                     .painting-image {{
-                        max-height: 155mm !important;
+                        max-height: 172mm !important;
+                    }}
+
+                    .right-col {{
+                        flex: 0 0 65mm !important;
+                        width: 65mm !important;
                     }}
 
                     .logo-container {{
-                        top: 0.6in !important;
-                        right: 0.8in !important;
+                        top: 12mm !important;
+                        right: 16mm !important;
                     }}
 
                     .logo {{
-                        height: 22mm !important;
+                        height: 20mm !important;
                     }}
 
                     .detail-line {{
                         font-size: 9.5pt !important;
-                        margin-bottom: 2.5mm !important;
+                        margin-bottom: 2mm !important;
                     }}
                     .detail-label {{
                         font-size: 9pt !important;
