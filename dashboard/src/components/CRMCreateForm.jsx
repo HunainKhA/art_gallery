@@ -211,14 +211,14 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: ['artists', 'collections'].includes(module) ? 'repeat(3, 1fr)' : '1fr 1fr', 
+          gridTemplateColumns: module === 'collections' ? 'repeat(4, 1fr)' : module === 'artists' ? 'repeat(3, 1fr)' : '1fr 1fr', 
           gap: '1.25rem' 
         }}>
           {fields.map(field => {
             const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
-            const totalCols = ['artists', 'collections'].includes(module) ? 3 : 2;
+            const totalCols = module === 'collections' ? 4 : module === 'artists' ? 3 : 2;
             const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
-            const isTwoCols = module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street');
+            const isTwoCols = (module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street')) || (module === 'collections' && (field.name === 'image' || field.name === 'purchase_price'));
             const isImageUpload = ['profile_image', 'image', 'filename', 'subcategory_id', 'tag_photo'].includes(field.name);
 
             let gridColSpan = 'span 1';

@@ -27,6 +27,9 @@ export const CONFIGS = {
     title: 'Artwork',
     fields: [
       { name: 'title', label: 'Artwork Title *', type: 'text', required: true },
+      { name: 'artist_id', label: 'Artist *', type: 'lookup', lookupType: 'artists', required: true },
+      { name: 'category_id', label: 'Category / Collection Type *', type: 'lookup', lookupType: 'collection-types', required: true },
+      { name: 'medium_id', label: 'Medium *', type: 'lookup', lookupType: 'mediums', required: true },
       { name: 'description', label: 'Description', type: 'textarea' },
       { name: 'status', label: 'Status *', type: 'select', options: [{value: 'Available', label: 'Available'}, {value: 'Sold', label: 'Soldout'}, {value: 'Return', label: 'Return'}], defaultValue: 'Available', required: true },
       { name: 'price', label: 'Retail Price (PKR)', type: 'number' },
@@ -35,15 +38,12 @@ export const CONFIGS = {
       { name: 'with_frame', label: 'Framed? (0=No, 1=Yes)', type: 'select', options: [{value: '0', label: 'No'}, {value: '1', label: 'Yes'}], defaultValue: '0' },
       { name: 'frame_charges', label: 'Frame Charges (PKR)', type: 'number' },
       { name: 'code', label: 'Artwork Code / Serial', type: 'text' },
-      { name: 'artist_id', label: 'Artist *', type: 'lookup', lookupType: 'artists', required: true },
-      { name: 'category_id', label: 'Category / Collection Type *', type: 'lookup', lookupType: 'collection-types', required: true },
-      { name: 'medium_id', label: 'Medium *', type: 'lookup', lookupType: 'mediums', required: true },
       { name: 'deal_type', label: 'Deal Type *', type: 'select', options: [{value: 'Sale_Basis', label: 'Sale Basis'}, {value: 'Purchase_Basis', label: 'Gallery Purchase'}], defaultValue: 'Sale_Basis', required: true },
       { name: 'purchase_price', label: 'Purchase Price (PKR)', type: 'number', placeholder: 'Purchase Price from Artist' },
       { name: 'image', label: 'Image Filename / ID', type: 'text', placeholder: 'e.g. DSC_0023.jpg or upload uuid' },
       { name: 'authenticity_letter', label: 'Authenticity Letter', type: 'text', defaultValue: 'auto' }
     ],
-    importFields: ['title', 'description', 'status', 'price', 'length', 'width', 'with_frame', 'frame_charges', 'code', 'artist_id', 'category_id', 'medium_id', 'image', 'authenticity_letter', 'deal_type', 'purchase_price']
+    importFields: ['title', 'artist_id', 'category_id', 'medium_id', 'description', 'status', 'price', 'length', 'width', 'with_frame', 'frame_charges', 'code', 'image', 'authenticity_letter', 'deal_type', 'purchase_price']
   },
   collection_types: {
     title: 'Collection Type',
