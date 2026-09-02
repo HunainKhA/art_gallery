@@ -1473,18 +1473,31 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 /* Statement Text */
                 .statement-container {{
                     width: 100%;
-                    font-size: 14.8px;
-                    font-weight: 400;
-                    color: #000000;
-                    text-align: left;
-                    letter-spacing: 0.38px;
-                    word-spacing: 0.8px;
-                    line-height: 1.6;
                     margin: 24px 0 65px 0;
                     padding-left: 0;
                 }}
                 
-                .statement-container strong {{
+                .statement-line-1 {{
+                    width: 100%;
+                    text-align: justify;
+                    text-align-last: justify;
+                    font-size: 15px;
+                    font-weight: 400;
+                    color: #000000;
+                    line-height: 1.45;
+                    display: block;
+                }}
+                
+                .statement-line-2 {{
+                    font-size: 15px;
+                    font-weight: 400;
+                    color: #000000;
+                    line-height: 1.45;
+                    margin-top: 5px;
+                    text-align: left;
+                }}
+                
+                .statement-line-2 strong {{
                     font-weight: 700;
                     color: #000000;
                 }}
@@ -1602,11 +1615,21 @@ def get_artwork_authenticity_letter(artwork_id: str):
 
                     .statement-container {{
                         width: 100% !important;
-                        font-size: 14.5px !important;
-                        letter-spacing: 0.35px !important;
-                        word-spacing: 0.8px !important;
-                        line-height: 1.6 !important;
                         margin: 22px 0 58px 0 !important;
+                    }}
+
+                    .statement-line-1 {{
+                        width: 100% !important;
+                        text-align: justify !important;
+                        text-align-last: justify !important;
+                        font-size: 14.8px !important;
+                        line-height: 1.45 !important;
+                    }}
+
+                    .statement-line-2 {{
+                        font-size: 14.8px !important;
+                        line-height: 1.45 !important;
+                        margin-top: 5px !important;
                     }}
                     
                     .signature-section {{
@@ -1670,8 +1693,8 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 </table>
                 
                 <div class="statement-container">
-                    The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
-                    genuine and authentic Painting by <strong>{artist_display}.</strong>
+                    <div class="statement-line-1">The MainFrame The Gallery assumes full responsibility for this Artwork being a</div>
+                    <div class="statement-line-2">genuine and authentic Painting by <strong>{artist_display}.</strong></div>
                 </div>
                 
                 <div class="signature-section">
