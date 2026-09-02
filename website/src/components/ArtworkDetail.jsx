@@ -613,18 +613,33 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                 <span className="status-sold" style={{ color: '#ef4444', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                   Sold
                 </span>
-              ) : websiteSettings?.hide_prices ? (
-                <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
-                  Price on Request
-                </span>
-              ) : (
+              ) : (!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) ? (
                 <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                   {formatPrice(artwork.price, currency, exchangeRates)}
                 </span>
+              ) : (
+                <span 
+                  className="status-inquiry" 
+                  style={{ 
+                    color: 'var(--text-primary)', 
+                    fontSize: '14px', 
+                    fontWeight: 100, 
+                    fontFamily: 'Montserrat, sans-serif',
+                    cursor: (!websiteSettings?.hide_prices && !guestSession) ? 'pointer' : 'default'
+                  }}
+                  onClick={() => {
+                    if (!websiteSettings?.hide_prices && !guestSession && setIsGuestModalOpen) {
+                      setIsGuestModalOpen(true);
+                    }
+                  }}
+                  title={(!websiteSettings?.hide_prices && !guestSession) ? "Click to login & view price" : ""}
+                >
+                  Price on Request
+                </span>
               )}
             </h2>
-            {/* Convert currency drop-down (Only for available items) */}
-            {!websiteSettings?.hide_prices && (
+            {/* Convert currency drop-down (Only for available items when online and allowed) */}
+            {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) && (
               artwork.status?.toLowerCase() !== 'sold' && 
               artwork.status?.toLowerCase() !== 'soldout' && 
               artwork.status?.toLowerCase() !== 'sold_out' && 

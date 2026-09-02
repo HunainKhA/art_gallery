@@ -123,21 +123,32 @@ export default function useGalleryState() {
     }
   }, [activeTab]);
 
-  // Keep guest session persisted across page refreshes (only expire if time has passed)
+  // Keep guest session persisted with active 30-minute countdown and auto-logout
   useEffect(() => {
-    if (guestSession) {
-      if (guestSession.expiry) {
+    if (!guestSession) return;
+    
+    const verifyGuestSession = () => {
+      if (guestSession?.expiry) {
         const isExpired = new Date(guestSession.expiry) <= new Date();
         if (isExpired) {
           handleGuestLogout();
         }
       }
-    }
-  }, []);
+    };
+
+    verifyGuestSession();
+    const interval = setInterval(verifyGuestSession, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [guestSession]);
 
   const handleGuestLoginSuccess = (session) => {
-    setGuestSession(session);
-    localStorage.setItem('mainframe_guest_session', JSON.stringify(session));
+    // Ensure strict 30-minute session expiry from login moment
+    const sessionWithExpiry = {
+      ...session,
+      expiry: session.expiry || new Date(Date.now() + 30 * 60 * 1000).toISOString()
+    };
+    setGuestSession(sessionWithExpiry);
+    localStorage.setItem('mainframe_guest_session', JSON.stringify(sessionWithExpiry));
   };
 
   const handleGuestLogout = () => {

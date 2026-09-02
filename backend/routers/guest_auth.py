@@ -244,7 +244,7 @@ def verify_otp(payload: GuestVerifyOtp):
             raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the correct code.")
             
         session_token = str(uuid.uuid4())
-        expiry_time = datetime.now() + timedelta(hours=24)
+        expiry_time = datetime.now() + timedelta(minutes=30) # 30-minute visitor session
         
         execute_query(
             "UPDATE guest_users SET verified = True, session_token = %s, session_expiry = %s WHERE verification_code = %s",
@@ -303,7 +303,7 @@ async def whatsapp_webhook(request: Request):
 @router.post("/login")
 def guest_login(payload: GuestLogin):
     """
-    Validates credentials (direct admin-created or WhatsApp generated) and issues a 24-hour persistent session token.
+    Validates credentials (direct admin-created or WhatsApp generated) and issues a 30-minute session token.
     """
     code = (payload.code or "").strip()
     username = payload.username.strip()
@@ -330,7 +330,7 @@ def guest_login(payload: GuestLogin):
                 code = user_by_cred.get("verification_code") or ""
             
         session_token = str(uuid.uuid4())
-        expiry_time = datetime.now() + timedelta(hours=24) # 24-hour persistent session
+        expiry_time = datetime.now() + timedelta(minutes=30) # 30-minute visitor session
         
         # 3. Update or create guest session
         if code and code != 'DIRECT':

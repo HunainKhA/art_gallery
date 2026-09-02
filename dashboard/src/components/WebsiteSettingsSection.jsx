@@ -171,35 +171,57 @@ export default function WebsiteSettingsSection() {
             </div>
           </div>
           
-          {/* Switch Toggle */}
-          <button 
-            type="button"
-            onClick={handleTogglePrices}
-            style={{
-              width: '50px',
-              height: '26px',
-              borderRadius: '13px',
-              backgroundColor: settings.hide_prices ? 'var(--accent-gold)' : 'rgba(120, 120, 128, 0.25)',
-              border: '1px solid var(--border-color)',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              padding: 0
-            }}
-          >
-            <div style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              backgroundColor: '#ffffff',
-              position: 'absolute',
-              top: '3px',
-              left: settings.hide_prices ? '27px' : '3px',
-              transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-              border: '1px solid rgba(0, 0, 0, 0.08)'
-            }} />
-          </button>
+          {/* Switch Toggle with HIDE & SHOW Labels */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: 700, 
+              letterSpacing: '0.05em',
+              color: settings.hide_prices ? '#ef4444' : 'var(--text-muted)',
+              opacity: settings.hide_prices ? 1 : 0.4,
+              transition: 'all 0.2s ease'
+            }}>
+              HIDE
+            </span>
+            <button 
+              type="button"
+              onClick={handleTogglePrices}
+              style={{
+                width: '52px',
+                height: '26px',
+                borderRadius: '13px',
+                backgroundColor: settings.hide_prices ? '#ef4444' : '#10b981',
+                border: '1px solid var(--border-color)',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+                padding: 0
+              }}
+            >
+              <div style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                position: 'absolute',
+                top: '3px',
+                left: settings.hide_prices ? '4px' : '28px',
+                transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }} />
+            </button>
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: 700, 
+              letterSpacing: '0.05em',
+              color: !settings.hide_prices ? '#10b981' : 'var(--text-muted)',
+              opacity: !settings.hide_prices ? 1 : 0.4,
+              transition: 'all 0.2s ease'
+            }}>
+              SHOW
+            </span>
+          </div>
         </div>
 
         {/* Hide Add to Cart Control Option */}
@@ -236,35 +258,57 @@ export default function WebsiteSettingsSection() {
             </div>
           </div>
           
-          {/* Switch Toggle */}
-          <button 
-            type="button"
-            onClick={handleToggleCart}
-            style={{
-              width: '50px',
-              height: '26px',
-              borderRadius: '13px',
-              backgroundColor: settings.hide_add_to_cart ? 'var(--accent-gold)' : 'rgba(120, 120, 128, 0.25)',
-              border: '1px solid var(--border-color)',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              padding: 0
-            }}
-          >
-            <div style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              backgroundColor: '#ffffff',
-              position: 'absolute',
-              top: '3px',
-              left: settings.hide_add_to_cart ? '27px' : '3px',
-              transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-              border: '1px solid rgba(0, 0, 0, 0.08)'
-            }} />
-          </button>
+          {/* Switch Toggle with HIDE & SHOW Labels */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: 700, 
+              letterSpacing: '0.05em',
+              color: settings.hide_add_to_cart ? '#ef4444' : 'var(--text-muted)',
+              opacity: settings.hide_add_to_cart ? 1 : 0.4,
+              transition: 'all 0.2s ease'
+            }}>
+              HIDE
+            </span>
+            <button 
+              type="button"
+              onClick={handleToggleCart}
+              style={{
+                width: '52px',
+                height: '26px',
+                borderRadius: '13px',
+                backgroundColor: settings.hide_add_to_cart ? '#ef4444' : '#10b981',
+                border: '1px solid var(--border-color)',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+                padding: 0
+              }}
+            >
+              <div style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                position: 'absolute',
+                top: '3px',
+                left: settings.hide_add_to_cart ? '4px' : '28px',
+                transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }} />
+            </button>
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: 700, 
+              letterSpacing: '0.05em',
+              color: !settings.hide_add_to_cart ? '#10b981' : 'var(--text-muted)',
+              opacity: !settings.hide_add_to_cart ? 1 : 0.4,
+              transition: 'all 0.2s ease'
+            }}>
+              SHOW
+            </span>
+          </div>
         </div>
 
         {/* Upload Owner Signature Option */}
