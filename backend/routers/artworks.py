@@ -1832,16 +1832,14 @@ def get_artwork_tag(artwork_id: str):
 
                 /* Certificate / Tag Card - iPad & Screen Layout */
                 .certificate-container {{
-                    width: 100%;
-                    max-width: 1160px;
-                    min-height: 540px;
-                    aspect-ratio: 297 / 210;
+                    width: fit-content;
+                    max-width: 96vw;
                     margin: 0 auto;
                     background-color: #ffffff;
                     border-radius: 6px;
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
-                    padding: 20px 28px;
-                    display: flex;
+                    padding: 24px 30px;
+                    display: inline-flex;
                     align-items: stretch;
                     justify-content: flex-start;
                     position: relative;
@@ -1854,28 +1852,28 @@ def get_artwork_tag(artwork_id: str):
                     justify-content: flex-start;
                     width: 100%;
                     height: 100%;
-                    gap: 24px;
+                    gap: 28px;
                 }}
 
                 .left-col {{
-                    flex: 0 1 auto;
+                    flex: 0 0 auto;
                     height: 100%;
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start;
+                    justify-content: center;
                     min-width: 0;
                 }}
                 
                 .painting-wrapper {{
                     display: inline-flex;
                     align-items: center;
-                    justify-content: flex-start;
+                    justify-content: center;
                     max-height: 100%;
                 }}
 
                 .painting-image {{
                     max-width: 100%;
-                    max-height: 480px;
+                    max-height: 520px;
                     width: auto;
                     height: auto;
                     object-fit: contain;
@@ -1886,9 +1884,9 @@ def get_artwork_tag(artwork_id: str):
                 }}
                 
                 .right-col {{
-                    flex: 0 0 240px;
-                    width: 240px;
-                    min-width: 220px;
+                    flex: 0 0 250px;
+                    width: 250px;
+                    min-width: 230px;
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-end;
@@ -1899,8 +1897,8 @@ def get_artwork_tag(artwork_id: str):
                 
                 .logo-container {{
                     position: absolute;
-                    top: 20px;
-                    right: 28px;
+                    top: 24px;
+                    right: 30px;
                     display: flex;
                     justify-content: flex-end;
                     align-items: flex-start;
