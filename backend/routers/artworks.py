@@ -44,7 +44,8 @@ def get_artwork_categories():
         SELECT 
             t.name AS name,
             COUNT(c.id) AS count,
-            MIN(c.id) AS image_id
+            SUBSTRING_INDEX(GROUP_CONCAT(c.id ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) DESC), ',', 1) AS image_id,
+            MAX(COALESCE(c.date_entered, c.date_modified)) AS latest_date
         FROM art_collections c
         LEFT JOIN art_collectionstype_art_collections_c type_rel
             ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
@@ -52,7 +53,7 @@ def get_artwork_categories():
             ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
         WHERE c.deleted = 0 AND t.name IS NOT NULL AND t.deleted = 0
         GROUP BY t.name
-        ORDER BY t.name ASC;
+        ORDER BY latest_date DESC, t.name ASC;
     """
     try:
         categories = execute_query(query)
