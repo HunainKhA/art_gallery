@@ -1472,34 +1472,33 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Statement Text */
                 .statement-container {{
-                    width: 100%;
-                    margin: 24px 0 65px 0;
-                    padding-left: 0;
-                }}
-                
-                .statement-line-1 {{
-                    width: 100%;
-                    text-align: justify;
-                    text-align-last: justify;
                     font-size: 15px;
                     font-weight: 400;
                     color: #000000;
-                    line-height: 1.45;
-                    display: block;
-                }}
-                
-                .statement-line-2 {{
-                    font-size: 15px;
-                    font-weight: 400;
-                    color: #000000;
-                    line-height: 1.45;
-                    margin-top: 5px;
                     text-align: left;
+                    line-height: 1.55;
+                    margin: 22px 0 65px 0;
+                    padding: 4px 6px;
                 }}
                 
-                .statement-line-2 strong {{
+                .statement-container strong {{
                     font-weight: 700;
                     color: #000000;
+                }}
+                
+                /* Inline Editing Support */
+                [contenteditable="true"] {{
+                    transition: all 0.15s ease;
+                }}
+                [contenteditable="true"]:hover {{
+                    outline: 1px dashed #94a3b8;
+                    border-radius: 3px;
+                    cursor: text;
+                }}
+                [contenteditable="true"]:focus {{
+                    outline: 1.5px solid #000000;
+                    border-radius: 3px;
+                    background-color: rgba(254, 240, 138, 0.2);
                 }}
                 
                 /* Signature Section */
@@ -1559,6 +1558,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     font-weight: 400;
                     margin-bottom: 3px;
                     letter-spacing: 0.2px;
+                    padding: 2px 4px;
                 }}
                 
                 .footer-links {{
@@ -1595,6 +1595,11 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         display: none !important;
                     }}
                     
+                    [contenteditable="true"]:hover, [contenteditable="true"]:focus {{
+                        outline: none !important;
+                        background-color: transparent !important;
+                    }}
+                    
                     .certificate-container {{
                         margin: 0 !important;
                         box-shadow: none !important;
@@ -1614,22 +1619,10 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
 
                     .statement-container {{
-                        width: 100% !important;
-                        margin: 22px 0 58px 0 !important;
-                    }}
-
-                    .statement-line-1 {{
-                        width: 100% !important;
-                        text-align: justify !important;
-                        text-align-last: justify !important;
                         font-size: 14.8px !important;
-                        line-height: 1.45 !important;
-                    }}
-
-                    .statement-line-2 {{
-                        font-size: 14.8px !important;
-                        line-height: 1.45 !important;
-                        margin-top: 5px !important;
+                        line-height: 1.55 !important;
+                        margin: 20px 0 58px 0 !important;
+                        padding: 0 !important;
                     }}
                     
                     .signature-section {{
@@ -1653,10 +1646,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
         </head>
         <body>
             <div class="print-controls">
-                <label class="checkbox-container">
-                    <input type="checkbox" id="sig-toggle" checked onchange="toggleSignature(this.checked)">
-                    Include Owner Signature
-                </label>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="sig-toggle" checked onchange="toggleSignature(this.checked)">
+                        Include Owner Signature
+                    </label>
+                    <span style="font-size: 12px; color: #64748b; font-weight: 500;">✏️ Click any text to edit directly</span>
+                </div>
                 <button class="btn btn-print" onclick="window.print()">Print Certificate</button>
             </div>
             
@@ -1665,20 +1661,20 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     <img class="logo" src="/api/artworks/logo" alt="MainFrame The Gallery">
                 </div>
                 
-                <div class="certificate-title">Certificate of Authenticity</div>
+                <div class="certificate-title" contenteditable="true" title="Click to edit">Certificate of Authenticity</div>
                 
                 <table class="details-table">
                     <tr>
-                        <td class="cell-label">Painting by:</td>
-                        <td class="cell-val cell-artist">{artist_display}</td>
+                        <td class="cell-label" contenteditable="true">Painting by:</td>
+                        <td class="cell-val cell-artist" contenteditable="true">{artist_display}</td>
                     </tr>
                     <tr>
-                        <td class="cell-label">Size:</td>
-                        <td class="cell-val cell-size">{dimensions}</td>
+                        <td class="cell-label" contenteditable="true">Size:</td>
+                        <td class="cell-val cell-size" contenteditable="true">{dimensions}</td>
                     </tr>
                     <tr>
-                        <td class="cell-label">Medium:</td>
-                        <td class="cell-val cell-medium">{medium}</td>
+                        <td class="cell-label" contenteditable="true">Medium:</td>
+                        <td class="cell-val cell-medium" contenteditable="true">{medium}</td>
                     </tr>
                     <tr>
                         <td class="cell-label">Image:</td>
@@ -1687,14 +1683,14 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         </td>
                     </tr>
                     <tr>
-                        <td class="cell-label">Painting display</td>
-                        <td class="cell-val cell-display">MainFrame The Gallery</td>
+                        <td class="cell-label" contenteditable="true">Painting display</td>
+                        <td class="cell-val cell-display" contenteditable="true">MainFrame The Gallery</td>
                     </tr>
                 </table>
                 
-                <div class="statement-container">
-                    <div class="statement-line-1">The MainFrame The Gallery assumes full responsibility for this Artwork being a</div>
-                    <div class="statement-line-2">genuine and authentic Painting by <strong>{artist_display}.</strong></div>
+                <div class="statement-container" contenteditable="true" title="Click to edit statement">
+                    The MainFrame The Gallery assumes full responsibility for this Artwork being a<br>
+                    genuine and authentic Painting by <strong>{artist_display}.</strong>
                 </div>
                 
                 <div class="signature-section">
