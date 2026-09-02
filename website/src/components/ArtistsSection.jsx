@@ -465,44 +465,42 @@ export default function ArtistsSection({
                       );
                     })()}
                     <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                      {art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
-                        <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 400, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
-                          Archive
-                        </span>
-                      ) : art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                          Sold
-                        </span>
-                      ) : (
-                        <>
-                          <span 
-                            className="status-inquiry" 
-                            style={{ 
-                              fontSize: '12px', 
-                              fontWeight: 400, 
-                              color: 'var(--text-primary)', 
-                              fontFamily: 'Montserrat, sans-serif',
-                              cursor: (!websiteSettings?.hide_prices && !guestSession) ? 'pointer' : 'default'
-                            }}
-                            onClick={(e) => {
-                              if (!websiteSettings?.hide_prices && !guestSession && setIsGuestModalOpen) {
-                                e.stopPropagation();
-                                setIsGuestModalOpen(true);
-                              }
-                            }}
-                            title={(!websiteSettings?.hide_prices && !guestSession) ? "Click to login & view price" : ""}
-                          >
-                            {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
-                              ? formatPrice(art.price, currency, exchangeRates)
-                              : 'Inquiry'}
+                    {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                        {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                            Sold
                           </span>
-                          <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                            Available
-                          </span>
-                        </>
-                      )}
-                    </div>
+                        ) : (
+                          <>
+                            <span 
+                              className="status-inquiry" 
+                              style={{ 
+                                fontSize: '12px', 
+                                fontWeight: 400, 
+                                color: 'var(--text-primary)', 
+                                fontFamily: 'Montserrat, sans-serif',
+                                cursor: (!websiteSettings?.hide_prices && !guestSession) ? 'pointer' : 'default'
+                              }}
+                              onClick={(e) => {
+                                if (!websiteSettings?.hide_prices && !guestSession && setIsGuestModalOpen) {
+                                  e.stopPropagation();
+                                  setIsGuestModalOpen(true);
+                                }
+                              }}
+                              title={(!websiteSettings?.hide_prices && !guestSession) ? "Click to login & view price" : ""}
+                            >
+                              {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
+                                ? formatPrice(art.price, currency, exchangeRates)
+                                : 'Inquiry'}
+                            </span>
+                            <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                              Available
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

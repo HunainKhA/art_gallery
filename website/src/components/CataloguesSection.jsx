@@ -403,34 +403,32 @@ export default function CataloguesSection({
                       {art.title}
                     </p>
 
-                    {/* Footer Row (Inquiry on left in black, Available on right in green, or Sold in red) */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 'auto',
-                      borderTop: '1px solid var(--border-color)',
-                      paddingTop: '0.85rem'
-                    }}>
-                      {art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
-                        <span className="status-return status-archive" style={{ fontSize: '12px', fontWeight: 500, color: '#f59e0b', fontFamily: 'Montserrat, sans-serif' }}>
-                          Archive
-                        </span>
-                      ) : art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
-                          Sold
-                        </span>
-                      ) : (
-                        <>
-                          <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                            Inquiry
+                    {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return) */}
+                    {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 'auto',
+                        borderTop: '1px solid var(--border-color)',
+                        paddingTop: '0.85rem'
+                      }}>
+                        {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                            Sold
                           </span>
-                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 500, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
-                            Available
-                          </span>
-                        </>
-                      )}
-                    </div>
+                        ) : (
+                          <>
+                            <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                              Inquiry
+                            </span>
+                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 500, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                              Available
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
