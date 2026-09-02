@@ -1565,10 +1565,13 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 }}
                 
                 @media print {{
-                    body {{
+                    html, body {{
                         background-color: #ffffff !important;
                         margin: 0 !important;
                         padding: 0 !important;
+                        width: 210mm !important;
+                        height: 297mm !important;
+                        overflow: hidden !important;
                     }}
                     
                     .print-controls {{
@@ -1581,14 +1584,16 @@ def get_artwork_authenticity_letter(artwork_id: str):
                         border: none !important;
                         width: 210mm !important;
                         height: 297mm !important;
-                        min-height: 297mm !important;
-                        padding: 18mm 20mm 14mm 20mm !important;
+                        max-height: 297mm !important;
+                        padding: 16mm 20mm 12mm 20mm !important;
                         page-break-after: avoid !important;
                         page-break-before: avoid !important;
+                        page-break-inside: avoid !important;
+                        box-sizing: border-box !important;
                     }}
                     
                     .painting-image {{
-                        max-height: 310px !important;
+                        max-height: 285px !important;
                     }}
                     
                     @page {{
