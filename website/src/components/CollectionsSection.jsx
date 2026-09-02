@@ -41,11 +41,12 @@ export default function CollectionsSection({
   // Pagination states for artworks
   const [currentPage, setCurrentPage] = useState(1);
   const [artworksPerPage, setArtworksPerPage] = useState(48); // Default 48 artworks per page
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'available', 'sold'
 
-  // Reset page when category or search query changes
+  // Reset page when category, search query or status filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, searchQuery, artworksPerPage]);
+  }, [selectedCategory, searchQuery, artworksPerPage, statusFilter]);
 
   const filteredArtworks = artworks;
 
@@ -422,9 +423,15 @@ export default function CollectionsSection({
     );
   }
 
-  // Render Artworks Grid for selected category (Available first, Sold/Archive last)
-  const categoryArtworks = artworks
-    .filter(art => art.category_name === selectedCategory)
+  // Render Artworks Grid for selected category (Filtered by statusFilter: all, available, sold)
+  const rawCategoryArtworks = artworks.filter(art => art.category_name === selectedCategory);
+
+  const filteredCategoryArtworks = rawCategoryArtworks
+    .filter(art => {
+      if (statusFilter === 'available') return isAvailableStatus(art.status);
+      if (statusFilter === 'sold') return isSoldStatus(art.status);
+      return true; // 'all' shows available, sold, and archived
+    })
     .sort((a, b) => {
       const aAvailable = isAvailableStatus(a.status);
       const bAvailable = isAvailableStatus(b.status);
@@ -434,11 +441,11 @@ export default function CollectionsSection({
     });
 
   // Slicing for pagination
-  const totalPages = Math.ceil(categoryArtworks.length / artworksPerPage);
+  const totalPages = Math.ceil(filteredCategoryArtworks.length / artworksPerPage);
   const activePage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage;
   const indexOfLastArt = activePage * artworksPerPage;
   const indexOfFirstArt = indexOfLastArt - artworksPerPage;
-  const currentArtworks = categoryArtworks.slice(indexOfFirstArt, indexOfLastArt);
+  const currentArtworks = filteredCategoryArtworks.slice(indexOfFirstArt, indexOfLastArt);
 
   return (
     <div className="page-content collections-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
@@ -452,7 +459,10 @@ export default function CollectionsSection({
         gap: '1rem'
       }}>
         <button
-          onClick={() => setSelectedCategory(null)}
+          onClick={() => {
+            setSelectedCategory(null);
+            setStatusFilter('all');
+          }}
           className="btn-secondary"
           style={{
             display: 'inline-flex',
@@ -469,9 +479,49 @@ export default function CollectionsSection({
         <div style={{ textAlign: 'right' }}>
           <h1 style={{ fontSize: '18px', fontWeight: 400, margin: 0, color: 'var(--text-primary)' }}>{selectedCategory}</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '0.2rem 0 0 0' }}>
-            {categoryArtworks.length} artworks
+            {filteredCategoryArtworks.length} artworks
           </p>
         </div>
+      </div>
+
+      {/* 3 Status Filter Buttons: All, Available, Sold */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.6rem',
+        marginBottom: '2rem',
+        flexWrap: 'wrap'
+      }}>
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'available', label: 'Available' },
+          { key: 'sold', label: 'Sold' }
+        ].map((tab) => {
+          const isActive = statusFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`collection-status-filter-btn ${isActive ? 'active' : ''}`}
+              style={{
+                padding: '0.45rem 1.4rem',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 400,
+                fontFamily: 'Montserrat, sans-serif',
+                border: isActive ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                background: isActive ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.02)',
+                color: isActive ? '#000000' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: isActive ? '0 0 12px rgba(212, 175, 55, 0.25)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {loadingArtworks ? (
@@ -622,14 +672,14 @@ export default function CollectionsSection({
             ))}
           </div>
 
-          {categoryArtworks.length === 0 && (
+          {filteredCategoryArtworks.length === 0 && (
             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              No artworks found in this category.
+              No {statusFilter === 'available' ? 'available' : statusFilter === 'sold' ? 'sold' : ''} artworks found in this collection.
             </div>
           )}
 
           {/* Pagination Controls */}
-          {categoryArtworks.length > artworksPerPage && renderPaginationControls(activePage, totalPages)}
+          {filteredCategoryArtworks.length > artworksPerPage && renderPaginationControls(activePage, totalPages)}
         </>
       )}
 
