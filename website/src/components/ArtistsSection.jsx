@@ -16,10 +16,23 @@ export default function ArtistsSection({
   guestSession,
   setIsGuestModalOpen
 }) {
-  const [selectedLetter, setSelectedLetter] = useState('ALL');
+  const [selectedLetter, setSelectedLetter] = useState(() => {
+    try {
+      return sessionStorage.getItem('artists_selected_letter') || 'ALL';
+    } catch {
+      return 'ALL';
+    }
+  });
   const [showBioModal, setShowBioModal] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const alphabets = ['ALL', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+
+  const handleLetterSelect = (letter) => {
+    setSelectedLetter(letter);
+    try {
+      sessionStorage.setItem('artists_selected_letter', letter);
+    } catch {}
+  };
 
   const sortedArtists = [...artists].sort((a, b) =>
     (a.name || '').trim().localeCompare((b.name || '').trim(), undefined, { sensitivity: 'base' })
@@ -519,7 +532,7 @@ export default function ArtistsSection({
             {alphabets.map(letter => (
               <button
                 key={letter}
-                onClick={() => setSelectedLetter(letter)}
+                onClick={() => handleLetterSelect(letter)}
                 className={`alphabet-filter-btn ${selectedLetter === letter ? 'active' : ''}`}
               >
                 {letter}
