@@ -217,8 +217,8 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
           {fields.map(field => {
             const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
             const totalCols = module === 'collections' ? 4 : module === 'artists' ? 3 : 2;
-            const isFullWidth = ['bio', 'description', 'address', 'artist_biography'].includes(field.name) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
-            const isTwoCols = (module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street')) || (module === 'collections' && (field.name === 'image' || field.name === 'purchase_price'));
+            const isFullWidth = (['bio', 'address', 'artist_biography'].includes(field.name) || (field.name === 'description' && module !== 'collections')) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
+            const isTwoCols = (module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street')) || (module === 'collections' && (field.name === 'image' || field.name === 'frame_charges'));
             const isImageUpload = ['profile_image', 'image', 'filename', 'subcategory_id', 'tag_photo'].includes(field.name);
 
             let gridColSpan = 'span 1';
@@ -504,9 +504,20 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                   <textarea
                     value={formData[field.name] || ''}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
-                    rows="4"
+                    rows={module === 'collections' && field.name === 'description' ? 1 : 4}
                     required={field.required}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', resize: 'none' }}
+                    style={{
+                      width: '100%',
+                      padding: module === 'collections' && field.name === 'description' ? '0.6rem 0.7rem' : '0.7rem',
+                      height: module === 'collections' && field.name === 'description' ? '42px' : 'auto',
+                      minHeight: module === 'collections' && field.name === 'description' ? '42px' : 'auto',
+                      overflowY: 'auto',
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      resize: module === 'collections' && field.name === 'description' ? 'vertical' : 'none'
+                    }}
                   />
                 ) : field.type === 'select' ? (
                   <select
