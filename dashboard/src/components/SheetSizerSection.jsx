@@ -1127,69 +1127,82 @@ export default function SheetSizerSection() {
                     <rect width={mixedResult.sheetWidth} height={mixedResult.sheetLength} fill="url(#grid)" />
 
                     {/* Render Packed Rectangles */}
-                    {mixedResult.packed.map((rect, idx) => (
-                      <g key={idx}>
-                        <rect
-                          x={rect.x}
-                          y={rect.y}
-                          width={rect.w}
-                          height={rect.h}
-                          fill={rect.color}
-                          stroke="rgba(0, 0, 0, 0.6)"
-                          strokeWidth="0.15"
-                          style={{ transition: 'all 0.3s ease' }}
-                        />
-                        {/* Centered HTML ForeignObject for Exact 14px Name & 12px Dimensions */}
-                        <foreignObject
-                          x={rect.x}
-                          y={rect.y}
-                          width={rect.w}
-                          height={rect.h}
-                          style={{ overflow: 'hidden', pointerEvents: 'none' }}
-                        >
-                          <div style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textAlign: 'center',
-                            padding: '4px',
-                            boxSizing: 'border-box',
-                            userSelect: 'none'
-                          }}>
-                            <span style={{
-                              fontSize: '14px',
-                              fontWeight: 600,
-                              color: '#ffffff',
-                              lineHeight: 1.25,
-                              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8)',
-                              wordBreak: 'break-word',
-                              maxWidth: '100%'
-                            }}>
-                              {rect.label.replace(/\s+#\d+$/, '')}
-                            </span>
-                            <span style={{
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              color: '#ffffff',
-                              lineHeight: 1.25,
-                              marginTop: '3px',
-                              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8)'
-                            }}>
-                              {rect.origW}"x{rect.origH}"{rect.rotated ? ' (R)' : ''}
-                            </span>
-                          </div>
-                        </foreignObject>
-                      </g>
-                    ))}
+                    {mixedResult.packed.map((rect, idx) => {
+                      const scale = mixedResult.sheetWidth / 400;
+                      const nameFs = Math.min(rect.h * 0.32, Math.max(0.5, scale * 14));
+                      const sizeFs = Math.min(rect.h * 0.28, Math.max(0.4, scale * 12));
+                      const canShowBoth = rect.w > 3 && rect.h > 2.5;
+
+                      return (
+                        <g key={idx}>
+                          <rect
+                            x={rect.x}
+                            y={rect.y}
+                            width={rect.w}
+                            height={rect.h}
+                            fill={rect.color}
+                            stroke="rgba(0, 0, 0, 0.6)"
+                            strokeWidth="0.1"
+                            style={{ transition: 'all 0.3s ease' }}
+                          />
+                          {canShowBoth ? (
+                            <>
+                              {/* Painting Name / Label (14px visual, weight 400) */}
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2 - (nameFs * 0.55)}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={nameFs}
+                                fontWeight="400"
+                                style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                              >
+                                {fitTextToBox(rect.label, rect.w, rect.h)}
+                              </text>
+                              {/* Art Size (12px visual, weight 400) */}
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2 + (sizeFs * 0.65)}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={sizeFs}
+                                fontWeight="400"
+                                style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                              >
+                                {rect.origW}"x{rect.origH}"{rect.rotated ? ' (R)' : ''}
+                              </text>
+                            </>
+                          ) : (
+                            <text
+                              x={rect.x + rect.w / 2}
+                              y={rect.y + rect.h / 2}
+                              dominantBaseline="middle"
+                              textAnchor="middle"
+                              fill="#ffffff"
+                              fontSize={sizeFs}
+                              fontWeight="400"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              {rect.origW}"x{rect.origH}"
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
 
                     {/* Render Free Rectangles (Remaining Space) */}
                     {mixedResult.free && mixedResult.free.map((rect, idx) => {
                       const label = `${rect.w}" x ${rect.h}" Left`;
                       const isRotated = rect.h > rect.w && rect.w < 6;
-                      
+                      const scale = mixedResult.sheetWidth / 400;
+                      const remFs = Math.min(
+                        isRotated ? rect.w * 0.35 : rect.h * 0.35, 
+                        Math.max(0.4, scale * 12)
+                      );
+                      const canShow = rect.w >= 1.5 && rect.h >= 1.5;
+
                       return (
                         <g key={`free-${idx}`}>
                           <rect
@@ -1197,40 +1210,40 @@ export default function SheetSizerSection() {
                             y={rect.y}
                             width={rect.w}
                             height={rect.h}
-                            fill="rgba(220, 220, 225, 0.55)"
-                            stroke="rgba(0, 0, 0, 0.4)"
-                            strokeWidth="0.15"
+                            fill="rgba(220, 220, 225, 0.35)"
+                            stroke="rgba(0, 0, 0, 0.3)"
+                            strokeWidth="0.1"
                             strokeDasharray="0.8,0.8"
                           />
-                          {rect.w >= 1.5 && rect.h >= 1.5 && (
-                            <foreignObject
-                              x={rect.x}
-                              y={rect.y}
-                              width={rect.w}
-                              height={rect.h}
-                              style={{ overflow: 'hidden', pointerEvents: 'none' }}
-                            >
-                              <div style={{
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                                padding: '2px',
-                                boxSizing: 'border-box'
-                              }}>
-                                <span style={{
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  color: '#000000',
-                                  transform: isRotated ? 'rotate(-90deg)' : 'none',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {label}
-                                </span>
-                              </div>
-                            </foreignObject>
+                          {canShow && (
+                            isRotated ? (
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2}
+                                transform={`rotate(-90, ${rect.x + rect.w / 2}, ${rect.y + rect.h / 2})`}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="#000000"
+                                fontSize={remFs}
+                                fontWeight="400"
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                {fitTextToBox(label, rect.h, rect.w)}
+                              </text>
+                            ) : (
+                              <text
+                                x={rect.x + rect.w / 2}
+                                y={rect.y + rect.h / 2}
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fill="#000000"
+                                fontSize={remFs}
+                                fontWeight="400"
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                {fitTextToBox(label, rect.w, rect.h)}
+                              </text>
+                            )
                           )}
                         </g>
                       );
