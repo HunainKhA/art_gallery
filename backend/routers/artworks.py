@@ -1472,13 +1472,16 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 /* Statement Text */
                 .statement-container {{
-                    font-size: 16.5px;
+                    width: 100%;
+                    font-size: 14.8px;
                     font-weight: 400;
                     color: #000000;
                     text-align: left;
-                    line-height: 1.55;
-                    margin: 22px 0 65px 0;
-                    padding-left: 2px;
+                    letter-spacing: 0.38px;
+                    word-spacing: 0.8px;
+                    line-height: 1.6;
+                    margin: 24px 0 65px 0;
+                    padding-left: 0;
                 }}
                 
                 .statement-container strong {{
@@ -1492,7 +1495,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     justify-content: flex-start;
                     align-items: flex-end;
                     margin-bottom: 45px;
-                    padding-left: 2px;
+                    padding-left: 0;
                 }}
                 
                 .sig-line-container {{
@@ -1503,7 +1506,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
                 
                 .sig-label {{
                     font-weight: 700;
-                    font-size: 15px;
+                    font-size: 14.5px;
                     color: #000000;
                     padding-bottom: 3px;
                 }}
@@ -1598,9 +1601,12 @@ def get_artwork_authenticity_letter(artwork_id: str):
                     }}
 
                     .statement-container {{
-                        font-size: 16px !important;
-                        line-height: 1.5 !important;
-                        margin: 20px 0 58px 0 !important;
+                        width: 100% !important;
+                        font-size: 14.5px !important;
+                        letter-spacing: 0.35px !important;
+                        word-spacing: 0.8px !important;
+                        line-height: 1.6 !important;
+                        margin: 22px 0 58px 0 !important;
                     }}
                     
                     .signature-section {{
