@@ -370,7 +370,7 @@ export default function CRMListView({ module }) {
                   <tr key={row.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                     {columns.map(col => (
                       <td key={col.key} style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
-                        {col.format ? col.format(row[col.key]) : row[col.key] || 'N/A'}
+                        {col.format ? col.format(row[col.key], row) : row[col.key] || 'N/A'}
                       </td>
                     ))}
                     <td style={{ padding: '0.75rem 0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

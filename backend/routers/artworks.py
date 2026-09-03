@@ -135,6 +135,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 cstm.authenticity_letter_field_c AS authenticity_letter,
                 cstm.sale_c AS deal_type,
                 cstm.purchase_price_c AS purchase_price,
+                cstm.purchase_gallery_price_c AS purchase_gallery_price,
+                cstm.sale_gallery_price_c AS sale_gallery_price,
                 a.id AS artist_id,
                 CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
                 t.id AS category_id,
@@ -176,9 +178,13 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 art["price"] = 0.0
             
             try:
-                art["purchase_price"] = float(art["purchase_price"]) if art["purchase_price"] else 0.0
-            except ValueError:
+                raw_pur = str(art.get("purchase_price") or art.get("purchase_gallery_price") or art.get("sale_gallery_price") or "0").replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                art["purchase_price"] = float(raw_pur) if raw_pur else 0.0
+            except (ValueError, TypeError):
                 art["purchase_price"] = 0.0
+                
+            if art["price"] == 0.0 and art["purchase_price"] > 0:
+                art["price"] = art["purchase_price"]
                 
             art["deal_type"] = art["deal_type"] if art["deal_type"] else "Sale_Basis"
             
