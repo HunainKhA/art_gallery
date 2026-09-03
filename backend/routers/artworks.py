@@ -116,17 +116,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
                     ELSE 'Available'
                 END AS status,
-                COALESCE(
-                    NULLIF(cstm.sale_gallery_price_c, '0'),
-                    NULLIF(cstm.purchase_gallery_price_c, '0'),
-                    NULLIF(cstm.purchase_price_c, '0'),
-                    NULLIF(cstm.sale_c, '0'),
-                    NULLIF(cstm.sale_gallery_price_c, ''),
-                    NULLIF(cstm.purchase_gallery_price_c, ''),
-                    NULLIF(cstm.purchase_price_c, ''),
-                    NULLIF(cstm.sale_c, ''),
-                    0
-                ) AS price,
+                cstm.*,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
                 cstm.with_frame_c AS with_frame,
@@ -138,9 +128,6 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 END AS code,
                 cstm.authenticity_letter_field_c AS authenticity_letter,
                 cstm.sale_c AS deal_type,
-                cstm.purchase_price_c AS purchase_price,
-                cstm.purchase_gallery_price_c AS purchase_gallery_price,
-                cstm.sale_gallery_price_c AS sale_gallery_price,
                 a.id AS artist_id,
                 CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
                 t.id AS category_id,
@@ -175,41 +162,50 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         
         artworks = execute_query(query, tuple(params))
         for art in artworks:
-            candidates = [
-                art.get("price"),
-                art.get("sale_gallery_price_c"),
-                art.get("purchase_gallery_price_c"),
-                art.get("purchase_price_c"),
-                art.get("purchase_price"),
-                art.get("purchase_gallery_price"),
-                art.get("sale_gallery_price")
+            # 1. Check priority sale/gallery price fields
+            priority_fields = [
+                'sale_gallery_price_c', 'purchase_gallery_price_c', 'gallery_price_c', 
+                'sale_price_c', 'price_c', 'retail_price_c', 'selling_price_c', 'purchase_price_c'
             ]
             final_price = 0.0
-            for cand in candidates:
-                if cand is not None:
+            for pf in priority_fields:
+                if pf in art and art[pf]:
                     try:
-                        clean_val = str(cand).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
-                        p_val = float(clean_val) if clean_val else 0.0
+                        clean_str = str(art[pf]).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                        p_val = float(clean_str) if clean_str else 0.0
                         if p_val > 0:
                             final_price = p_val
                             break
                     except (ValueError, TypeError):
                         pass
             
+            # 2. If still 0, check every field in row for any price / number
+            if final_price == 0.0:
+                for k, v in art.items():
+                    if v and ('price' in k.lower() or 'worth' in k.lower() or 'amount' in k.lower() or 'sale' in k.lower()):
+                        try:
+                            clean_str = str(v).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                            p_val = float(clean_str) if clean_str else 0.0
+                            if p_val > 0:
+                                final_price = p_val
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                            
             art["price"] = final_price
             
             try:
-                raw_pur = str(art.get("purchase_price") or art.get("purchase_price_c") or art.get("purchase_gallery_price") or "0").replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                raw_pur = str(art.get("purchase_price_c") or art.get("purchase_price") or art.get("purchase_gallery_price_c") or "0").replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
                 art["purchase_price"] = float(raw_pur) if raw_pur else 0.0
             except (ValueError, TypeError):
                 art["purchase_price"] = 0.0
                 
-            art["deal_type"] = art["deal_type"] if art["deal_type"] else "Sale_Basis"
+            art["deal_type"] = art["deal_type"] if art.get("deal_type") else "Sale_Basis"
             
             try:
-                art["length"] = float(art["length"]) if art["length"] else 0.0
-                art["width"] = float(art["width"]) if art["width"] else 0.0
-            except ValueError:
+                art["length"] = float(art["length"]) if art.get("length") else 0.0
+                art["width"] = float(art["width"]) if art.get("width") else 0.0
+            except (ValueError, TypeError):
                 art["length"] = 0.0
                 art["width"] = 0.0
                 
