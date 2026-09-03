@@ -169,15 +169,18 @@ export default function CataloguesSection({
   };
 
   // Download Catalog PDF Compiler using native jsPDF generator
-  const handleDownloadCatalog = async (exhibition) => {
-    setDownloadingCatalogId(exhibition.id);
+  const handleDownloadCatalog = async (exhibition, withPrice = false) => {
+    const actionKey = `${exhibition.id}_${withPrice ? 'with' : 'without'}`;
+    setDownloadingCatalogId(actionKey);
     try {
-      const artworks = await fetchArtworksForExhibition(exhibition.id, exhibition.isExhibition);
+      const artworks = (exhibitionArtworks && exhibitionArtworks.length > 0 && selectedExhibition?.id === exhibition.id)
+        ? exhibitionArtworks
+        : await fetchArtworksForExhibition(exhibition.id, exhibition.isExhibition);
       if (!artworks || artworks.length === 0) {
         alert("No artworks found for this catalogue to compile.");
         return;
       }
-      await generateCatalogPDF(exhibition, artworks);
+      await generateCatalogPDF(exhibition, artworks, null, { includePrice: withPrice });
     } catch (err) {
       console.error("Catalog generation failed:", err);
       alert("Error compiling PDF catalogue: " + (err.message || 'Please try again.'));
@@ -200,6 +203,8 @@ export default function CataloguesSection({
   const indexOfFirstArtwork = indexOfLastArtwork - artworksPerPage;
   const currentArtworks = exhibitionArtworks.slice(indexOfFirstArtwork, indexOfLastArtwork);
 
+
+
   if (loading) {
     return (
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '350px', gap: '1rem' }}>
@@ -211,58 +216,87 @@ export default function CataloguesSection({
 
   if (selectedExhibition) {
     const coverImage = getCatalogCoverUrl(selectedExhibition);
-    const isDownloading = downloadingCatalogId === selectedExhibition.id;
 
     return (
       <div className="page-content catalogues-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
-
         {/* Back navigation */}
         <button
           onClick={() => setSelectedExhibition(null)}
+          className="btn-secondary back-btn"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: '0.6rem 1.25rem',
-            borderRadius: '20px',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            fontSize: '12px',
-            marginBottom: '2rem',
-            transition: 'all 0.3s'
+            padding: '0.5rem 1rem',
+            fontSize: '0.85rem',
+            marginBottom: '2rem'
           }}
-          className="back-btn"
         >
-          ← Back to Catalogues
+          <ArrowLeft size={16} /> Back to Catalogues
         </button>
+            {/* Selected Exhibition Header Detail Card */}
+            <div className="glass-card catalog-detail-header-card">
+              <div className="catalog-detail-header-text">
+                <h1 style={{ fontSize: '18px', marginTop: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: 100 }}>
+                  {selectedExhibition.document_name}
+                </h1>
+                <p style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 100, marginBottom: '1.25rem' }}>
+                  {selectedExhibition.active_date
+                    ? `${formatDate(selectedExhibition.active_date)} - ${formatDate(selectedExhibition.exp_date) || 'Ongoing'}`
+                    : `Published on ${formatDate(selectedExhibition.date_entered)}`}
+                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.7', margin: 0 }}>
+                  {selectedExhibition.description || `Discover premium works from master artists compiled in this catalogue.`}
+                </p>
+              </div>
 
-        {/* Selected Exhibition Header Detail Card */}
-        <div className="glass-card catalog-detail-header-card">
-          <div className="catalog-detail-header-text">
-            <h1 style={{ fontSize: '18px', marginTop: '0.75rem', marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: 100 }}>
-              {selectedExhibition.document_name}
-            </h1>
-            <p style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 100, marginBottom: '1.25rem' }}>
-              {selectedExhibition.active_date
-                ? `${formatDate(selectedExhibition.active_date)} - ${formatDate(selectedExhibition.exp_date) || 'Ongoing'}`
-                : `Published on ${formatDate(selectedExhibition.date_entered)}`}
-            </p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.7', margin: 0 }}>
-              {selectedExhibition.description || `Discover premium works from master artists compiled in this catalogue.`}
-            </p>
-          </div>
+              {/* Dual Download Actions: Without Price & With Price */}
+              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  className="btn-secondary catalog-download-btn"
+                  disabled={!!downloadingCatalogId}
+                  onClick={() => handleDownloadCatalog(selectedExhibition, false)}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: downloadingCatalogId ? 'not-allowed' : 'pointer',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                  title="Download catalogue without prices"
+                >
+                  {downloadingCatalogId === `${selectedExhibition.id}_without` ? (
+                    <><Loader className="animate-spin" size={13} /> Compiling...</>
+                  ) : (
+                    <><Download size={13} /> Without Price</>
+                  )}
+                </button>
 
-          <button
-            className="btn-primary catalog-download-btn"
-            disabled={isDownloading}
-            onClick={() => handleDownloadCatalog(selectedExhibition)}
-          >
-            {isDownloading ? <Loader className="animate-spin" size={12} /> : <Download size={12} />}
-            {isDownloading ? 'Compiling PDF...' : 'Download Catalog'}
-          </button>
-        </div>
+                <button
+                  className="btn-primary catalog-download-btn"
+                  disabled={!!downloadingCatalogId}
+                  onClick={() => handleDownloadCatalog(selectedExhibition, true)}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: downloadingCatalogId ? 'not-allowed' : 'pointer'
+                  }}
+                  title="Download catalogue with prices"
+                >
+                  {downloadingCatalogId === `${selectedExhibition.id}_with` ? (
+                    <><Loader className="animate-spin" size={13} /> Compiling...</>
+                  ) : (
+                    <><Download size={13} /> With Price (PKR)</>
+                  )}
+                </button>
+              </div>
+            </div>
 
         {/* Artworks List */}
         <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '1.5rem', fontWeight: 400 }}>
@@ -707,24 +741,60 @@ export default function CataloguesSection({
                     outline: 'none',
                     boxShadow: 'none',
                     color: 'var(--text-primary)',
-                    flex: 1.3,
+                    flex: 1.1,
                     padding: '0.55rem 0',
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     fontWeight: 400,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    gap: '0.4rem',
+                    gap: '0.35rem',
                     cursor: 'pointer'
                   }}
-                  disabled={isDownloading}
+                  disabled={!!downloadingCatalogId}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadCatalog(ex);
+                    handleDownloadCatalog(ex, false);
                   }}
+                  title="Download catalogue without prices"
                 >
-                  {isDownloading ? <Loader className="animate-spin" size={14} /> : <Download size={14} />}
-                  {isDownloading ? 'Compiling...' : 'Download PDF'}
+                  {downloadingCatalogId === `${ex.id}_without` ? (
+                    <><Loader className="animate-spin" size={12} /> Compiling...</>
+                  ) : (
+                    <><Download size={12} /> PDF (No Price)</>
+                  )}
+                </button>
+
+                <button
+                  className="exhibit-btn-noborder"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    color: 'var(--accent-gold, #cfa15c)',
+                    flex: 1.1,
+                    padding: '0.55rem 0',
+                    fontSize: '11.5px',
+                    fontWeight: 500,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    cursor: 'pointer'
+                  }}
+                  disabled={!!downloadingCatalogId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadCatalog(ex, true);
+                  }}
+                  title="Download catalogue with prices"
+                >
+                  {downloadingCatalogId === `${ex.id}_with` ? (
+                    <><Loader className="animate-spin" size={12} /> Compiling...</>
+                  ) : (
+                    <><Download size={12} /> PDF (With Price)</>
+                  )}
                 </button>
               </div>
             </div>
