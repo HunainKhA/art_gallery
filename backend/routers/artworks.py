@@ -72,8 +72,9 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         params = []
         
         if category:
-            where_clauses.append("(t.id = %s OR t.name = %s)")
-            params.extend([category, category])
+            where_clauses.append("(t.id = %s OR LOWER(TRIM(t.name)) = %s OR LOWER(TRIM(t.name)) LIKE %s)")
+            cat_clean = category.strip().lower()
+            params.extend([category, cat_clean, f"%{cat_clean}%"])
             
         if artist_id:
             where_clauses.append("a.id = %s")

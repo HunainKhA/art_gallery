@@ -171,7 +171,8 @@ def get_artist_by_id(artist_id: str):
             ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m 
             ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
-        WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0;
+        WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0
+        ORDER BY c.date_entered DESC;
     """
     try:
         artist = execute_query(artist_query, (artist_id,), fetch="one")
