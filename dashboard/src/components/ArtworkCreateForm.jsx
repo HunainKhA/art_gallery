@@ -101,15 +101,15 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     let fallbackPrefix = "ART";
     if (artistObj) {
       const name = (artistObj.name || `${artistObj.first_name || ''} ${artistObj.last_name || ''}`).replace(/['"]/g, '').trim();
-      const dotMatch = name.match(/^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?/);
-      if (dotMatch) {
-        fallbackPrefix = dotMatch[1].toUpperCase();
+      const m = name.match(/^([A-Za-z]\.[A-Za-z])/);
+      if (m) {
+        fallbackPrefix = m[1].toUpperCase();
       } else {
-        const parts = name.split(/[\s.]+/).filter(Boolean);
-        if (parts.length >= 2 && parts[0].length === 1 && parts[1].length === 1) {
-          fallbackPrefix = `${parts[0]}.${parts[1]}`.toUpperCase();
-        } else if (parts.length >= 1 && parts[0].length >= 3) {
-          fallbackPrefix = parts[0].substring(0, 3).toUpperCase();
+        const tokens = name.split(/[\s.]+/).filter(Boolean);
+        if (tokens.length >= 2 && tokens[0].length === 1 && tokens[1].length === 1) {
+          fallbackPrefix = `${tokens[0]}.${tokens[1]}`.toUpperCase();
+        } else if (tokens.length >= 1 && tokens[0].length >= 3) {
+          fallbackPrefix = tokens[0].substring(0, 3).toUpperCase();
         }
       }
     }
