@@ -546,7 +546,7 @@ export default function ArtistsSection({
                 const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '' && !artist.profile_image.includes('undefined');
                 const cardImgSrc = hasProfilePic
                   ? getArtistImageUrl(artist.profile_image)
-                  : getArtworkImageUrl(artist.latest_artwork_image || artist.id);
+                  : (artist.latest_artwork_image ? getArtworkImageUrl(artist.latest_artwork_image) : getArtistAvatarSvg(artist.name));
 
                 return (
                   <div
@@ -561,8 +561,10 @@ export default function ArtistsSection({
                         className="artist-card-img"
                         onError={(e) => {
                           e.target.onerror = null;
-                          if (artist.id) {
-                            e.target.src = getArtworkImageUrl(artist.id);
+                          if (hasProfilePic && artist.latest_artwork_image) {
+                            e.target.src = getArtworkImageUrl(artist.latest_artwork_image);
+                          } else {
+                            e.target.src = getArtistAvatarSvg(artist.name);
                           }
                         }}
                       />
