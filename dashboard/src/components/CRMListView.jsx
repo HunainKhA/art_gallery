@@ -807,7 +807,7 @@ export default function CRMListView({ module }) {
                         </div>
                       ) : (col.key === 'status' && module === 'collections') ? (
                         <select
-                          value={row[col.key] || 'Available'}
+                          value={(row[col.key] === 'not_sold' || !row[col.key]) ? 'Available' : row[col.key]}
                           onChange={(e) => handleStatusChange(row.id, e.target.value)}
                           style={{
                             background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
@@ -823,9 +823,6 @@ export default function CRMListView({ module }) {
                           <option value="Available" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Available</option>
                           <option value="Sold" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Soldout</option>
                           <option value="Return" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Return</option>
-                          {row[col.key] && !['Available', 'Sold', 'Return'].includes(row[col.key]) && (
-                            <option value={row[col.key]} style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>{row[col.key]}</option>
-                          )}
                         </select>
                       ) : (
                         col.format ? col.format(row[col.key]) : row[col.key] || 'N/A'

@@ -105,7 +105,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 c.document_name AS title,
                 c.filename AS image,
                 c.description AS description,
-                c.collection_status AS status,
+                CASE WHEN c.collection_status = 'not_sold' OR c.collection_status IS NULL OR c.collection_status = '' THEN 'Available' ELSE c.collection_status END AS status,
                 COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
