@@ -1793,15 +1793,19 @@ def get_artwork_tag(artwork_id: str):
             c.document_name AS title,
             c.filename AS image,
             c.date_entered AS date_added,
+            c.collection_status AS status,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.code_c AS code,
             COALESCE(
-                NULLIF(cstm.purchase_gallery_price_c, '0'),
                 NULLIF(cstm.sale_gallery_price_c, '0'),
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
                 NULLIF(cstm.purchase_price_c, '0'),
-                cstm.purchase_gallery_price_c,
-                cstm.sale_gallery_price_c,
+                NULLIF(cstm.sale_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, ''),
+                NULLIF(cstm.purchase_gallery_price_c, ''),
+                NULLIF(cstm.purchase_price_c, ''),
+                NULLIF(cstm.sale_c, ''),
                 '0'
             ) AS price,
             CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
@@ -1847,26 +1851,22 @@ def get_artwork_tag(artwork_id: str):
         else:
             dimensions = "N/A"
             
-        # Parse price and code
-        price_val = artwork["price"]
-        if price_val:
+        # Parse price and status
+        status = str(artwork.get("status") or "").strip()
+        is_sold = status.lower() == "sold"
+        
+        raw_price = artwork.get("price")
+        price_float = 0.0
+        if raw_price is not None:
             try:
-                price_float = float(price_val)
-                price_formatted = f"{int(price_float):,}" if price_float.is_integer() else f"{price_float:,}"
+                price_float = float(str(raw_price).replace(",", "").strip())
             except:
-                price_formatted = str(price_val)
-        else:
-            price_formatted = ""
-            
-        # Format code and price separately (price at the bottom)
-        code_val = (artwork["code"] or "").strip()
-        price_val = artwork["price"]
-        if price_val is not None and str(price_val).strip() != "":
-            try:
-                price_float = float(price_val)
-                price_formatted = f"{int(price_float):,}" if price_float.is_integer() else f"{price_float:,}"
-            except:
-                price_formatted = str(price_val)
+                price_float = 0.0
+
+        if is_sold:
+            price_formatted = "Sold"
+        elif price_float > 0:
+            price_formatted = f"PKR {int(price_float):,}" if price_float.is_integer() else f"PKR {price_float:,.2f}"
         else:
             price_formatted = ""
 
