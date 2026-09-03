@@ -250,52 +250,26 @@ export default function CataloguesSection({
                 </p>
               </div>
 
-              {/* Dual Download Actions: Without Price & With Price */}
-              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  className="btn-secondary catalog-download-btn"
-                  disabled={!!downloadingCatalogId}
-                  onClick={() => handleDownloadCatalog(selectedExhibition, false)}
-                  style={{
-                    padding: '0.55rem 0.95rem',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    cursor: downloadingCatalogId ? 'not-allowed' : 'pointer',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    borderColor: 'var(--border-color)'
-                  }}
-                  title="Download catalogue without prices"
-                >
-                  {downloadingCatalogId === `${selectedExhibition.id}_without` ? (
-                    <><Loader className="animate-spin" size={13} /> Compiling...</>
-                  ) : (
-                    <><Download size={13} /> Without Price</>
-                  )}
-                </button>
-
-                <button
-                  className="btn-primary catalog-download-btn"
-                  disabled={!!downloadingCatalogId}
-                  onClick={() => handleDownloadCatalog(selectedExhibition, true)}
-                  style={{
-                    padding: '0.55rem 0.95rem',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    cursor: downloadingCatalogId ? 'not-allowed' : 'pointer'
-                  }}
-                  title="Download catalogue with prices"
-                >
-                  {downloadingCatalogId === `${selectedExhibition.id}_with` ? (
-                    <><Loader className="animate-spin" size={13} /> Compiling...</>
-                  ) : (
-                    <><Download size={13} /> With Price (PKR)</>
-                  )}
-                </button>
-              </div>
+              {/* Single Clean Download Action */}
+              <button
+                className="btn-primary catalog-download-btn"
+                disabled={!!downloadingCatalogId}
+                onClick={() => handleDownloadCatalog(selectedExhibition)}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  cursor: downloadingCatalogId ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {downloadingCatalogId === selectedExhibition.id ? (
+                  <><Loader className="animate-spin" size={13} /> Compiling...</>
+                ) : (
+                  <><Download size={13} /> Download PDF</>
+                )}
+              </button>
             </div>
 
         {/* Artworks List */}
@@ -741,60 +715,24 @@ export default function CataloguesSection({
                     outline: 'none',
                     boxShadow: 'none',
                     color: 'var(--text-primary)',
-                    flex: 1.1,
+                    flex: 1.3,
                     padding: '0.55rem 0',
-                    fontSize: '11.5px',
+                    fontSize: '12px',
                     fontWeight: 400,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    gap: '0.35rem',
+                    gap: '0.4rem',
                     cursor: 'pointer'
                   }}
-                  disabled={!!downloadingCatalogId}
+                  disabled={downloadingCatalogId === ex.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadCatalog(ex, false);
+                    handleDownloadCatalog(ex);
                   }}
-                  title="Download catalogue without prices"
                 >
-                  {downloadingCatalogId === `${ex.id}_without` ? (
-                    <><Loader className="animate-spin" size={12} /> Compiling...</>
-                  ) : (
-                    <><Download size={12} /> PDF (No Price)</>
-                  )}
-                </button>
-
-                <button
-                  className="exhibit-btn-noborder"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    boxShadow: 'none',
-                    color: 'var(--accent-gold, #cfa15c)',
-                    flex: 1.1,
-                    padding: '0.55rem 0',
-                    fontSize: '11.5px',
-                    fontWeight: 500,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    cursor: 'pointer'
-                  }}
-                  disabled={!!downloadingCatalogId}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadCatalog(ex, true);
-                  }}
-                  title="Download catalogue with prices"
-                >
-                  {downloadingCatalogId === `${ex.id}_with` ? (
-                    <><Loader className="animate-spin" size={12} /> Compiling...</>
-                  ) : (
-                    <><Download size={12} /> PDF (With Price)</>
-                  )}
+                  {downloadingCatalogId === ex.id ? <Loader className="animate-spin" size={14} /> : <Download size={14} />}
+                  {downloadingCatalogId === ex.id ? 'Compiling...' : 'Download PDF'}
                 </button>
               </div>
             </div>
