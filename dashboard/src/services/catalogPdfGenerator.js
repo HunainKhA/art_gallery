@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import { getApiUrl } from './api';
-import catalogBackCoverImg from '../assets/catalog_back_cover.png';
 
 /**
  * Strips HTML tags and decodes common HTML entities
@@ -141,7 +140,9 @@ export const formatArtworkPrice = (art, currency = 'PKR') => {
 };
 
 /**
- * Generates and downloads the luxury square Exhibition Catalogue PDF:
+ * Generates and downloads the clean borderless Catalogue PDF:
+ * Directly starts from Artwork #1 (or custom cover if uploaded),
+ * centered captions with/without prices, NO extra back cover logo page.
  */
 export const generateCatalogPDF = async (exhibition, artworks, onProgress, options = {}) => {
   if (!artworks || artworks.length === 0) {
@@ -169,13 +170,12 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     artistMap.get(aId).artworks.push(art);
   }
 
-  // 2. Parallel preload cover, back cover, and ALL artworks in fast pool
+  // 2. Parallel preload custom cover (if any) and ALL artworks in fast pool
   const hasBanner = !!(exhibition.filename && exhibition.filename.trim());
   const coverUrl = hasBanner ? getApiUrl(`/api/artworks/image/${exhibition.filename}`) : null;
 
-  const [coverImgData, backCoverData, loadedArtworks] = await Promise.all([
+  const [coverImgData, loadedArtworks] = await Promise.all([
     coverUrl ? loadImageData(coverUrl) : Promise.resolve(null),
-    loadImageData(catalogBackCoverImg || '/assets/catalog_back_cover.png'),
     loadImagesInPool(artworks, 6)
   ]);
 
@@ -198,23 +198,6 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   const firstArtistName = Array.from(artistMap.values())[0]?.name || '';
   const isGroupShow = artistMap.size > 1;
   const showTypeLabel = isGroupShow ? 'Group exhibition' : (firstArtistName ? `Solo show by ${firstArtistName}` : 'Exhibition');
-
-  // Helper to draw standard luxury MAINFRAME Monogram/Logo
-  const drawMainframeLogo = (x, y, size = 32) => {
-    doc.setFillColor(35, 31, 32);
-    doc.rect(x, y, size, size, 'F');
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.25);
-    doc.rect(x + 2, y + 2, size - 4, size - 4);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(size * 0.22);
-    doc.setTextColor(255, 255, 255);
-    doc.text('MAINFRAME', x + size / 2, y + size * 0.72, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(size * 0.11);
-    doc.setTextColor(200, 200, 200);
-    doc.text('T H E   G A L L E R Y', x + size / 2, y + size * 0.88, { align: 'center' });
-  };
 
   const cleanDescription = stripHtml(exhibition.description || '').trim();
   const hasDescription = cleanDescription.length > 10;
@@ -262,7 +245,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   }
 
   // =========================================================================
-  // ARTWORK PAGES (NO BORDERS, CENTERED MATTER, OPTIONAL PRICE)
+  // ARTWORK PAGES (DIRECT FLOW, NO BORDERS, CENTERED MATTER, OPTIONAL PRICE)
   // =========================================================================
   let artworkCounter = 0;
 
@@ -360,31 +343,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     }
   }
 
-  // =========================================================================
-  // FINAL PAGE: BACK COVER & LOCATION / CONTACT BANNER (NO BORDER)
-  // =========================================================================
-  doc.addPage([pageSize, pageSize], 'portrait');
-
-  if (backCoverData && backCoverData.dataUrl) {
-    doc.addImage(backCoverData.dataUrl, 'PNG', 0, 0, pageSize, pageSize);
-  } else {
-    // Fallback: Mainframe Logo at top center
-    drawMainframeLogo((pageSize - 36) / 2, 22, 36);
-
-    const bannerH = 22;
-    const bannerY = pageSize - bannerH;
-
-    doc.setFillColor(125, 133, 140);
-    doc.rect(0, bannerY, pageSize, bannerH, 'F');
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text('F-73/9, Block 4, Clifton Karachi Pakistan. +92 21 3582 4455 . +92 300 828 5600', pageSize / 2, bannerY + 8, { align: 'center' });
-    doc.text('mainframethegallery@gmail.com | www.mainframethegallery.com', pageSize / 2, bannerY + 15, { align: 'center' });
-  }
-
-  // Save PDF file
+  // Save PDF file (No trailing back cover page)
   const priceSuffix = includePrice ? ' (With Prices)' : '';
   const cleanFilename = `Catalogue - ${(exhibition.document_name || 'Art Gallery').replace(/[^a-zA-Z0-9_-]/g, ' ')}${priceSuffix}.pdf`;
   doc.save(cleanFilename);
