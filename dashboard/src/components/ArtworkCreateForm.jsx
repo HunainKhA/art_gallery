@@ -174,6 +174,23 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
   };
 
   // Pricing Logic (Completely independent Gallery Price & Artist Commission Calculation)
+  const recalcArtistPayable = (artistPriceVal, commPctVal, withFrameVal, frameChargesVal) => {
+    const artistAmt = parseFloat(artistPriceVal) || 0;
+    const commPct = parseFloat(commPctVal) || 40;
+    const isFramed = withFrameVal === '1';
+    const frameCh = isFramed ? (parseFloat(frameChargesVal) || 0) : 0;
+
+    if (artistAmt > 0) {
+      const charges = Math.round(artistAmt * (commPct / 100));
+      const payable = Math.max(0, artistAmt - charges - frameCh);
+      setGalleryShare(charges);
+      setNetPayableToArtist(payable);
+    } else {
+      setGalleryShare(0);
+      setNetPayableToArtist(0);
+    }
+  };
+
   // 1. Gallery Selling Price (Independent for Dashboard / Website Display)
   const handleGalleryPriceChange = (val) => {
     setFormData(prev => ({ ...prev, price: val }));
@@ -182,31 +199,13 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
   // 2. Artist Quoted Price Change
   const handleArtistPriceChange = (val) => {
     setFormData(prev => ({ ...prev, purchase_price: val }));
-    const artistAmt = parseFloat(val) || 0;
-    const commPct = parseFloat(formData.commission_pct) || 40;
-    if (artistAmt > 0) {
-      const charges = Math.round(artistAmt * (commPct / 100));
-      setGalleryShare(charges);
-      setNetPayableToArtist(artistAmt - charges);
-    } else {
-      setGalleryShare(0);
-      setNetPayableToArtist(0);
-    }
+    recalcArtistPayable(val, formData.commission_pct, formData.with_frame, formData.frame_charges);
   };
 
   // 3. Commission % Change on Artist Price
   const handleCommissionPctChange = (val) => {
     setFormData(prev => ({ ...prev, commission_pct: val }));
-    const commPct = parseFloat(val) || 0;
-    const artistAmt = parseFloat(formData.purchase_price) || 0;
-    if (artistAmt > 0) {
-      const charges = Math.round(artistAmt * (commPct / 100));
-      setGalleryShare(charges);
-      setNetPayableToArtist(artistAmt - charges);
-    } else {
-      setGalleryShare(0);
-      setNetPayableToArtist(0);
-    }
+    recalcArtistPayable(formData.purchase_price, val, formData.with_frame, formData.frame_charges);
   };
 
   // 4. Discount % Change
@@ -497,11 +496,13 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 value={formData.with_frame}
                 onChange={(e) => {
                   const val = e.target.value;
+                  const newCharges = val === '0' ? 0 : formData.frame_charges;
                   setFormData(prev => ({
                     ...prev,
                     with_frame: val,
-                    frame_charges: val === '0' ? 0 : prev.frame_charges
+                    frame_charges: newCharges
                   }));
+                  recalcArtistPayable(formData.purchase_price, formData.commission_pct, val, newCharges);
                 }}
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
               >
@@ -519,7 +520,11 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 placeholder={formData.with_frame === '1' ? "e.g. 5000" : "0"}
                 disabled={formData.with_frame !== '1'}
                 value={formData.with_frame === '1' ? formData.frame_charges : 0}
-                onChange={(e) => setFormData({ ...formData, frame_charges: e.target.value })}
+                onChange={(e) => {
+                  const chVal = e.target.value;
+                  setFormData(prev => ({ ...prev, frame_charges: chVal }));
+                  recalcArtistPayable(formData.purchase_price, formData.commission_pct, formData.with_frame, chVal);
+                }}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
