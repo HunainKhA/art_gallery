@@ -481,7 +481,7 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
           {/* ========================================================= */}
           {/* ARTIST SELECTION / MULTI-ARTISTS FILTER                   */}
           {/* ========================================================= */}
-          <div style={{ gridColumn: 'span 2', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '10px' }}>
+          <div className="catalogue-box-container" style={{ gridColumn: 'span 2', padding: '1.25rem', borderRadius: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600, margin: 0 }}>
@@ -493,38 +493,18 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
               </div>
 
               {/* Mode Switcher */}
-              <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.25rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div className="catalogue-mode-switch">
                 <button
                   type="button"
                   onClick={() => setArtistFilterMode('all')}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.75rem',
-                    fontWeight: artistFilterMode === 'all' ? 600 : 400,
-                    color: artistFilterMode === 'all' ? '#000' : 'var(--text-secondary)',
-                    backgroundColor: artistFilterMode === 'all' ? 'var(--accent-gold)' : 'transparent',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`catalogue-mode-btn ${artistFilterMode === 'all' ? 'active' : 'inactive'}`}
                 >
                   All Artists ({artists.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setArtistFilterMode('selected')}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.75rem',
-                    fontWeight: artistFilterMode === 'selected' ? 600 : 400,
-                    color: artistFilterMode === 'selected' ? '#000' : 'var(--text-secondary)',
-                    backgroundColor: artistFilterMode === 'selected' ? 'var(--accent-gold)' : 'transparent',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`catalogue-mode-btn ${artistFilterMode === 'selected' ? 'active' : 'inactive'}`}
                 >
                   Specific / Multiple Artists ({formData.artist_ids.length})
                 </button>
@@ -564,17 +544,15 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
                 </div>
 
                 {/* Artists Multi-Select Tags Grid */}
-                <div style={{ 
+                <div className="catalogue-scroll-box custom-scrollbar" style={{ 
                   display: 'flex', 
                   flexWrap: 'wrap', 
                   gap: '0.4rem', 
                   maxHeight: '140px', 
                   overflowY: 'auto', 
                   padding: '0.6rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  background: 'rgba(0,0,0,0.1)'
-                }} className="custom-scrollbar">
+                  borderRadius: '8px'
+                }}>
                   {loadingArtists ? (
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Loading artists list...</span>
                   ) : filteredArtistsList.length === 0 ? (
@@ -586,20 +564,7 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
                         <div
                           key={a.id}
                           onClick={() => toggleArtistSelection(a.id)}
-                          style={{
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '16px',
-                            fontSize: '0.75rem',
-                            fontWeight: isSel ? 600 : 400,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            backgroundColor: isSel ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${isSel ? 'var(--accent-gold)' : 'var(--border-color)'}`,
-                            color: isSel ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                            transition: 'all 0.15s'
-                          }}
+                          className={`catalogue-artist-tag ${isSel ? 'selected' : 'unselected'}`}
                         >
                           {isSel && <CheckSquare size={12} />}
                           {a.name}
@@ -774,6 +739,7 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
       </form>
       
       <style>{`
+        /* Scrollbars */
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
@@ -787,10 +753,142 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: var(--accent-gold);
         }
+
+        /* Mode Switcher Container */
+        .catalogue-mode-switch {
+          display: flex;
+          background: var(--bg-input);
+          padding: 0.25rem;
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+          gap: 0.25rem;
+        }
+        body.light-theme .catalogue-mode-switch {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+
+        /* Mode Switcher Buttons */
+        .catalogue-mode-btn {
+          padding: 0.4rem 0.9rem;
+          font-size: 0.75rem;
+          font-family: 'Montserrat', sans-serif;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          user-select: none;
+        }
+        /* Dark Theme Button States */
+        .catalogue-mode-btn.active {
+          background: var(--accent-gold);
+          color: #000000 !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+        }
+        .catalogue-mode-btn.inactive {
+          background: transparent;
+          color: var(--text-secondary) !important;
+          font-weight: 400;
+        }
+        .catalogue-mode-btn.inactive:hover {
+          color: var(--text-primary) !important;
+          background: rgba(255, 255, 255, 0.05);
+        }
+        /* Light Theme Button States Override */
+        body.light-theme .catalogue-mode-btn.active {
+          background: #000000 !important;
+          color: #ffffff !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        body.light-theme .catalogue-mode-btn.inactive {
+          background: transparent !important;
+          color: #475569 !important;
+          font-weight: 500;
+        }
+        body.light-theme .catalogue-mode-btn.inactive:hover {
+          color: #000000 !important;
+          background: rgba(0, 0, 0, 0.04) !important;
+        }
+
+        /* Artist Tag Badges */
+        .catalogue-artist-tag {
+          padding: 0.35rem 0.75rem;
+          border-radius: 16px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          transition: all 0.15s ease;
+          user-select: none;
+        }
+        .catalogue-artist-tag.selected {
+          background: rgba(212, 175, 55, 0.2);
+          border: 1px solid var(--accent-gold);
+          color: var(--accent-gold);
+          font-weight: 600;
+        }
+        .catalogue-artist-tag.unselected {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border-color);
+          color: var(--text-secondary);
+          font-weight: 400;
+        }
+        .catalogue-artist-tag.unselected:hover {
+          border-color: var(--accent-gold);
+          color: var(--text-primary);
+        }
+        body.light-theme .catalogue-artist-tag.selected {
+          background: #000000 !important;
+          border-color: #000000 !important;
+          color: #ffffff !important;
+          font-weight: 600;
+        }
+        body.light-theme .catalogue-artist-tag.unselected {
+          background: #ffffff !important;
+          border-color: #cbd5e1 !important;
+          color: #334155 !important;
+        }
+        body.light-theme .catalogue-artist-tag.unselected:hover {
+          border-color: #000000 !important;
+          color: #000000 !important;
+        }
+
+        /* Box Containers */
+        .catalogue-box-container {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+        }
+        body.light-theme .catalogue-box-container {
+          background: #f8fafc !important;
+          border-color: #e2e8f0 !important;
+        }
+
+        .catalogue-scroll-box {
+          background: rgba(0, 0, 0, 0.1);
+          border: 1px solid var(--border-color);
+        }
+        body.light-theme .catalogue-scroll-box {
+          background: #ffffff !important;
+          border-color: #e2e8f0 !important;
+        }
+
+        /* Artwork Checkbox Cards */
         .artwork-checkbox-card:hover {
           border-color: var(--accent-gold) !important;
           background: rgba(212, 175, 55, 0.05) !important;
         }
+        body.light-theme .artwork-checkbox-card {
+          background: #ffffff !important;
+          border-color: #e2e8f0 !important;
+        }
+        body.light-theme .artwork-checkbox-card:hover {
+          border-color: #000000 !important;
+          background: #f8fafc !important;
+        }
+
         .animate-spin {
           animation: spin 1s linear infinite;
         }
