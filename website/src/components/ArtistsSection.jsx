@@ -544,42 +544,39 @@ export default function ArtistsSection({
             <div className="artists-grid-4col">
               {filteredArtists.map((artist) => {
                 const hasProfilePic = artist.profile_image && artist.profile_image !== 'NULL' && artist.profile_image !== 'null' && artist.profile_image !== '' && !artist.profile_image.includes('undefined');
-                const cardImgSrc = hasProfilePic
-                  ? getArtistImageUrl(artist.profile_image)
-                  : (artist.latest_artwork_image ? getArtworkImageUrl(artist.latest_artwork_image) : getArtistAvatarSvg(artist.name));
+                const cardImgSrc = artist.latest_artwork_image
+                  ? getArtworkImageUrl(artist.latest_artwork_image)
+                  : (hasProfilePic ? getArtistImageUrl(artist.profile_image) : getArtistAvatarSvg(artist.name));
 
                 return (
                   <div
                     key={artist.id}
                     className="glass-card artist-grid-card"
                     onClick={() => handleViewArtistDetail(artist.id)}
+                    style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                   >
-                    <div className="artist-card-img-container">
+                    <div className="artist-card-img-container" style={{ height: '280px', overflow: 'hidden' }}>
                       <img
                         src={cardImgSrc}
                         alt={artist.name}
                         className="artist-card-img"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
                         onError={(e) => {
                           e.target.onerror = null;
-                          if (hasProfilePic && artist.latest_artwork_image) {
-                            e.target.src = getArtworkImageUrl(artist.latest_artwork_image);
+                          if (hasProfilePic) {
+                            e.target.src = getArtistImageUrl(artist.profile_image);
                           } else {
                             e.target.src = getArtistAvatarSvg(artist.name);
                           }
                         }}
                       />
                     </div>
-                    <div className="artist-card-content">
-                      <h2 className="artist-card-name">{artist.name}</h2>
-                      <span className="artist-card-title">{artist.title}</span>
-                      <p className="artist-card-bio">
-                        {artist.bio && artist.bio.trim() !== '' && artist.bio !== 'Biography not available.'
-                          ? (artist.bio.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '...')
-                          : 'Biography not available.'
-                        }
-                      </p>
-                      <div className="artist-card-link-text">
-                        View  →
+                    <div className="artist-card-content" style={{ padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, justifyContent: 'space-between' }}>
+                      <h2 className="artist-card-name" style={{ fontSize: '16px', fontWeight: 400, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {artist.name}
+                      </h2>
+                      <div className="artist-card-link-text" style={{ fontSize: '13px', color: 'var(--accent-gold)', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        View Artworks →
                       </div>
                     </div>
                   </div>
