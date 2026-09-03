@@ -13,8 +13,8 @@ export const stripHtml = (html) => {
 };
 
 /**
- * Loads an image from URL with a fail-safe timeout so compiling NEVER hangs.
- * Resizes efficiently on offscreen canvas for instant encoding and lightweight PDF size.
+ * Fast fail-safe image loader: 1.5s max timeout per image so compiling NEVER hangs.
+ * Converts to optimized lightweight canvas JPEG (max 1000px, 0.80 quality).
  */
 export const loadImageData = (url) => {
   return new Promise((resolve) => {
@@ -24,13 +24,12 @@ export const loadImageData = (url) => {
     }
 
     let resolved = false;
-    // 3-second safety timer so slow network / bad URL NEVER hangs the PDF compilation
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
         resolve(null);
       }
-    }, 3000);
+    }, 1500);
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -42,7 +41,7 @@ export const loadImageData = (url) => {
         let origW = img.naturalWidth || img.width || 800;
         let origH = img.naturalHeight || img.height || 600;
         
-        const maxDim = 1200;
+        const maxDim = 1000;
         let targetW = origW;
         let targetH = origH;
 
@@ -63,13 +62,13 @@ export const loadImageData = (url) => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, targetW, targetH);
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
         resolve({
           dataUrl,
           width: targetW,
           height: targetH
         });
-      } catch (e) {
+      } catch {
         resolve(null);
       }
     };
@@ -81,6 +80,33 @@ export const loadImageData = (url) => {
     };
     img.src = url;
   });
+};
+
+/**
+ * Batch image loader with concurrency pool (max 6 parallel downloads)
+ */
+const loadImagesInPool = async (artworks, poolSize = 6) => {
+  const results = new Array(artworks.length);
+  let currentIndex = 0;
+
+  const worker = async () => {
+    while (currentIndex < artworks.length) {
+      const idx = currentIndex++;
+      const art = artworks[idx];
+      const artImgUrl = art.id
+        ? getApiUrl(`/api/artworks/image/${art.id}`)
+        : (art.filename ? getApiUrl(`/api/artworks/image/${art.filename}`) : getApiUrl(`/api/artworks/image/${art.image}`));
+      const imgData = await loadImageData(artImgUrl);
+      results[idx] = { ...art, imgData };
+    }
+  };
+
+  const pool = [];
+  for (let i = 0; i < Math.min(poolSize, artworks.length); i++) {
+    pool.push(worker());
+  }
+  await Promise.all(pool);
+  return results;
 };
 
 /**
@@ -116,7 +142,6 @@ export const formatArtworkPrice = (art, currency = 'PKR') => {
 
 /**
  * Generates and downloads the luxury square Exhibition Catalogue PDF:
- * Fast, fail-safe, borderless, centered matter, with/without price.
  */
 export const generateCatalogPDF = async (exhibition, artworks, onProgress, options = {}) => {
   if (!artworks || artworks.length === 0) {
@@ -126,8 +151,6 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
 
   const includePrice = options.includePrice === true;
   const currency = options.currency || 'PKR';
-
-  if (onProgress) onProgress("Preparing catalogue assets...");
 
   // 1. Group artworks by Artist
   const artistMap = new Map();
@@ -146,27 +169,14 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     artistMap.get(aId).artworks.push(art);
   }
 
-  // 2. Parallel preload cover, back cover, and ALL artworks (fast fail-safe)
-  if (onProgress) onProgress(`Loading ${artworks.length} artwork images in parallel...`);
-
+  // 2. Parallel preload cover, back cover, and ALL artworks in fast pool
   const hasBanner = !!(exhibition.filename && exhibition.filename.trim());
   const coverUrl = hasBanner ? getApiUrl(`/api/artworks/image/${exhibition.filename}`) : null;
 
   const [coverImgData, backCoverData, loadedArtworks] = await Promise.all([
     coverUrl ? loadImageData(coverUrl) : Promise.resolve(null),
     loadImageData(catalogBackCoverImg || '/assets/catalog_back_cover.png'),
-    Promise.all(
-      artworks.map(async (art) => {
-        const artImgUrl = art.id
-          ? getApiUrl(`/api/artworks/image/${art.id}`)
-          : (art.filename ? getApiUrl(`/api/artworks/image/${art.filename}`) : getApiUrl(`/api/artworks/image/${art.image}`));
-        const imgData = await loadImageData(artImgUrl);
-        return {
-          ...art,
-          imgData
-        };
-      })
-    )
+    loadImagesInPool(artworks, 6)
   ]);
 
   // Re-map loaded artwork image data back to artistMap
@@ -174,8 +184,6 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   for (const [_, artistInfo] of artistMap.entries()) {
     artistInfo.artworks = artistInfo.artworks.map(art => loadedArtMap.get(art.id || art.code) || art);
   }
-
-  if (onProgress) onProgress("Rendering luxury square catalogue...");
 
   // Square Page Size: 210mm x 210mm
   const pageSize = 210;
