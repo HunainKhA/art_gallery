@@ -154,6 +154,17 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 FROM art_exhibitions_art_collections_1_c
                 WHERE deleted = 0
             ) exh_rel ON c.id = exh_rel.art_id
+            LEFT JOIN (
+                SELECT 
+                    COALESCE(NULLIF(d.paintingId, ''), d.code) as match_key,
+                    d.code as inv_code,
+                    d.paintingId as inv_pid,
+                    MAX(inv.total) AS invoice_sale_price
+                FROM saleinvoicedetail d
+                JOIN saleinvoice inv ON d.invoice_id = inv.invoice_id1 AND d.branch_id = inv.branch_id
+                WHERE inv.is_cancel = 0 AND inv.total > 0
+                GROUP BY match_key, d.code, d.paintingId
+            ) inv_p ON (c.id = inv_p.inv_pid OR c.document_name = inv_p.inv_code OR cstm.code_c = inv_p.inv_code)
             WHERE {where_str}
             ORDER BY c.date_entered DESC
             LIMIT %s OFFSET %s;
@@ -165,7 +176,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             # 1. Check priority sale/gallery price fields
             priority_fields = [
                 'sale_gallery_price_c', 'purchase_gallery_price_c', 'gallery_price_c', 
-                'sale_price_c', 'price_c', 'retail_price_c', 'selling_price_c', 'purchase_price_c'
+                'sale_price_c', 'price_c', 'retail_price_c', 'selling_price_c', 
+                'invoice_sale_price', 'purchase_price_c', 'artist_price_c', 'purchase_artist_price_c'
             ]
             final_price = 0.0
             for pf in priority_fields:
