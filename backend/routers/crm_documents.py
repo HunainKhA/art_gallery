@@ -357,18 +357,18 @@ def get_exhibition_cover_image(exhibition_id: str):
     from fastapi.responses import FileResponse
     from .artworks import get_upload_map, get_artwork_image
     
-    upload_dir = Config.UPLOAD_DIR
-    
     def find_file(name):
         if not name:
             return None
-        direct = os.path.join(upload_dir, name)
-        if os.path.exists(direct) and os.path.isfile(direct):
-            return direct
-        name_lower = name.lower()
+        name_clean = str(name).strip()
+        name_lower = name_clean.lower()
         fmap = get_upload_map()
         if name_lower in fmap:
             return fmap[name_lower]
+        for udir in Config.get_upload_dirs():
+            direct = os.path.join(udir, name_clean)
+            if os.path.exists(direct) and os.path.isfile(direct):
+                return direct
         return None
 
     def try_serve(filename):

@@ -403,15 +403,18 @@ _LAST_MAP_TIME = 0
 def get_upload_map():
     global _UPLOAD_FILES_MAP, _LAST_MAP_TIME
     now = time.time()
-    if not _UPLOAD_FILES_MAP or (now - _LAST_MAP_TIME > 120):
+    if not _UPLOAD_FILES_MAP or (now - _LAST_MAP_TIME > 60):
         m = {}
-        try:
-            if os.path.exists(Config.UPLOAD_DIR):
-                for root, dirs, files in os.walk(Config.UPLOAD_DIR):
-                    for f in files:
-                        m[f.lower()] = os.path.join(root, f)
-        except Exception as e:
-            print(f"Error building upload map: {e}")
+        for udir in Config.get_upload_dirs():
+            try:
+                if os.path.exists(udir):
+                    for root, dirs, files in os.walk(udir):
+                        for f in files:
+                            fl = f.lower()
+                            if fl not in m:
+                                m[fl] = os.path.join(root, f)
+            except Exception as e:
+                print(f"Error building upload map from {udir}: {e}")
         _UPLOAD_FILES_MAP = m
         _LAST_MAP_TIME = now
     return _UPLOAD_FILES_MAP
@@ -424,18 +427,18 @@ def get_artwork_image(artwork_id: str):
     import os
     from fastapi.responses import RedirectResponse, FileResponse
     
-    upload_dir = Config.UPLOAD_DIR
-
     def find_file(name):
         if not name:
             return None
-        direct = os.path.join(upload_dir, name)
-        if os.path.exists(direct) and os.path.isfile(direct):
-            return direct
-        name_lower = name.lower()
+        name_clean = str(name).strip()
+        name_lower = name_clean.lower()
         fmap = get_upload_map()
         if name_lower in fmap:
             return fmap[name_lower]
+        for udir in Config.get_upload_dirs():
+            direct = os.path.join(udir, name_clean)
+            if os.path.exists(direct) and os.path.isfile(direct):
+                return direct
         return None
     
     # Helper to check if file exists and return response with cache header

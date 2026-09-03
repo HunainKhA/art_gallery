@@ -15,11 +15,42 @@ class Config:
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_USER = os.getenv("DB_USER", "u556062534_ahsan21")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "asdfM!1234")
-    DB_NAME = os.getenv("DB_NAME", "mf_db")  # Defaults to mf_db (seen in Workbench logs)
+    DB_NAME = os.getenv("DB_NAME", "mf_db")
     DB_PORT = int(os.getenv("DB_PORT", 3306))
 
-    # Dynamic fallback to workspace directory if env is not defined
-    DEFAULT_UPLOAD_DIR = os.path.join(WORKSPACE_ROOT, "mfadashboard", "mfadashboard", "upload").replace("\\", "/")
+    # Dynamic fallback to all possible upload directories across environments
+    @staticmethod
+    def get_upload_dirs():
+        candidates = [
+            os.getenv("UPLOAD_DIR", ""),
+            os.path.join(WORKSPACE_ROOT, "mfadashboard", "mfadashboard", "upload"),
+            os.path.join(WORKSPACE_ROOT, "mfadashboard", "upload"),
+            os.path.join(WORKSPACE_ROOT, "upload"),
+            os.path.join(BASE_DIR, "upload"),
+            "/var/www/mfadashboard/upload",
+            "/var/www/mfadashboard/mfadashboard/upload",
+            "/var/www/html/mfadashboard/upload",
+            "/var/www/html/upload",
+            "/var/www/upload",
+            "/root/art_gallery/mfadashboard/upload",
+            "/root/art_gallery/mfadashboard/mfadashboard/upload",
+            "/root/art_gallery/upload",
+            "/root/mfadashboard/upload"
+        ]
+        valid = []
+        seen = set()
+        for c in candidates:
+            if c and os.path.exists(c) and os.path.isdir(c):
+                norm = os.path.abspath(c).replace("\\", "/")
+                if norm not in seen:
+                    seen.add(norm)
+                    valid.append(norm)
+        if not valid:
+            fallback = os.path.join(WORKSPACE_ROOT, "mfadashboard", "upload").replace("\\", "/")
+            return [fallback]
+        return valid
+
+    DEFAULT_UPLOAD_DIR = os.path.join(WORKSPACE_ROOT, "mfadashboard", "upload").replace("\\", "/")
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
 
     # Stripe Settings (Sandbox keys default)
