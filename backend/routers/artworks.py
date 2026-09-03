@@ -1003,8 +1003,7 @@ def get_next_artwork_code(artist_id: str):
             prefixes = [p[0] for p in prefix_numbers]
             best_prefix = Counter(prefixes).most_common(1)[0][0]
             artist_max_num = max(num for p, num in prefix_numbers if p == best_prefix)
-            # Use next artist number or global max + 1
-            next_num = max(artist_max_num + 1, global_max + 1) if global_max < 9000 else (artist_max_num + 1)
+            next_num = artist_max_num + 1
             code_prefix = best_prefix
         else:
             # Generate smart prefix for new artist
