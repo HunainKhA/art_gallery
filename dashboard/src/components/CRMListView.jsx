@@ -806,24 +806,33 @@ export default function CRMListView({ module }) {
                           )}
                         </div>
                       ) : (col.key === 'status' && module === 'collections') ? (
-                        <select
-                          value={(row[col.key] === 'not_sold' || !row[col.key]) ? 'Available' : row[col.key]}
-                          onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                          style={{
-                            background: 'var(--bg-input, rgba(20, 20, 20, 0.6))',
-                            color: 'var(--text-primary, #fff)',
-                            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
-                            borderRadius: '4px',
-                            padding: '0.2rem 0.4rem',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="Available" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Available</option>
-                          <option value="Sold" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Soldout</option>
-                          <option value="Return" style={{ background: 'var(--bg-dark, #121418)', color: 'var(--text-primary, #fff)' }}>Return</option>
-                        </select>
+                        (() => {
+                          const raw = String(row[col.key] || '').trim().toLowerCase();
+                          const currentStatus = (raw === 'sold' || raw === 'soldout' || raw === 'sold_out') ? 'Sold' : (raw === 'return' || raw === 'returned') ? 'Return' : 'Available';
+                          const isSold = currentStatus === 'Sold';
+                          const isReturn = currentStatus === 'Return';
+                          return (
+                            <select
+                              value={currentStatus}
+                              onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                              style={{
+                                background: isSold ? 'rgba(239, 68, 68, 0.18)' : isReturn ? 'rgba(245, 158, 11, 0.18)' : 'rgba(34, 197, 94, 0.12)',
+                                color: isSold ? '#ef4444' : isReturn ? '#f59e0b' : '#22c55e',
+                                border: isSold ? '1px solid rgba(239, 68, 68, 0.4)' : isReturn ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(34, 197, 94, 0.3)',
+                                borderRadius: '6px',
+                                padding: '0.25rem 0.5rem',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                outline: 'none'
+                              }}
+                            >
+                              <option value="Available" style={{ background: '#121418', color: '#22c55e' }}>Available</option>
+                              <option value="Sold" style={{ background: '#121418', color: '#ef4444' }}>Soldout</option>
+                              <option value="Return" style={{ background: '#121418', color: '#f59e0b' }}>Return</option>
+                            </select>
+                          );
+                        })()
                       ) : (
                         col.format ? col.format(row[col.key]) : row[col.key] || 'N/A'
                       )}

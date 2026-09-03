@@ -84,8 +84,13 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             params.append(medium_id)
             
         if status:
-            where_clauses.append("c.collection_status = %s")
-            params.append(status)
+            st_lower = status.strip().lower()
+            if st_lower in ['sold', 'soldout', 'sold_out']:
+                where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('sold', 'soldout', 'sold_out')")
+            elif st_lower in ['return', 'returned']:
+                where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('return', 'returned')")
+            else:
+                where_clauses.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned'))")
             
         if code:
             where_clauses.append("cstm.code_c = %s")
@@ -105,7 +110,11 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 c.document_name AS title,
                 c.filename AS image,
                 c.description AS description,
-                CASE WHEN c.collection_status = 'not_sold' OR c.collection_status IS NULL OR c.collection_status = '' THEN 'Available' ELSE c.collection_status END AS status,
+                CASE 
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                    ELSE 'Available'
+                END AS status,
                 COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
