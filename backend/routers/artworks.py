@@ -1008,21 +1008,18 @@ def get_next_artwork_code(artist_id: str):
             code_prefix = best_prefix
         else:
             # Generate smart prefix for new artist
-            # E.g. A.Q. Arif -> A.Q, Farrukh Shahab -> FAR, Aakash Jivraj -> AAK
-            cleaned = full_name.replace('"', '').replace("'", '').strip()
-            if "." in cleaned:
-                # E.g. A.Q. Arif -> A.Q
-                dot_parts = [p.strip() for p in cleaned.split() if p.strip()]
-                if len(dot_parts) >= 2 and "." in dot_parts[0]:
-                    code_prefix = dot_parts[0].rstrip('.').upper()
-                else:
-                    code_prefix = ".".join([p[0].upper() for p in dot_parts if p])
+            name_clean = full_name.replace('"', '').replace("'", '').strip()
+            dot_match = re.match(r'^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?', name_clean)
+            if dot_match:
+                code_prefix = dot_match.group(1).upper()
             else:
-                words = [w for w in re.split(r'\s+', cleaned) if w]
-                if len(words) >= 1 and len(words[0]) >= 3:
-                    code_prefix = words[0][:3].upper()
-                elif len(words) >= 2:
-                    code_prefix = f"{words[0][0]}{words[1][0]}".upper()
+                parts = [p.strip() for p in re.split(r'[\s.]+', name_clean) if p.strip()]
+                if len(parts) >= 2 and len(parts[0]) == 1 and len(parts[1]) == 1:
+                    code_prefix = f"{parts[0]}.{parts[1]}".upper()
+                elif len(parts) >= 1 and len(parts[0]) >= 3:
+                    code_prefix = parts[0][:3].upper()
+                elif len(parts) >= 2:
+                    code_prefix = f"{parts[0][:2]}{parts[1][:1]}".upper()
                 else:
                     code_prefix = "ART"
             next_num = global_max + 1

@@ -100,11 +100,17 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     const artistObj = lookups.artists.find(a => a.id === artistId);
     let fallbackPrefix = "ART";
     if (artistObj) {
-      const name = (artistObj.name || `${artistObj.first_name || ''} ${artistObj.last_name || ''}`).trim();
-      if (name.includes('.')) {
-        fallbackPrefix = name.split(' ')[0].replace(/\.$/, '').toUpperCase();
-      } else if (name.length >= 3) {
-        fallbackPrefix = name.substring(0, 3).toUpperCase();
+      const name = (artistObj.name || `${artistObj.first_name || ''} ${artistObj.last_name || ''}`).replace(/['"]/g, '').trim();
+      const dotMatch = name.match(/^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?/);
+      if (dotMatch) {
+        fallbackPrefix = dotMatch[1].toUpperCase();
+      } else {
+        const parts = name.split(/[\s.]+/).filter(Boolean);
+        if (parts.length >= 2 && parts[0].length === 1 && parts[1].length === 1) {
+          fallbackPrefix = `${parts[0]}.${parts[1]}`.toUpperCase();
+        } else if (parts.length >= 1 && parts[0].length >= 3) {
+          fallbackPrefix = parts[0].substring(0, 3).toUpperCase();
+        }
       }
     }
 
