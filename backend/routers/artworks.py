@@ -675,13 +675,24 @@ def create_artwork(data: ArtworkRequest):
     
     # Auto-ensure unique sequential artwork code
     code_val = (data.code or '').strip()
-    if not code_val or "ART-" in code_val or "-5008" in code_val:
+    if not code_val or "ART-" in code_val or "-5008" in code_val or code_val == "2":
         if data.artist_id:
             auto_code = get_next_artwork_code(data.artist_id).get("code")
             if auto_code:
                 code_val = auto_code
     if not code_val:
         code_val = f"ART-{int(now.replace('-', '').replace(':', '').replace(' ', '')[-6:])}"
+
+    # Verify database uniqueness against both document_name and code_c
+    existing_code = execute_query("""
+        SELECT c.id FROM art_collections c
+        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+        WHERE c.deleted = 0 AND (c.document_name = %s OR cstm.code_c = %s);
+    """, (code_val, code_val), fetch="one")
+    if existing_code and data.artist_id:
+        auto_code = get_next_artwork_code(data.artist_id).get("code")
+        if auto_code:
+            code_val = auto_code
 
     title_val = code_val
     
