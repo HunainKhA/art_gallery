@@ -932,10 +932,66 @@ async def preview_pdf_catalog(
             "purchase_price": 0.0
         })
 
-    return {
-        "success": True,
-        "artworks": preview_items
-    }
+@router.get("/next-code")
+def get_next_artwork_code(artist_id: str):
+    """
+    Generates the next sequential artwork code for a given artist (e.g. ZUB-4955, ASH-1002).
+    """
+    import re
+    from collections import Counter
+    
+    if not artist_id:
+        return {"code": ""}
+        
+    try:
+        artist = execute_query(
+            "SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0;",
+            (artist_id,),
+            fetch="one"
+        )
+        if not artist:
+            return {"code": ""}
+            
+        full_name = f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}".strip()
+        
+        art_codes = execute_query("""
+            SELECT cstm.code_c 
+            FROM art_collections c
+            JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+            JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0 AND cstm.code_c IS NOT NULL;
+        """, (artist_id,))
+        
+        prefix_numbers = []
+        if art_codes:
+            for row in art_codes:
+                val = str(row.get("code_c") or "").strip()
+                match = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
+                if match:
+                    prefix_numbers.append((match.group(1), int(match.group(2))))
+                    
+        if prefix_numbers:
+            prefixes = [p[0] for p in prefix_numbers]
+            best_prefix = Counter(prefixes).most_common(1)[0][0]
+            max_num = max(num for p, num in prefix_numbers if p == best_prefix)
+            next_num = max_num + 1
+            code_prefix = best_prefix
+        else:
+            cleaned_name = re.sub(r'[^a-zA-Z\s]', '', full_name)
+            parts = [p.strip() for p in cleaned_name.split() if p.strip()]
+            if len(parts) >= 2:
+                code_prefix = parts[0][:3].upper() if len(parts[0]) >= 3 else "".join([p[0].upper() for p in parts[:3]])
+            elif len(parts) == 1:
+                code_prefix = parts[0][:3].upper()
+            else:
+                code_prefix = "ART"
+            next_num = 1001
+            
+        suggested_code = f"{code_prefix}-{next_num}"
+        return {"code": suggested_code, "prefix": code_prefix, "number": next_num}
+    except Exception as e:
+        print(f"Error generating next code: {e}")
+        return {"code": ""}
 
 
 @router.get("/temp-image/{temp_id}")

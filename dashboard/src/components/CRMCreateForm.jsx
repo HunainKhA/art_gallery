@@ -5,6 +5,7 @@ import { getApiUrl } from '../services/api';
 import CatalogueBuilder from './CatalogueBuilder';
 import ExhibitionBuilder from './ExhibitionBuilder';
 import ArtistBioBuilder from './ArtistBioBuilder';
+import ArtworkCreateForm from './ArtworkCreateForm';
 
 const getModulePath = (moduleName) => {
   if (moduleName === 'collection_types') return 'collection-types';
@@ -13,6 +14,16 @@ const getModulePath = (moduleName) => {
 };
 
 export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord = null, isVcard = false }) {
+  if (module === 'collections') {
+    return (
+      <ArtworkCreateForm
+        editRecord={editRecord}
+        onCancel={onCancel}
+        onSuccess={onSuccess}
+      />
+    );
+  }
+
   const config = CONFIGS[module];
   const fields = config?.fields || [];
 
