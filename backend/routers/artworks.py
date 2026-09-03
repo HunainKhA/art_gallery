@@ -573,6 +573,18 @@ def create_artwork(data: ArtworkRequest):
     artwork_id = str(uuid.uuid4())
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # Auto-ensure unique sequential artwork code
+    code_val = (data.code or '').strip()
+    if not code_val or "ART-" in code_val or "-5008" in code_val:
+        if data.artist_id:
+            auto_code = get_next_artwork_code(data.artist_id).get("code")
+            if auto_code:
+                code_val = auto_code
+    if not code_val:
+        code_val = f"ART-{int(now.replace('-', '').replace(':', '').replace(' ', '')[-6:])}"
+
+    title_val = code_val
+    
     insert_art = """
         INSERT INTO art_collections (
             id, date_entered, date_modified, modified_user_id, created_by, 
@@ -591,11 +603,11 @@ def create_artwork(data: ArtworkRequest):
     try:
         with connection.cursor() as cursor:
             # 1. Main table
-            cursor.execute(insert_art, (artwork_id, now, now, data.description, data.title, data.image, data.status))
+            cursor.execute(insert_art, (artwork_id, now, now, data.description, title_val, data.image or f"{code_val}.jpg", data.status))
             # 2. Custom fields table
             cursor.execute(insert_cstm, (
                 artwork_id, str(data.length), str(data.width), data.with_frame,
-                str(data.frame_charges), str(data.price), data.code, data.authenticity_letter,
+                str(data.frame_charges), str(data.price), code_val, data.authenticity_letter,
                 data.deal_type, str(data.purchase_price)
             ))
             # 3. Relation with artist
