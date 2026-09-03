@@ -7,20 +7,18 @@ export const CONFIGS = {
       { name: 'phone_mobile', label: 'Mobile Phone', type: 'text' },
       { name: 'phone_other', label: 'Other Phone', type: 'text' },
       { name: 'email', label: 'Email Address', type: 'text' },
-      { name: 'profile_image', label: 'Profile Image Filename', type: 'text', placeholder: 'e.g. profile_sadequain.jpg' },
-      
-      { name: 'primary_address_street', label: 'Address', type: 'text' },
+      { name: 'primary_address_street', label: 'Address', type: 'textarea' },
       { name: 'primary_address_city', label: 'City', type: 'text' },
       { name: 'primary_address_country', label: 'Country', type: 'text' },
-      
       { name: 'artist_advance', label: 'Artist Advance', type: 'number', defaultValue: 0.0 },
       { name: 'pending_amount', label: 'Pending Amount', type: 'number', defaultValue: 0.0 },
+      { name: 'profile_image', label: 'Profile Image Filename', type: 'text', placeholder: 'e.g. profile_sadequain.jpg' },
       { name: 'artist_biography', label: 'Artist Biography', type: 'textarea' }
     ],
     importFields: [
-      'first_name', 'last_name', 'phone_mobile', 'phone_other', 'email', 'profile_image',
+      'first_name', 'last_name', 'phone_mobile', 'phone_other', 'email',
       'primary_address_street', 'primary_address_city', 'primary_address_country',
-      'artist_advance', 'pending_amount', 'artist_biography'
+      'artist_advance', 'pending_amount', 'profile_image', 'artist_biography'
     ]
   },
   collections: {

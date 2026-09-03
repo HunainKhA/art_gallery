@@ -211,20 +211,20 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: module === 'collections' ? 'repeat(4, 1fr)' : module === 'artists' ? 'repeat(3, 1fr)' : '1fr 1fr', 
+          gridTemplateColumns: (module === 'collections' || module === 'artists') ? 'repeat(4, 1fr)' : '1fr 1fr', 
           gap: '1.25rem' 
         }}>
           {fields.map(field => {
             const isFlashUpload = module === 'flashimages' && (field.name === 'filename' || field.name === 'subcategory_id');
-            const totalCols = module === 'collections' ? 4 : module === 'artists' ? 3 : 2;
-            const isFullWidth = (['bio', 'address', 'artist_biography'].includes(field.name) || (field.name === 'description' && module !== 'collections')) || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
-            const isTwoCols = module === 'artists' && (field.name === 'profile_image' || field.name === 'primary_address_street');
+            const totalCols = (module === 'collections' || module === 'artists') ? 4 : 2;
+            const isFullWidth = (['bio', 'artist_biography'].includes(field.name)) || (field.name === 'description' && module !== 'collections') || (module === 'flashimages' && (field.name === 'document_name' || field.name === 'description'));
+            const isTwoCols = (module === 'artists' && field.name === 'profile_image') || (module === 'collections' && field.name === 'image');
             const isImageUpload = ['profile_image', 'image', 'filename', 'subcategory_id', 'tag_photo'].includes(field.name);
 
             let gridColSpan = 'span 1';
             if (isFullWidth) {
               gridColSpan = `span ${totalCols}`;
-            } else if (module === 'collections' && field.name === 'image') {
+            } else if ((module === 'collections' && field.name === 'image') || (module === 'artists' && field.name === 'profile_image')) {
               gridColSpan = 'span 2';
             } else if (isTwoCols) {
               gridColSpan = 'span 2';
@@ -425,19 +425,19 @@ export default function CRMCreateForm({ module, onSuccess, onCancel, editRecord 
                   <textarea
                     value={formData[field.name] || ''}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
-                    rows={module === 'collections' && field.name === 'description' ? 1 : 4}
+                    rows={((module === 'collections' && field.name === 'description') || (module === 'artists' && (field.name === 'primary_address_street' || field.name === 'address'))) ? 1 : 4}
                     required={field.required}
                     style={{
                       width: '100%',
-                      padding: module === 'collections' && field.name === 'description' ? '0.6rem 0.7rem' : '0.7rem',
-                      height: module === 'collections' && field.name === 'description' ? '42px' : 'auto',
-                      minHeight: module === 'collections' && field.name === 'description' ? '42px' : 'auto',
+                      padding: ((module === 'collections' && field.name === 'description') || (module === 'artists' && (field.name === 'primary_address_street' || field.name === 'address'))) ? '0.6rem 0.7rem' : '0.7rem',
+                      height: ((module === 'collections' && field.name === 'description') || (module === 'artists' && (field.name === 'primary_address_street' || field.name === 'address'))) ? '42px' : 'auto',
+                      minHeight: ((module === 'collections' && field.name === 'description') || (module === 'artists' && (field.name === 'primary_address_street' || field.name === 'address'))) ? '42px' : 'auto',
                       overflowY: 'auto',
                       background: 'var(--bg-input)',
                       border: '1px solid var(--border-color)',
                       borderRadius: '8px',
                       color: 'var(--text-primary)',
-                      resize: module === 'collections' && field.name === 'description' ? 'vertical' : 'none'
+                      resize: ((module === 'collections' && field.name === 'description') || (module === 'artists' && (field.name === 'primary_address_street' || field.name === 'address'))) ? 'vertical' : 'none'
                     }}
                   />
                 ) : field.type === 'select' ? (
