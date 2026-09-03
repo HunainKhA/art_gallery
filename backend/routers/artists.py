@@ -66,7 +66,7 @@ def get_all_artists():
             c.artist_biography_c AS artist_biography,
             e.email_address AS email,
             (
-                SELECT COALESCE(NULLIF(col.filename, ''), col.id)
+                SELECT col.id
                 FROM art_collections col
                 JOIN art_artists_art_collections_c r2 
                   ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
