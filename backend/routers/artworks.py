@@ -954,7 +954,7 @@ async def preview_pdf_catalog(
 @router.get("/next-code")
 def get_next_artwork_code(artist_id: str):
     """
-    Generates the next sequential artwork code for a given artist (e.g. ZUB-4955, ASH-1002).
+    Generates the next sequential artwork code for a given artist (e.g. A.Q-4865, ZUB-4955, FAR-5007).
     """
     import re
     from collections import Counter
@@ -964,15 +964,16 @@ def get_next_artwork_code(artist_id: str):
         
     try:
         artist = execute_query(
-            "SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0;",
+            "SELECT id, first_name, last_name, name FROM art_artists WHERE id = %s AND deleted = 0;",
             (artist_id,),
             fetch="one"
         )
         if not artist:
             return {"code": ""}
             
-        full_name = f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}".strip()
+        full_name = (artist.get("name") or f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}").strip()
         
+        # 1. Check existing codes for this artist
         art_codes = execute_query("""
             SELECT cstm.code_c 
             FROM art_collections c
@@ -988,23 +989,43 @@ def get_next_artwork_code(artist_id: str):
                 match = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
                 if match:
                     prefix_numbers.append((match.group(1), int(match.group(2))))
+        
+        # 2. Get global highest artwork sequence number in system
+        global_res = execute_query("""
+            SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
+            FROM art_collections_cstm cstm
+            JOIN art_collections c ON cstm.id_c = c.id
+            WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
+        """, fetch="one")
+        global_max = (global_res.get("max_global") if global_res else None) or 5000
                     
         if prefix_numbers:
             prefixes = [p[0] for p in prefix_numbers]
             best_prefix = Counter(prefixes).most_common(1)[0][0]
-            max_num = max(num for p, num in prefix_numbers if p == best_prefix)
-            next_num = max_num + 1
+            artist_max_num = max(num for p, num in prefix_numbers if p == best_prefix)
+            # Use next artist number or global max + 1
+            next_num = max(artist_max_num + 1, global_max + 1) if global_max < 9000 else (artist_max_num + 1)
             code_prefix = best_prefix
         else:
-            cleaned_name = re.sub(r'[^a-zA-Z\s]', '', full_name)
-            parts = [p.strip() for p in cleaned_name.split() if p.strip()]
-            if len(parts) >= 2:
-                code_prefix = parts[0][:3].upper() if len(parts[0]) >= 3 else "".join([p[0].upper() for p in parts[:3]])
-            elif len(parts) == 1:
-                code_prefix = parts[0][:3].upper()
+            # Generate smart prefix for new artist
+            # E.g. A.Q. Arif -> A.Q, Farrukh Shahab -> FAR, Aakash Jivraj -> AAK
+            cleaned = full_name.replace('"', '').replace("'", '').strip()
+            if "." in cleaned:
+                # E.g. A.Q. Arif -> A.Q
+                dot_parts = [p.strip() for p in cleaned.split() if p.strip()]
+                if len(dot_parts) >= 2 and "." in dot_parts[0]:
+                    code_prefix = dot_parts[0].rstrip('.').upper()
+                else:
+                    code_prefix = ".".join([p[0].upper() for p in dot_parts if p])
             else:
-                code_prefix = "ART"
-            next_num = 1001
+                words = [w for w in re.split(r'\s+', cleaned) if w]
+                if len(words) >= 1 and len(words[0]) >= 3:
+                    code_prefix = words[0][:3].upper()
+                elif len(words) >= 2:
+                    code_prefix = f"{words[0][0]}{words[1][0]}".upper()
+                else:
+                    code_prefix = "ART"
+            next_num = global_max + 1
             
         suggested_code = f"{code_prefix}-{next_num}"
         return {"code": suggested_code, "prefix": code_prefix, "number": next_num}

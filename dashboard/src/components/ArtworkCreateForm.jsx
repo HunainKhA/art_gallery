@@ -97,7 +97,24 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
   // Handle Artist Change -> Auto fetch next Artwork Code
   const handleArtistChange = (artistId) => {
-    setFormData(prev => ({ ...prev, artist_id: artistId }));
+    const artistObj = lookups.artists.find(a => a.id === artistId);
+    let fallbackPrefix = "ART";
+    if (artistObj) {
+      const name = (artistObj.name || `${artistObj.first_name || ''} ${artistObj.last_name || ''}`).trim();
+      if (name.includes('.')) {
+        fallbackPrefix = name.split(' ')[0].replace(/\.$/, '').toUpperCase();
+      } else if (name.length >= 3) {
+        fallbackPrefix = name.substring(0, 3).toUpperCase();
+      }
+    }
+
+    setFormData(prev => ({ 
+      ...prev, 
+      artist_id: artistId,
+      code: `${fallbackPrefix}-5008`,
+      title: `${fallbackPrefix}-5008`
+    }));
+
     if (!artistId || isEdit) return;
 
     setLoadingCode(true);
