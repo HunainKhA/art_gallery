@@ -403,14 +403,15 @@ _LAST_MAP_TIME = 0
 def get_upload_map():
     global _UPLOAD_FILES_MAP, _LAST_MAP_TIME
     now = time.time()
-    if not _UPLOAD_FILES_MAP or (now - _LAST_MAP_TIME > 300):
+    if not _UPLOAD_FILES_MAP or (now - _LAST_MAP_TIME > 120):
         m = {}
         try:
-            for entry in os.scandir(Config.UPLOAD_DIR):
-                if entry.is_file():
-                    m[entry.name.lower()] = entry.path
-        except Exception:
-            pass
+            if os.path.exists(Config.UPLOAD_DIR):
+                for root, dirs, files in os.walk(Config.UPLOAD_DIR):
+                    for f in files:
+                        m[f.lower()] = os.path.join(root, f)
+        except Exception as e:
+            print(f"Error building upload map: {e}")
         _UPLOAD_FILES_MAP = m
         _LAST_MAP_TIME = now
     return _UPLOAD_FILES_MAP
@@ -464,28 +465,36 @@ def get_artwork_image(artwork_id: str):
         return direct_match
 
     # 2. ID with extensions
-    for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.JPG', '.JPEG', '.PNG']:
+    for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.JPG', '.JPEG', '.PNG', '_R.jpg', '_R.JPG']:
         match = try_serve(f"{artwork_id}{ext}")
         if match:
             return match
 
-    # 3. Lookup filename and title/code from database
+    # 3. Lookup filename, title, and code_c from database
     try:
-        query = "SELECT filename, document_name FROM art_collections WHERE (id = %s OR filename = %s) AND deleted = 0;"
-        res = execute_query(query, (artwork_id, artwork_id), fetch="one")
+        query = """
+            SELECT c.filename, c.document_name, cstm.code_c
+            FROM art_collections c
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE (c.id = %s OR c.filename = %s OR cstm.code_c = %s OR c.document_name = %s) AND c.deleted = 0
+            LIMIT 1;
+        """
+        res = execute_query(query, (artwork_id, artwork_id, artwork_id, artwork_id), fetch="one")
         if res:
-            if res.get("filename"):
-                orig_filename = res["filename"].strip()
-                match = try_serve(orig_filename)
+            # Check all candidate strings: filename, code_c, document_name
+            candidates = [res.get("filename"), res.get("code_c"), res.get("document_name")]
+            for cand in candidates:
+                if not cand:
+                    continue
+                cand_str = str(cand).strip()
+                match = try_serve(cand_str)
                 if match:
                     return match
-                match = try_serve(os.path.basename(orig_filename))
+                match = try_serve(os.path.basename(cand_str))
                 if match:
                     return match
-            if res.get("document_name"):
-                doc_name = res["document_name"].strip()
-                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']:
-                    match = try_serve(f"{doc_name}{ext}")
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG', '_R.jpg', '_R.JPG']:
+                    match = try_serve(f"{cand_str}{ext}")
                     if match:
                         return match
     except Exception as e:
