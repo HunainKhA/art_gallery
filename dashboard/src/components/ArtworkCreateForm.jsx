@@ -302,7 +302,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             <input
               type="number"
               step="any"
-              placeholder="e.g. 24"
               value={formData.length}
               onChange={(e) => setFormData({ ...formData, length: e.target.value })}
               style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
@@ -316,7 +315,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             <input
               type="number"
               step="any"
-              placeholder="e.g. 36"
               value={formData.width}
               onChange={(e) => setFormData({ ...formData, width: e.target.value })}
               style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
@@ -384,7 +382,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               <input
                 type="text"
                 readOnly
-                placeholder="Auto-generated on Artist select"
                 value={formData.code}
                 style={{
                   width: '100%',
@@ -424,7 +421,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               </label>
               <input
                 type="number"
-                placeholder="e.g. 280000"
                 value={formData.price}
                 onChange={(e) => handleGalleryPriceChange(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.95rem' }}
@@ -458,7 +454,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               </label>
               <input
                 type="number"
-                placeholder="e.g. 250000"
                 value={formData.purchase_price}
                 onChange={(e) => handleArtistPriceChange(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
@@ -472,7 +467,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               <div style={{ position: 'relative' }}>
                 <input
                   type="number"
-                  placeholder="40"
                   value={formData.commission_pct}
                   onChange={(e) => handleCommissionPctChange(e.target.value)}
                   style={{ width: '100%', padding: '0.75rem 1.8rem 0.75rem 0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
@@ -534,7 +528,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               </label>
               <input
                 type="number"
-                placeholder={formData.with_frame === '1' ? "e.g. 5000" : "0"}
                 disabled={formData.with_frame !== '1'}
                 value={formData.with_frame === '1' ? formData.frame_charges : 0}
                 onChange={(e) => {
@@ -564,7 +557,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           </label>
           <input
             type="text"
-            placeholder="Optional artwork description or remarks"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
