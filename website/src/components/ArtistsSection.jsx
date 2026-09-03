@@ -16,6 +16,18 @@ export default function ArtistsSection({
   guestSession,
   setIsGuestModalOpen
 }) {
+  const isArchiveStatus = (s) => {
+    if (!s) return false;
+    const str = String(s).trim().toLowerCase();
+    return str === 'return' || str === 'returned' || str === 'archive' || str === 'archived';
+  };
+
+  const isSoldStatus = (s) => {
+    if (!s) return false;
+    const str = String(s).trim().toLowerCase();
+    return str === 'sold' || str === 'soldout' || str === 'sold_out';
+  };
+
   const [selectedLetter, setSelectedLetter] = useState(() => {
     try {
       return sessionStorage.getItem('artists_selected_letter') || 'ALL';
