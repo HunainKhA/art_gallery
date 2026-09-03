@@ -1940,7 +1940,7 @@ def get_artwork_tag(artwork_id: str):
             
         # Parse price and status
         status = str(artwork.get("status") or "").strip()
-        is_sold = status.lower() == "sold"
+        is_sold = status.lower() in ["sold", "soldout", "sold_out"]
         
         raw_price = artwork.get("price")
         price_float = 0.0

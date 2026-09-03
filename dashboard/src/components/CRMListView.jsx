@@ -834,7 +834,7 @@ export default function CRMListView({ module }) {
                           );
                         })()
                       ) : (
-                        col.format ? col.format(row[col.key]) : row[col.key] || 'N/A'
+                        col.format ? col.format(row[col.key], row) : row[col.key] || 'N/A'
                       )}
                     </td>
                   ))}

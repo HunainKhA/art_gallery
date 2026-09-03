@@ -149,7 +149,15 @@ export const LIST_COLUMNS = {
     { key: 'artist_name', label: 'Artist' },
     { key: 'category_name', label: 'Category' },
     { key: 'medium_name', label: 'Medium' },
-    { key: 'price', label: 'Price (PKR)', format: (v) => (v && parseFloat(v) > 0) ? `${parseFloat(v).toLocaleString()} PKR` : 'Inquiry' },
+    { 
+      key: 'price', 
+      label: 'Price (PKR)', 
+      format: (v, row) => {
+        const s = String(row?.status || '').trim().toLowerCase();
+        if (s === 'sold' || s === 'soldout' || s === 'sold_out') return 'Sold';
+        return (v && parseFloat(v) > 0) ? `${parseFloat(v).toLocaleString()} PKR` : 'Inquiry';
+      }
+    },
     { key: 'deal_type', label: 'Deal Type', format: (v) => v === 'Purchase_Basis' ? 'Gallery Purchase' : 'Sale Basis' },
     { key: 'status', label: 'Status' },
     { key: 'authenticity_letter', label: 'Letter' }
