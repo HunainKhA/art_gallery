@@ -324,8 +324,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           </div>
         </div>
 
-        {/* ROW 2: Medium | Deal Type | Status | Artwork Code (auto-filled) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.2fr', gap: '1.25rem' }}>
+        {/* ROW 2: Medium | Category/Collection Type | Status | Auto Artwork Code */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr', gap: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
               Medium *
@@ -345,16 +345,18 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Deal Type *
+              Category / Collection Type *
             </label>
             <select
-              value={formData.deal_type}
-              onChange={(e) => setFormData({ ...formData, deal_type: e.target.value })}
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
               required
               style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
             >
-              <option value="Sale_Basis">Sale Basis</option>
-              <option value="Purchase_Basis">Gallery Purchase</option>
+              <option value="">-- Select Category * --</option>
+              {lookups.categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </div>
 
@@ -414,19 +416,34 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           gap: '1rem',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
         }}>
-          {/* ROW 1: Gallery Selling Price */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem', alignItems: 'center' }}>
+          {/* ROW 1: Gallery Price | Deal Type */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Price (PKR)
+                Gallery Price
               </label>
               <input
                 type="number"
-                placeholder="e.g. 265000"
+                placeholder="e.g. 280000"
                 value={formData.price}
                 onChange={(e) => handleGalleryPriceChange(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.95rem' }}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Deal Type *
+              </label>
+              <select
+                value={formData.deal_type}
+                onChange={(e) => setFormData({ ...formData, deal_type: e.target.value })}
+                required
+                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
+              >
+                <option value="Sale_Basis">Sale Basis</option>
+                <option value="Purchase_Basis">Gallery Purchase</option>
+              </select>
             </div>
           </div>
 
@@ -437,7 +454,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr 1.1fr 1.2fr', gap: '1rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Artist Price (PKR)
+                Artist Price
               </label>
               <input
                 type="number"
@@ -469,7 +486,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 Charges
               </label>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(212, 175, 55, 0.05)', border: '1px dashed rgba(212, 175, 55, 0.4)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.95rem', fontWeight: 700 }}>
-                PKR {galleryShare.toLocaleString()}
+                {galleryShare.toLocaleString()}
               </div>
             </div>
 
@@ -478,7 +495,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 Payable to Artist
               </label>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#10b981', fontSize: '0.95rem', fontWeight: 700 }}>
-                PKR {netPayableToArtist.toLocaleString()}
+                {netPayableToArtist.toLocaleString()}
               </div>
             </div>
           </div>
@@ -513,7 +530,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
-                Frame Charges (PKR)
+                Frame Charges
               </label>
               <input
                 type="number"
@@ -540,37 +557,18 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           </div>
         </div>
 
-        {/* ROW 4: Category & Description */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '1.25rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Category / Collection Type *
-            </label>
-            <select
-              value={formData.category_id}
-              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-              required
-              style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-            >
-              <option value="">-- Select Category * --</option>
-              {lookups.categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 500 }}>
-              Description / Notes
-            </label>
-            <input
-              type="text"
-              placeholder="Optional artwork description or remarks"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-            />
-          </div>
+        {/* ROW 4: Description / Notes */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 500 }}>
+            Description / Notes
+          </label>
+          <input
+            type="text"
+            placeholder="Optional artwork description or remarks"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+          />
         </div>
 
         {/* ROW 5: Image Upload Box */}
