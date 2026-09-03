@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Upload, X, CheckSquare, Square, Save, Loader, Search, Users, User, Filter, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, CheckSquare, Square, Save, Loader, Search, Users, User, Filter, Image as ImageIcon, FileDown } from 'lucide-react';
 import { getApiUrl } from '../services/api';
+import { generateCatalogPDF } from '../services/catalogPdfGenerator';
 
 export default function CatalogueBuilder({ editRecord = null, onCancel, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -17,12 +18,46 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
   const [loadingArtworks, setLoadingArtworks] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // PDF Export States
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState('');
+
   // Search & Filter controls
   const [artistSearch, setArtistSearch] = useState('');
   const [artworkSearch, setArtworkSearch] = useState('');
   const [artistFilterMode, setArtistFilterMode] = useState('all'); // 'all' or 'selected'
 
   const isEdit = !!editRecord;
+
+  // Compile and download PDF catalogue without pricing
+  const handleDownloadPDF = async () => {
+    if (formData.artwork_ids.length === 0) {
+      alert("Please select at least one artwork to generate the PDF catalogue.");
+      return;
+    }
+
+    setDownloadingPdf(true);
+    setPdfProgress('Compiling catalogue...');
+
+    try {
+      const exhibitionObj = {
+        document_name: formData.document_name || 'Curated Art Catalogue',
+        description: formData.description || '',
+        filename: formData.filename || ''
+      };
+
+      const selectedArtObjects = allArtworks.filter(a => formData.artwork_ids.includes(a.id));
+      await generateCatalogPDF(exhibitionObj, selectedArtObjects, (status) => {
+        setPdfProgress(status);
+      });
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Error compiling PDF catalogue: " + (err.message || 'Please try again.'));
+    } finally {
+      setDownloadingPdf(false);
+      setPdfProgress('');
+    }
+  };
 
   // 1. Fetch Artists list on mount
   useEffect(() => {
@@ -327,7 +362,7 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
     <div className="glass-card" style={{ padding: '2rem', maxWidth: '950px', margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.35rem', color: 'var(--accent-gold)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <Save size={22} /> {isEdit ? 'Update' : 'Create'} Exhibition & Artist Catalogue
@@ -336,11 +371,37 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
             Compile single or multiple artists' artworks into a high-resolution PDF catalogue without prices.
           </p>
         </div>
-        {onCancel && (
-          <button type="button" onClick={onCancel} className="btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', margin: 0 }}>
-            <X size={14} style={{ marginRight: '0.3rem' }} /> Back
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            type="button" 
+            onClick={handleDownloadPDF} 
+            disabled={downloadingPdf || formData.artwork_ids.length === 0}
+            className="btn-secondary" 
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              fontSize: '0.8rem', 
+              margin: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem',
+              color: 'var(--accent-gold)',
+              borderColor: 'var(--accent-gold)',
+              background: 'rgba(212, 175, 55, 0.05)'
+            }}
+            title="Download PDF catalogue without saving"
+          >
+            {downloadingPdf ? (
+              <><Loader className="animate-spin" size={14} /> {pdfProgress || 'Exporting PDF...'}</>
+            ) : (
+              <><FileDown size={14} /> Download PDF ({formData.artwork_ids.length})</>
+            )}
           </button>
-        )}
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="btn-secondary" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', margin: 0 }}>
+              <X size={14} style={{ marginRight: '0.3rem' }} /> Back
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -671,13 +732,41 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
           {onCancel && (
-            <button type="button" onClick={onCancel} className="btn-secondary" style={{ flex: 1, margin: 0, padding: '0.75rem' }}>
+            <button type="button" onClick={onCancel} className="btn-secondary" style={{ flex: '1 1 120px', margin: 0, padding: '0.75rem' }}>
               Cancel
             </button>
           )}
-          <button type="submit" className="btn-primary" style={{ flex: onCancel ? 2 : 1, padding: '0.75rem', margin: 0 }} disabled={saving}>
+
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloadingPdf || formData.artwork_ids.length === 0}
+            className="btn-secondary"
+            style={{
+              flex: '1.5 1 200px',
+              margin: 0,
+              padding: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              borderColor: 'var(--accent-gold)',
+              color: 'var(--accent-gold)',
+              background: 'rgba(212, 175, 55, 0.06)',
+              fontWeight: 600
+            }}
+            title="Download square luxury PDF catalogue without pricing"
+          >
+            {downloadingPdf ? (
+              <><Loader className="animate-spin" size={16} /> {pdfProgress || 'Compiling PDF...'}</>
+            ) : (
+              <><FileDown size={16} /> Download PDF Catalogue ({formData.artwork_ids.length})</>
+            )}
+          </button>
+
+          <button type="submit" className="btn-primary" style={{ flex: '2 1 200px', padding: '0.75rem', margin: 0 }} disabled={saving}>
             {saving ? <><Loader className="animate-spin" size={14} /> Saving Catalogue...</> : `${isEdit ? 'Update' : 'Save'} Catalogue`}
           </button>
         </div>
