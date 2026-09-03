@@ -446,8 +446,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           gap: '1rem',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
         }}>
-          {/* ROW 1: Gallery Price | Gallery % | Gallery Commission Amount */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.3fr', gap: '1.25rem', alignItems: 'center' }}>
+          {/* ROW 1: Gallery Price | % | Amount */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr 1.3fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
                 Price (PKR) <span style={{ opacity: 0.7 }}>(Gallery Selling Price)</span>
@@ -462,8 +462,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
-                Gallery Cut (%)
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                %
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -478,8 +478,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
-                Gallery Charges ({formData.commission_pct || 40}%)
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Amount
               </label>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(212, 175, 55, 0.05)', border: '1px dashed rgba(212, 175, 55, 0.4)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.95rem', fontWeight: 700 }}>
                 PKR {galleryShare.toLocaleString()}
@@ -491,7 +491,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
 
           {/* ROW 2: Artist Price (Net Amount to Artist) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2.2fr', gap: '1.25rem', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
                 Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Net Payout)</span>
@@ -504,16 +504,12 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
               />
             </div>
-
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5', padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              💡 <em>Artist Share = Gallery Price minus {formData.commission_pct || 40}% Gallery Charges. Entering Artist Price will auto-calculate Gallery Price.</em>
-            </div>
           </div>
 
           {/* HORIZONTAL DIVIDER */}
           <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
 
-          {/* ROW 3: Framing Charges & Total Price Summary */}
+          {/* ROW 3: Framing Charges & Total Amount */}
           <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 1.5fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
@@ -560,8 +556,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
-                Final Selling Total (with Frame)
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Amount
               </label>
               <div style={{
                 padding: '0.75rem 1rem',
