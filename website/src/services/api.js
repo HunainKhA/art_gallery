@@ -5,13 +5,13 @@ export const getApiUrl = (path) => {
 };
 
 export const fetchCategories = async () => {
-  const res = await fetch(`${API_BASE}/api/artworks/categories`);
+  const res = await fetch(`${API_BASE}/api/artworks/categories`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Could not load categories database records.");
   return res.json();
 };
 
 export const fetchArtists = async () => {
-  const res = await fetch(`${API_BASE}/api/artists`);
+  const res = await fetch(`${API_BASE}/api/artists`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Could not load artists profiles.");
   return res.json();
 };
@@ -23,14 +23,14 @@ export const fetchArtworks = async (params = {}) => {
   } else if (params.category) {
     url += `&category=${encodeURIComponent(params.category)}`;
   }
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error("Could not fetch artworks inventory list.");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 };
 
 export const fetchArtistDetail = async (artistId) => {
-  const res = await fetch(`${API_BASE}/api/artists/${artistId}`);
+  const res = await fetch(`${API_BASE}/api/artists/${artistId}`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Could not fetch artist portfolio detail.");
   return res.json();
 };
