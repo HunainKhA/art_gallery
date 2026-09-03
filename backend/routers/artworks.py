@@ -379,49 +379,31 @@ def get_next_artwork_code(artist_id: str):
             else:
                 code_prefix = "ART"
         
-        # 2. Query all existing codes for this artist ID AND matching prefix in database
-        art_codes = execute_query("""
-            SELECT DISTINCT cstm.code_c, c.document_name 
-            FROM art_collections c
-            LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
-            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            WHERE c.deleted = 0 
-              AND (
-                  rel.art_artists_art_collectionsart_artists_ida = %s 
-                  OR cstm.code_c LIKE %s 
-                  OR c.document_name LIKE %s
-              );
-        """, (artist_id, f"{code_prefix}-%", f"{code_prefix}-%"))
+        # 2. Get global highest artwork sequence number across entire gallery
+        global_res1 = execute_query("""
+            SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_val
+            FROM art_collections_cstm cstm
+            JOIN art_collections c ON cstm.id_c = c.id
+            WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
+        """, fetch="one")
         
-        numbers = []
-        if art_codes:
-            for row in art_codes:
-                for candidate in [row.get("code_c"), row.get("document_name")]:
-                    val = str(candidate or "").strip()
-                    m = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
-                    if m and m.group(1).upper() == code_prefix.upper():
-                        numbers.append(int(m.group(2)))
-                    elif m and (row.get("code_c") or row.get("document_name")):
-                        numbers.append(int(m.group(2)))
+        global_res2 = execute_query("""
+            SELECT MAX(CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED)) as max_val
+            FROM art_collections
+            WHERE deleted = 0 AND document_name REGEXP '-[0-9]+$';
+        """, fetch="one")
         
-        if numbers:
-            next_num = max(numbers) + 1
-        else:
-            # Global highest counter fallback
-            global_res = execute_query("""
-                SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
-                FROM art_collections_cstm cstm
-                JOIN art_collections c ON cstm.id_c = c.id
-                WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
-            """, fetch="one")
-            global_max = (global_res.get("max_global") if global_res else None) or 5000
-            next_num = global_max + 1
+        val1 = (global_res1.get("max_val") if global_res1 else 0) or 0
+        val2 = (global_res2.get("max_val") if global_res2 else 0) or 0
+        overall_max = max(val1, val2, 5008)
+        
+        next_num = overall_max + 1
             
         suggested_code = f"{code_prefix}-{next_num}"
         return {"code": suggested_code, "prefix": code_prefix, "number": next_num}
     except Exception as e:
         print(f"Error generating next code: {e}")
-        return {"code": ""}
+        return {"code": f"ART-5009", "prefix": "ART", "number": 5009}
 
 @router.get("/{artwork_id}")
 def get_artwork_by_id(artwork_id: str):

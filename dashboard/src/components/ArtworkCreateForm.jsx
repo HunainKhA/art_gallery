@@ -137,8 +137,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         } else {
           setFormData(prev => ({
             ...prev,
-            code: `${fallbackPrefix}-1001`,
-            title: `${fallbackPrefix}-1001`
+            code: `${fallbackPrefix}-5009`,
+            title: `${fallbackPrefix}-5009`
           }));
         }
       })
@@ -147,8 +147,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         setLoadingCode(false);
         setFormData(prev => ({
           ...prev,
-          code: `${fallbackPrefix}-1001`,
-          title: `${fallbackPrefix}-1001`
+          code: `${fallbackPrefix}-5009`,
+          title: `${fallbackPrefix}-5009`
         }));
       });
   };
