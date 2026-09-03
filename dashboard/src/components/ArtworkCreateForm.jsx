@@ -361,15 +361,30 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Artwork Code {loadingCode ? '(Auto-generating...)' : ''}
+              Artwork Code <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', fontWeight: 400 }}>{loadingCode ? '(Generating...)' : '(Auto-assigned)'}</span>
             </label>
-            <input
-              type="text"
-              placeholder="e.g. ZUB-4955"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value, title: e.target.value })}
-              style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600, letterSpacing: '0.5px' }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                readOnly
+                placeholder="Auto-generated on Artist select"
+                value={formData.code}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 2.2rem 0.75rem 0.75rem',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: '8px',
+                  color: 'var(--accent-gold)',
+                  fontWeight: 700,
+                  letterSpacing: '0.8px',
+                  cursor: 'not-allowed',
+                  userSelect: 'none'
+                }}
+                title="System Generated Artwork Code (Protected)"
+              />
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}>🔒</span>
+            </div>
           </div>
         </div>
 
