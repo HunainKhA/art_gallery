@@ -71,7 +71,10 @@ def get_all_artists():
                 JOIN art_artists_art_collections_c r2 
                   ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
                 WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
-                ORDER BY col.date_entered DESC
+                  AND LOWER(TRIM(COALESCE(col.collection_status, ''))) NOT IN ('return', 'returned', 'archive', 'archived')
+                ORDER BY 
+                    CASE WHEN LOWER(TRIM(COALESCE(col.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 ELSE 0 END ASC,
+                    col.date_entered DESC
                 LIMIT 1
             ) AS latest_artwork_image
         FROM art_artists a
@@ -172,7 +175,13 @@ def get_artist_by_id(artist_id: str):
         LEFT JOIN art_medium m 
             ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0
-        ORDER BY c.date_entered DESC;
+          AND LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('return', 'returned', 'archive', 'archived')
+        ORDER BY 
+            CASE 
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 
+                ELSE 0 
+            END ASC,
+            c.date_entered DESC;
     """
     try:
         artist = execute_query(artist_query, (artist_id,), fetch="one")

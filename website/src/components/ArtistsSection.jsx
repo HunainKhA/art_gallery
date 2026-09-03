@@ -454,7 +454,14 @@ export default function ArtistsSection({
           <h2 style={{ fontSize: '14px', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>  {selectedArtist.name}</h2>
           {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-              {selectedArtist.artworks.map((art) => (
+              {[...selectedArtist.artworks]
+                .filter(art => !isArchiveStatus(art.status))
+                .sort((a, b) => {
+                  const aSold = isSoldStatus(a.status) ? 1 : 0;
+                  const bSold = isSoldStatus(b.status) ? 1 : 0;
+                  return aSold - bSold;
+                })
+                .map((art) => (
                 <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id, selectedArtist.artworks)}>
                   <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '260px', width: '100%', backgroundColor: 'transparent' }}>
                     <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
