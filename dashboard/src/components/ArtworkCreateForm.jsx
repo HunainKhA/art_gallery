@@ -168,15 +168,15 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
       });
   };
 
-  // Price Calculation Logic
-  // 1. When Full Retail Price is entered:
-  const handleRetailPriceChange = (val) => {
-    const fullRetail = parseFloat(val);
+  // Price Calculation Logic (Unified for Sale Basis & Gallery Purchase)
+  // 1. When Gallery Price (Selling Price) is entered:
+  const handleGalleryPriceChange = (val) => {
+    const galPrice = parseFloat(val);
     const comm = parseFloat(formData.commission_pct) || 40;
 
-    if (!isNaN(fullRetail) && fullRetail > 0) {
-      const galleryAmt = Math.round(fullRetail * (comm / 100));
-      const artistAmt = Math.max(0, fullRetail - galleryAmt);
+    if (!isNaN(galPrice) && galPrice > 0) {
+      const galleryAmt = Math.round(galPrice * (comm / 100));
+      const artistAmt = Math.max(0, galPrice - galleryAmt);
 
       setFormData(prev => ({
         ...prev,
@@ -194,19 +194,31 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     }
   };
 
-  // 2. When Commission % is changed:
+  // 2. When Commission / Margin % is changed:
   const handleCommissionPctChange = (val) => {
     const comm = parseFloat(val) || 0;
-    const fullRetail = parseFloat(formData.price);
+    const galPrice = parseFloat(formData.price);
+    const artistAmt = parseFloat(formData.purchase_price);
 
-    if (!isNaN(fullRetail) && fullRetail > 0) {
-      const galleryAmt = Math.round(fullRetail * (comm / 100));
-      const artistAmt = Math.max(0, fullRetail - galleryAmt);
+    if (!isNaN(galPrice) && galPrice > 0) {
+      const galleryAmt = Math.round(galPrice * (comm / 100));
+      const newArtistAmt = Math.max(0, galPrice - galleryAmt);
 
       setFormData(prev => ({
         ...prev,
         commission_pct: val,
-        purchase_price: artistAmt
+        purchase_price: newArtistAmt
+      }));
+      setGalleryShare(galleryAmt);
+    } else if (!isNaN(artistAmt) && artistAmt > 0) {
+      const fraction = (100 - comm) / 100;
+      const newGalPrice = fraction > 0 ? Math.round(artistAmt / fraction) : Math.round(artistAmt * 1.4);
+      const galleryAmt = Math.max(0, newGalPrice - artistAmt);
+
+      setFormData(prev => ({
+        ...prev,
+        commission_pct: val,
+        price: newGalPrice
       }));
       setGalleryShare(galleryAmt);
     } else {
@@ -214,20 +226,20 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     }
   };
 
-  // 3. When Artist Price is entered:
+  // 3. When Artist Price (Purchase / Cost) is entered:
   const handleArtistPriceChange = (val) => {
     const artistAmt = parseFloat(val);
     const comm = parseFloat(formData.commission_pct) || 40;
 
     if (!isNaN(artistAmt) && artistAmt > 0) {
       const fraction = (100 - comm) / 100;
-      const fullRetail = fraction > 0 ? Math.round(artistAmt / fraction) : Math.round(artistAmt * 1.4);
-      const galleryAmt = Math.max(0, fullRetail - artistAmt);
+      const galPrice = fraction > 0 ? Math.round(artistAmt / fraction) : Math.round(artistAmt * 1.4);
+      const galleryAmt = Math.max(0, galPrice - artistAmt);
 
       setFormData(prev => ({
         ...prev,
         purchase_price: val,
-        price: fullRetail
+        price: galPrice
       }));
       setGalleryShare(galleryAmt);
     } else {
@@ -423,7 +435,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           </div>
         </div>
 
-        {/* ROW 3: Pricing Section with 40% Gallery Commission Auto-Calculation */}
+        {/* ROW 3: Pricing Section with Gallery Commission & Share Auto-Calculation */}
         <div style={{
           backgroundColor: 'rgba(212, 175, 55, 0.04)',
           border: '1px solid rgba(212, 175, 55, 0.2)',
@@ -433,93 +445,68 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           flexDirection: 'column',
           gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-            <Calculator size={16} /> Pricing & Gallery Commission (40% Split)
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
+              <Calculator size={16} /> Pricing Calculator ({formData.commission_pct || 40}% Gallery Margin)
+            </div>
+            {formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                Total with Framing: PKR {(parseFloat(formData.price || 0) + parseFloat(formData.frame_charges || 0)).toLocaleString()}
+              </span>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: formData.deal_type === 'Sale_Basis' ? '1.2fr 0.8fr 1.1fr 1.2fr' : '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
-            {formData.deal_type === 'Sale_Basis' ? (
-              <>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                    Full Retail Price (PKR) <span style={{ opacity: 0.7 }}>(Selling Price)</span>
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 400000"
-                    value={formData.price}
-                    onChange={(e) => handleRetailPriceChange(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700 }}
-                  />
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1.1fr 1.2fr', gap: '1rem', alignItems: 'center' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Gallery Price (PKR) <span style={{ opacity: 0.7 }}>(Selling Price)</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 400000"
+                value={formData.price}
+                onChange={(e) => handleGalleryPriceChange(e.target.value)}
+                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700 }}
+              />
+            </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Gallery %
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="number"
-                      placeholder="40"
-                      value={formData.commission_pct}
-                      onChange={(e) => handleCommissionPctChange(e.target.value)}
-                      style={{ width: '100%', padding: '0.7rem 1.7rem 0.7rem 0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
-                    />
-                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
-                  </div>
-                </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Gallery %
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="number"
+                  placeholder="40"
+                  value={formData.commission_pct}
+                  onChange={(e) => handleCommissionPctChange(e.target.value)}
+                  style={{ width: '100%', padding: '0.7rem 1.7rem 0.7rem 0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
+                />
+                <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
+              </div>
+            </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Gallery Charges ({formData.commission_pct || 40}%)
-                  </label>
-                  <div style={{ padding: '0.7rem', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 600 }}>
-                    PKR {galleryShare.toLocaleString()}
-                  </div>
-                </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Gallery Charges ({formData.commission_pct || 40}%)
+              </label>
+              <div style={{ padding: '0.7rem', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 600 }}>
+                PKR {galleryShare.toLocaleString()}
+              </div>
+            </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Artist Share (PKR) <span style={{ opacity: 0.7 }}>(Net to Artist)</span>
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 240000"
-                    value={formData.purchase_price}
-                    onChange={(e) => handleArtistPriceChange(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Purchase Price (Cost) (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Purchase Price from Artist"
-                    value={formData.purchase_price}
-                    onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Retail Price (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Selling Price"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                  />
-                </div>
-              </>
-            )}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Artist Cost / Share)</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 240000"
+                value={formData.purchase_price}
+                onChange={(e) => handleArtistPriceChange(e.target.value)}
+                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+              />
+            </div>
           </div>
         </div>
 
@@ -548,7 +535,14 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             </label>
             <select
               value={formData.with_frame}
-              onChange={(e) => setFormData({ ...formData, with_frame: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData(prev => ({
+                  ...prev,
+                  with_frame: val,
+                  frame_charges: val === '0' ? 0 : prev.frame_charges
+                }));
+              }}
               style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
             >
               <option value="0">No</option>
@@ -562,11 +556,19 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             </label>
             <input
               type="number"
-              placeholder="0"
+              placeholder={formData.with_frame === '1' ? "e.g. 5000" : "0"}
               disabled={formData.with_frame !== '1'}
-              value={formData.frame_charges}
+              value={formData.with_frame === '1' ? formData.frame_charges : 0}
               onChange={(e) => setFormData({ ...formData, frame_charges: e.target.value })}
-              style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', opacity: formData.with_frame === '1' ? 1 : 0.5 }}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: formData.with_frame === '1' ? 'var(--bg-input)' : 'rgba(255,255,255,0.02)',
+                border: formData.with_frame === '1' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                borderRadius: '8px',
+                color: formData.with_frame === '1' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                cursor: formData.with_frame === '1' ? 'text' : 'not-allowed'
+              }}
             />
           </div>
 
