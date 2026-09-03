@@ -149,7 +149,7 @@ export const LIST_COLUMNS = {
     { key: 'artist_name', label: 'Artist' },
     { key: 'category_name', label: 'Category' },
     { key: 'medium_name', label: 'Medium' },
-    { key: 'price', label: 'Price (PKR)', format: (v) => v ? `${v.toLocaleString()} PKR` : 'Inquiry' },
+    { key: 'price', label: 'Price (PKR)', format: (v) => (v && parseFloat(v) > 0) ? `${parseFloat(v).toLocaleString()} PKR` : 'Inquiry' },
     { key: 'deal_type', label: 'Deal Type', format: (v) => v === 'Purchase_Basis' ? 'Gallery Purchase' : 'Sale Basis' },
     { key: 'status', label: 'Status' },
     { key: 'authenticity_letter', label: 'Letter' }

@@ -115,7 +115,17 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
                     ELSE 'Available'
                 END AS status,
-                COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
+                COALESCE(
+                    NULLIF(cstm.sale_gallery_price_c, '0'),
+                    NULLIF(cstm.purchase_gallery_price_c, '0'),
+                    NULLIF(cstm.purchase_price_c, '0'),
+                    NULLIF(cstm.sale_c, '0'),
+                    NULLIF(cstm.sale_gallery_price_c, ''),
+                    NULLIF(cstm.purchase_gallery_price_c, ''),
+                    NULLIF(cstm.purchase_price_c, ''),
+                    NULLIF(cstm.sale_c, ''),
+                    0
+                ) AS price,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
                 cstm.with_frame_c AS with_frame,
