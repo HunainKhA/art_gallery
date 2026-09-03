@@ -17,6 +17,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     purchase_price: '',
     price: '',
     commission_pct: 40,
+    discount: '',
     code: '',
     with_frame: '0',
     frame_charges: 0,
@@ -32,6 +33,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
   });
 
   const [galleryShare, setGalleryShare] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loadingCode, setLoadingCode] = useState(false);
 
@@ -249,6 +251,18 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         price: ''
       }));
       setGalleryShare(0);
+    }
+  };
+
+  // 4. When Discount % is changed:
+  const handleDiscountChange = (discVal) => {
+    const discPct = parseFloat(discVal) || 0;
+    setFormData(prev => ({ ...prev, discount: discVal }));
+    const artistAmt = parseFloat(formData.purchase_price) || 0;
+    if (artistAmt > 0 && discPct > 0) {
+      setDiscountAmount(Math.round(artistAmt * (discPct / 100)));
+    } else {
+      setDiscountAmount(0);
     }
   };
 
@@ -490,8 +504,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           {/* HORIZONTAL DIVIDER */}
           <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
 
-          {/* ROW 2: Artist Price (Net Amount to Artist) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem', alignItems: 'center' }}>
+          {/* ROW 2: Artist Price & Discount */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr 1.3fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
                 Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Net Payout)</span>
@@ -503,6 +517,31 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 onChange={(e) => handleArtistPriceChange(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Discount %
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={formData.discount || ''}
+                  onChange={(e) => handleDiscountChange(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1.8rem 0.75rem 0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
+                />
+                <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                Discount Amount
+              </label>
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 600 }}>
+                PKR {discountAmount.toLocaleString()}
+              </div>
             </div>
           </div>
 
