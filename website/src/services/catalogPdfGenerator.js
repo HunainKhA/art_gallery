@@ -14,73 +14,8 @@ export const stripHtml = (html) => {
 };
 
 /**
- * Extracts ONLY the Artist Career / Qualification / Profile narrative
- * and strictly EXCLUDES all "Art Shows", "Solo Shows", "Group Shows", "Exhibitions" lists.
- */
-export const extractCareerBio = (bioHtml) => {
-  if (!bioHtml) return '';
-
-  const tmp = document.createElement('div');
-  tmp.innerHTML = bioHtml;
-
-  // 1. If structured as HTML table (standard CRM artist bio format)
-  const rows = tmp.querySelectorAll('tr');
-  if (rows && rows.length > 0) {
-    const careerParts = [];
-    rows.forEach(tr => {
-      const tds = tr.querySelectorAll('td');
-      if (tds.length >= 2) {
-        const label = (tds[0].textContent || '').trim();
-        const lowerLabel = label.toLowerCase();
-        if (/exhibition|show|solo|group|participat|art\s*show/i.test(lowerLabel)) {
-          return;
-        }
-        const text = (tds[1].textContent || '').trim().replace(/\s+/g, ' ');
-        if (text) {
-          careerParts.push(`${label}: ${text}`);
-        }
-      } else if (tds.length === 1) {
-        const text = (tds[0].textContent || '').trim().replace(/\s+/g, ' ');
-        if (text && !/^(solo|group|exhibition|shows|art\s*shows|selected\s*shows)/i.test(text)) {
-          careerParts.push(text);
-        }
-      }
-    });
-
-    if (careerParts.length > 0) {
-      return careerParts.join('\n\n');
-    }
-  }
-
-  // 2. If free text / HTML paragraphs, filter line by line
-  const rawText = (tmp.textContent || tmp.innerText || '').trim();
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  const filteredLines = [];
-  let skipMode = false;
-
-  for (const line of lines) {
-    const lowerLine = line.toLowerCase();
-    if (/solo\s*exhibition|solo\s*show|group\s*exhibition|group\s*show|selected\s*exhibition|exhibitions\s*:|art\s*shows\s*:/i.test(lowerLine)) {
-      skipMode = true;
-      continue;
-    }
-    if (skipMode) {
-      if (/education|awards|career|qualification|about\s*the\s*artist|artist\s*statement|profile/i.test(lowerLine)) {
-        skipMode = false;
-      } else {
-        continue;
-      }
-    }
-    filteredLines.push(line);
-  }
-
-  return filteredLines.join('\n\n');
-};
-
-/**
- * Loads an image from URL, draws to an offscreen canvas to guarantee CORS/Base64,
- * resizes efficiently to maximum needed display resolution for ultra-fast PDF compiling,
- * and returns the DataURL along with its width & height.
+ * Loads an image from URL with a fail-safe timeout so compiling NEVER hangs.
+ * Resizes efficiently on offscreen canvas for instant encoding and lightweight PDF size.
  */
 export const loadImageData = (url) => {
   return new Promise((resolve) => {
@@ -88,14 +23,26 @@ export const loadImageData = (url) => {
       resolve(null);
       return;
     }
+
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 3000);
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
       try {
         let origW = img.naturalWidth || img.width || 800;
         let origH = img.naturalHeight || img.height || 600;
         
-        const maxDim = 1400;
+        const maxDim = 1200;
         let targetW = origW;
         let targetH = origH;
 
@@ -116,18 +63,20 @@ export const loadImageData = (url) => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, targetW, targetH);
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         resolve({
           dataUrl,
           width: targetW,
           height: targetH
         });
       } catch (e) {
-        console.warn('Canvas toDataURL failed for image:', url, e);
         resolve(null);
       }
     };
     img.onerror = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
       resolve(null);
     };
     img.src = url;
@@ -207,29 +156,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     artistMap.get(aId).artworks.push(art);
   }
 
-  // 2. Preload missing artist bios in parallel
-  const missingBioPromises = [];
-  for (const [artistId, artistInfo] of artistMap.entries()) {
-    const fetchId = (artistId && artistId !== 'unknown') ? artistId : exhibition.artist_id;
-    if (fetchId && !artistInfo.bio) {
-      missingBioPromises.push(
-        fetch(getApiUrl(`/api/artists/${fetchId}`))
-          .then(res => res.ok ? res.json() : null)
-          .then(aData => {
-            if (aData) {
-              artistInfo.bio = aData.artist_biography || aData.bio || '';
-              if (aData.name) artistInfo.name = aData.name;
-            }
-          })
-          .catch(e => console.warn("Could not fetch artist bio for", fetchId, e))
-      );
-    }
-  }
-  if (missingBioPromises.length > 0) {
-    await Promise.all(missingBioPromises);
-  }
-
-  // 3. Parallel preload cover, back cover, logo, and ALL artworks
+  // 2. Parallel preload cover, back cover, logo, and ALL artworks
   if (onProgress) onProgress(`Loading ${artworks.length} artwork images in parallel...`);
 
   let coverUrl = null;

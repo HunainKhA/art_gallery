@@ -30,3 +30,5 @@ uploads/
 # Logs and backups
 *.log
 *.bak
+Dump*/
+dumps/

@@ -377,42 +377,38 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
             Compile single or multiple artists' artworks into a high-resolution PDF catalogue (With or Without Prices).
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Download Without Price */}
-          <button 
-            type="button" 
-            onClick={() => handleDownloadPDF(false)} 
-            disabled={downloadingPdf || formData.artwork_ids.length === 0}
-            className="btn-secondary" 
+        <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Direct Checkbox */}
+          <label 
+            onClick={() => setPdfPriceMode(prev => prev === 'with_price' ? 'without_price' : 'with_price')}
             style={{ 
-              padding: '0.45rem 0.85rem', 
-              fontSize: '0.78rem', 
-              margin: 0, 
-              display: 'flex', 
+              display: 'inline-flex', 
               alignItems: 'center', 
-              gap: '0.4rem',
-              color: 'var(--text-primary)',
-              borderColor: 'var(--border-color)',
-              background: 'rgba(255, 255, 255, 0.04)'
+              gap: '0.45rem', 
+              cursor: 'pointer', 
+              padding: '0.42rem 0.75rem', 
+              borderRadius: '6px', 
+              border: `1px solid ${pdfPriceMode === 'with_price' ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+              background: pdfPriceMode === 'with_price' ? 'rgba(212, 175, 55, 0.14)' : 'rgba(255, 255, 255, 0.03)',
+              color: pdfPriceMode === 'with_price' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              userSelect: 'none'
             }}
-            title="Download PDF catalogue without prices"
           >
-            {downloadingPdf ? (
-              <><Loader className="animate-spin" size={13} /> {pdfProgress || 'Compiling...'}</>
-            ) : (
-              <><FileDown size={14} /> Download Without Price</>
-            )}
-          </button>
+            {pdfPriceMode === 'with_price' ? <CheckSquare size={16} color="var(--accent-gold)" /> : <Square size={16} />}
+            Include Prices (PKR)
+          </label>
 
-          {/* Download With Price */}
+          {/* Main Download Button */}
           <button 
             type="button" 
-            onClick={() => handleDownloadPDF(true)} 
+            onClick={() => handleDownloadPDF(pdfPriceMode === 'with_price')} 
             disabled={downloadingPdf || formData.artwork_ids.length === 0}
             className="btn-secondary" 
             style={{ 
-              padding: '0.45rem 0.85rem', 
-              fontSize: '0.78rem', 
+              padding: '0.45rem 0.9rem', 
+              fontSize: '0.8rem', 
               margin: 0, 
               display: 'flex', 
               alignItems: 'center', 
@@ -422,12 +418,12 @@ export default function CatalogueBuilder({ editRecord = null, onCancel, onSucces
               background: 'rgba(212, 175, 55, 0.08)',
               fontWeight: 600
             }}
-            title="Download PDF catalogue with prices"
+            title={pdfPriceMode === 'with_price' ? 'Download PDF with prices' : 'Download PDF without prices'}
           >
             {downloadingPdf ? (
-              <><Loader className="animate-spin" size={13} /> {pdfProgress || 'Compiling...'}</>
+              <><Loader className="animate-spin" size={14} /> {pdfProgress || 'Exporting PDF...'}</>
             ) : (
-              <><FileDown size={14} /> Download With Price</>
+              <><FileDown size={14} /> Download PDF ({formData.artwork_ids.length}) {pdfPriceMode === 'with_price' ? '• With Price' : '• Without Price'}</>
             )}
           </button>
 

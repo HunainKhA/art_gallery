@@ -151,8 +151,8 @@ Run the upgrade scripts to create the newly added tables for the pricing calcula
 Since these tables are new, they will **NOT** delete or affect any of your old records!
 
 Run the SQL scripts in this exact order on your VPS database:
-1. Run [create_sheet_sizes_table.sql](file:///d:/art_gallery/database/create_sheet_sizes_table.sql)
-2. Run [create_additional_tables.sql](file:///d:/art_gallery/database/create_additional_tables.sql)
+1. Run [create_sheet_sizes_table.sql](file:///d:/art_gallery/mf_db_website/create_sheet_sizes_table.sql)
+2. Run [create_additional_tables.sql](file:///d:/art_gallery/mf_db_website/create_additional_tables.sql)
 
 > [!CAUTION]
 > In `create_additional_tables.sql`, the script contains `DROP TABLE IF EXISTS` for order tables. If you are running this migration for the first time on a fresh install, it is perfectly safe. However, **never run this file again after you have started receiving real orders on production**, or it will clear your production orders! Remove the `DROP TABLE` lines from the script for safety if you run it on a database that already has orders.

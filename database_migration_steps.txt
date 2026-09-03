@@ -1,4 +1,4 @@
-﻿============================================================
+============================================================
 MAINFRAME ART GALLERY - SAFE DATABASE MIGRATION STEPS
 ============================================================
 Follow these steps to migrate your local MySQL database to
@@ -28,8 +28,8 @@ To add the new frame calculator and orders tracker tables,
 run the following SQL files on your VPS database in this
 exact order:
 
-1. database/create_sheet_sizes_table.sql
-2. database/create_additional_tables.sql
+1. mf_db_website/create_sheet_sizes_table.sql
+2. mf_db_website/create_additional_tables.sql
 
 !!! CRITICAL CAUTION !!!
 The file "create_additional_tables.sql" contains commands
