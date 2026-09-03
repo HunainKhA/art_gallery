@@ -9,7 +9,7 @@ try:
 except ImportError:
     HAS_PIL = False
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from database import execute_query, get_db_connection
@@ -443,20 +443,41 @@ def get_exhibition_cover_image(exhibition_id: str):
     except Exception as e:
         print(f"Error checking exhibition artwork filename: {e}")
 
-    # 5. Check custom CSV artwork_ids_c in art_exhibitions_cstm
+    # 5. Check custom CSV artwork_ids_c in art_exhibitions_cstm and art_catalogues_cstm
     try:
-        cstm_query = "SELECT artwork_ids_c FROM art_exhibitions_cstm WHERE id_c = %s;"
-        cstm_res = execute_query(cstm_query, (exhibition_id,), fetch="one")
-        if cstm_res and cstm_res.get("artwork_ids_c"):
-            csv_ids = [aid.strip() for aid in cstm_res["artwork_ids_c"].split(",") if aid.strip()]
-            for aid in csv_ids:
-                match = try_serve(aid)
+        csv_ids = []
+        cstm_ex = execute_query("SELECT artwork_ids_c FROM art_exhibitions_cstm WHERE id_c = %s;", (exhibition_id,), fetch="one")
+        if cstm_ex and cstm_ex.get("artwork_ids_c"):
+            csv_ids.extend([aid.strip() for aid in cstm_ex["artwork_ids_c"].split(",") if aid.strip()])
+            
+        cstm_cat = execute_query("SELECT artwork_ids_c FROM art_catalogues_cstm WHERE id_c = %s;", (exhibition_id,), fetch="one")
+        if cstm_cat and cstm_cat.get("artwork_ids_c"):
+            csv_ids.extend([aid.strip() for aid in cstm_cat["artwork_ids_c"].split(",") if aid.strip()])
+
+        for aid in csv_ids[:5]:
+            match = try_serve(aid)
+            if match:
+                return match
+            # Also check if artwork has filename in art_collections
+            art_file_res = execute_query("SELECT filename FROM art_collections WHERE id = %s AND deleted = 0;", (aid,), fetch="one")
+            if art_file_res and art_file_res.get("filename"):
+                match = try_serve(art_file_res["filename"])
                 if match:
                     return match
     except Exception as e:
-        print(f"Error checking exhibition custom artwork_ids: {e}")
+        print(f"Error checking custom artwork_ids: {e}")
 
-    raise HTTPException(status_code=404, detail="Cover image not found")
+    # 6. Dynamic sleek card SVG fallback so card image never shows broken icon
+    doc_title = (ex_res.get("document_name") if ex_res else "") or "EXHIBITION"
+    # Escape XML entities in title
+    safe_title = doc_title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    placeholder_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+      <rect width="100%" height="100%" fill="#181a20" />
+      <rect x="20" y="20" width="760" height="460" fill="none" stroke="#2a2e39" stroke-width="1.5" rx="12" />
+      <text x="50%" y="46%" font-family="Montserrat, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#e2e8f0" text-anchor="middle" letter-spacing="2">{safe_title.upper()}</text>
+      <text x="50%" y="56%" font-family="Montserrat, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#cfa15c" text-anchor="middle" letter-spacing="3">MAINFRAME THE GALLERY</text>
+    </svg>"""
+    return Response(content=placeholder_svg, media_type="image/svg+xml")
 
 
 @router.get("/catalogues/{catalogue_id}/artworks")
