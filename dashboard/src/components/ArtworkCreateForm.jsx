@@ -117,15 +117,60 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
   };
 
   // Price Calculation Logic
-  const handleArtistPriceChange = (val) => {
-    const pPrice = parseFloat(val);
+  // 1. When Full Retail Price is entered:
+  const handleRetailPriceChange = (val) => {
+    const fullRetail = parseFloat(val);
     const comm = parseFloat(formData.commission_pct) || 40;
 
-    if (!isNaN(pPrice) && pPrice > 0) {
-      // If comm is 40%, Retail = pPrice / (1 - 0.40)
+    if (!isNaN(fullRetail) && fullRetail > 0) {
+      const galleryAmt = Math.round(fullRetail * (comm / 100));
+      const artistAmt = Math.max(0, fullRetail - galleryAmt);
+
+      setFormData(prev => ({
+        ...prev,
+        price: val,
+        purchase_price: artistAmt
+      }));
+      setGalleryShare(galleryAmt);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        price: val,
+        purchase_price: ''
+      }));
+      setGalleryShare(0);
+    }
+  };
+
+  // 2. When Commission % is changed:
+  const handleCommissionPctChange = (val) => {
+    const comm = parseFloat(val) || 0;
+    const fullRetail = parseFloat(formData.price);
+
+    if (!isNaN(fullRetail) && fullRetail > 0) {
+      const galleryAmt = Math.round(fullRetail * (comm / 100));
+      const artistAmt = Math.max(0, fullRetail - galleryAmt);
+
+      setFormData(prev => ({
+        ...prev,
+        commission_pct: val,
+        purchase_price: artistAmt
+      }));
+      setGalleryShare(galleryAmt);
+    } else {
+      setFormData(prev => ({ ...prev, commission_pct: val }));
+    }
+  };
+
+  // 3. When Artist Price is entered:
+  const handleArtistPriceChange = (val) => {
+    const artistAmt = parseFloat(val);
+    const comm = parseFloat(formData.commission_pct) || 40;
+
+    if (!isNaN(artistAmt) && artistAmt > 0) {
       const fraction = (100 - comm) / 100;
-      const fullRetail = fraction > 0 ? Math.round(pPrice / fraction) : Math.round(pPrice * 1.4);
-      const galleryAmt = Math.max(0, fullRetail - pPrice);
+      const fullRetail = fraction > 0 ? Math.round(artistAmt / fraction) : Math.round(artistAmt * 1.4);
+      const galleryAmt = Math.max(0, fullRetail - artistAmt);
 
       setFormData(prev => ({
         ...prev,
@@ -138,50 +183,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         ...prev,
         purchase_price: val,
         price: ''
-      }));
-      setGalleryShare(0);
-    }
-  };
-
-  const handleCommissionPctChange = (val) => {
-    const comm = parseFloat(val) || 0;
-    const pPrice = parseFloat(formData.purchase_price);
-
-    if (!isNaN(pPrice) && pPrice > 0) {
-      const fraction = (100 - comm) / 100;
-      const fullRetail = fraction > 0 ? Math.round(pPrice / fraction) : Math.round(pPrice * 1.4);
-      const galleryAmt = Math.max(0, fullRetail - pPrice);
-
-      setFormData(prev => ({
-        ...prev,
-        commission_pct: val,
-        price: fullRetail
-      }));
-      setGalleryShare(galleryAmt);
-    } else {
-      setFormData(prev => ({ ...prev, commission_pct: val }));
-    }
-  };
-
-  const handleRetailPriceChange = (val) => {
-    const fullRetail = parseFloat(val);
-    const comm = parseFloat(formData.commission_pct) || 40;
-
-    if (!isNaN(fullRetail) && fullRetail > 0) {
-      const galleryAmt = Math.round(fullRetail * (comm / 100));
-      const pPrice = Math.max(0, fullRetail - galleryAmt);
-
-      setFormData(prev => ({
-        ...prev,
-        price: val,
-        purchase_price: pPrice
-      }));
-      setGalleryShare(galleryAmt);
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        price: val,
-        purchase_price: ''
       }));
       setGalleryShare(0);
     }
@@ -369,19 +370,19 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             <Calculator size={16} /> Pricing & Gallery Commission (40% Split)
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: formData.deal_type === 'Sale_Basis' ? '1.2fr 0.8fr 1fr 1.2fr' : '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: formData.deal_type === 'Sale_Basis' ? '1.2fr 0.8fr 1.1fr 1.2fr' : '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
             {formData.deal_type === 'Sale_Basis' ? (
               <>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Net to Artist)</span>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                    Full Retail Price (PKR) <span style={{ opacity: 0.7 }}>(Selling Price)</span>
                   </label>
                   <input
                     type="number"
-                    placeholder="e.g. 60000"
-                    value={formData.purchase_price}
-                    onChange={(e) => handleArtistPriceChange(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                    placeholder="e.g. 400000"
+                    value={formData.price}
+                    onChange={(e) => handleRetailPriceChange(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700 }}
                   />
                 </div>
 
@@ -412,14 +413,14 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Full Retail Price (PKR) <span style={{ opacity: 0.7 }}>(Selling Price)</span>
+                    Artist Share (PKR) <span style={{ opacity: 0.7 }}>(Net to Artist)</span>
                   </label>
                   <input
                     type="number"
-                    placeholder="e.g. 100000"
-                    value={formData.price}
-                    onChange={(e) => handleRetailPriceChange(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700 }}
+                    placeholder="e.g. 240000"
+                    value={formData.purchase_price}
+                    onChange={(e) => handleArtistPriceChange(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   />
                 </div>
               </>
