@@ -110,27 +110,35 @@ const loadImagesInPool = async (artworks, poolSize = 6) => {
 };
 
 /**
- * Formats artwork dimensions nicely (e.g. 7" x 36" | 18x91 cm)
+ * Formats artwork dimensions nicely (e.g. 7" x 36" | 18x91 cm).
+ * Strictly guards against 0 or 0x0 display.
  */
 export const formatDimensionsString = (art) => {
-  const dims = renderDimensions(art);
   let inchPart = '';
   let cmPart = '';
 
-  if (art.length && art.width) {
-    const l = parseFloat(art.length);
-    const w = parseFloat(art.width);
-    if (!isNaN(w) && !isNaN(l) && (w > 0 || l > 0)) {
-      inchPart = `${l}" x ${w}"`;
+  const rawLength = art.length ?? art.collection_size_length_c ?? art.height;
+  const rawWidth = art.width ?? art.collection_size_width_c ?? art.width_inch;
+
+  if (rawLength !== undefined && rawLength !== null && rawWidth !== undefined && rawWidth !== null) {
+    const l = parseFloat(String(rawLength).replace(/[^\d.]/g, ''));
+    const w = parseFloat(String(rawWidth).replace(/[^\d.]/g, ''));
+    if (!isNaN(w) && !isNaN(l) && w > 0 && l > 0) {
+      const lStr = Number.isInteger(l) ? String(int(l)) : String(l);
+      const wStr = Number.isInteger(w) ? String(int(w)) : String(w);
+      inchPart = `${lStr}" x ${wStr}"`;
       cmPart = `${Math.round(l * 2.54)} x ${Math.round(w * 2.54)} cm`;
     }
   }
 
-  if (!inchPart && dims.inchStr) {
-    inchPart = dims.inchStr.trim();
-  }
-  if (!cmPart && dims.cmStr) {
-    cmPart = dims.cmStr.trim();
+  if (!inchPart) {
+    const dims = renderDimensions(art);
+    if (dims && dims.inchStr && !dims.inchStr.includes('0"') && !dims.inchStr.includes('0 x 0')) {
+      inchPart = dims.inchStr.trim();
+    }
+    if (dims && dims.cmStr && !dims.cmStr.includes('0 x 0 cm') && !dims.cmStr.includes('0x0')) {
+      cmPart = dims.cmStr.trim();
+    }
   }
 
   return { inchPart, cmPart };
@@ -138,7 +146,7 @@ export const formatDimensionsString = (art) => {
 
 /**
  * Formats price cleanly.
- * NOTE: If artwork is Sold, NEVER show the numerical price, ONLY show 'Sold'.
+ * NOTE: If artwork is Sold, NEVER show numerical price, ONLY show 'Sold'.
  */
 export const formatArtworkPrice = (art, currency = 'PKR') => {
   const isSold = (
@@ -231,8 +239,10 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
 
   // 2. Parallel preload custom cover and ALL artworks in fast pool
   let coverUrl = null;
-  if (exhibition.filename) {
+  if (exhibition.filename && exhibition.filename.trim()) {
     coverUrl = getApiUrl(`/api/artworks/image/${exhibition.filename}`);
+  } else if (exhibition.banner_image && exhibition.banner_image.trim()) {
+    coverUrl = getApiUrl(`/api/artworks/image/${exhibition.banner_image}`);
   } else if (exhibition.id) {
     coverUrl = getApiUrl(`/api/crm/exhibitions/image/${exhibition.id}`);
   }
@@ -285,7 +295,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   let isFirstPageUsed = false;
 
   // =========================================================================
-  // PAGE 1: EXHIBITION COVER / BANNER (ONLY IF BANNER IS ATTACHED)
+  // PAGE 1: EXHIBITION COVER / BANNER (ONLY IF REAL BANNER IMAGE IS ATTACHED)
   // =========================================================================
   if (coverData && coverData.dataUrl) {
     isFirstPageUsed = true;
@@ -298,7 +308,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     doc.addImage(coverData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH, undefined, 'FAST');
 
     // =========================================================================
-    // PAGE 2: EXHIBITION INTRODUCTION & CURATORIAL NOTE (ONLY IF DESC EXIST)
+    // PAGE 2: EXHIBITION INTRODUCTION & CURATORIAL NOTE (ONLY IF DESC EXISTS)
     // =========================================================================
     if (hasDescription) {
       doc.addPage([pageSize, pageSize], 'portrait');

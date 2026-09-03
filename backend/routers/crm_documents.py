@@ -468,14 +468,8 @@ def get_exhibition_cover_image(exhibition_id: str):
     except Exception as e:
         print(f"Error checking exhibition custom artwork_ids: {e}")
 
-    # 6. Fallback placeholder
-    placeholder_svg = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
-      <rect width="100%" height="100%" fill="#141416" />
-      <circle cx="300" cy="300" r="180" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.4" />
-      <text x="50%" y="48%" font-family="Montserrat, sans-serif" font-size="28" font-weight="500" fill="#d4af37" text-anchor="middle" letter-spacing="3">MAINFRAME</text>
-      <text x="50%" y="54%" font-family="Montserrat, sans-serif" font-size="14" font-weight="300" fill="#a0a0a0" text-anchor="middle" letter-spacing="4">THE GALLERY</text>
-    </svg>"""
-    return Response(content=placeholder_svg, media_type="image/svg+xml")
+    # 6. If no image found, return 404 so frontend knows there is no banner
+    raise HTTPException(status_code=404, detail="Exhibition cover banner image not found")
 
 
 @router.get("/catalogues/{catalogue_id}/artworks")

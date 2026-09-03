@@ -109,22 +109,28 @@ const loadImagesInPool = async (artworks, poolSize = 6) => {
 };
 
 /**
- * Formats artwork dimensions nicely (e.g. 7" x 36" | 18x91 cm)
+ * Formats artwork dimensions nicely (e.g. 7" x 36" | 18x91 cm).
+ * Strictly guards against 0 or 0x0 display.
  */
 export const formatDimensionsString = (art) => {
   let inchPart = '';
   let cmPart = '';
 
-  if (art.length && art.width) {
-    const l = parseFloat(art.length);
-    const w = parseFloat(art.width);
-    if (!isNaN(w) && !isNaN(l) && (w > 0 || l > 0)) {
-      inchPart = `${l}" x ${w}"`;
+  const rawLength = art.length ?? art.collection_size_length_c ?? art.height;
+  const rawWidth = art.width ?? art.collection_size_width_c ?? art.width_inch;
+
+  if (rawLength !== undefined && rawLength !== null && rawWidth !== undefined && rawWidth !== null) {
+    const l = parseFloat(String(rawLength).replace(/[^\d.]/g, ''));
+    const w = parseFloat(String(rawWidth).replace(/[^\d.]/g, ''));
+    if (!isNaN(w) && !isNaN(l) && w > 0 && l > 0) {
+      const lStr = Number.isInteger(l) ? String(Math.round(l)) : String(l);
+      const wStr = Number.isInteger(w) ? String(Math.round(w)) : String(w);
+      inchPart = `${lStr}" x ${wStr}"`;
       cmPart = `${Math.round(l * 2.54)} x ${Math.round(w * 2.54)} cm`;
     }
   }
 
-  return [inchPart, cmPart].filter(Boolean).join(' | ');
+  return { inchPart, cmPart };
 };
 
 /**
