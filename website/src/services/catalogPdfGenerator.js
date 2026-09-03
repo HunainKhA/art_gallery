@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { getApiUrl } from './api';
 import { renderDimensions } from './currency';
+import catalogBackCoverImg from '../assets/catalog_back_cover.png';
 
 /**
  * Strips HTML tags and decodes common HTML entities
@@ -241,6 +242,9 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   }
 
   if (onProgress) onProgress("Rendering luxury square catalogue...");
+
+  // Preload back cover image
+  const backCoverData = await loadImageData(catalogBackCoverImg || '/assets/catalog_back_cover.png');
 
   // Square Page Size: 210mm x 210mm
   const pageSize = 210;
@@ -537,57 +541,54 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   // =========================================================================
   doc.addPage([pageSize, pageSize], 'portrait');
 
-  // Mainframe Logo at top center
-  drawMainframeLogo((pageSize - 36) / 2, 22, 36);
+  if (backCoverData && backCoverData.dataUrl) {
+    doc.addImage(backCoverData.dataUrl, 'PNG', 0, 0, pageSize, pageSize);
+  } else {
+    // Fallback: Mainframe Logo at top center
+    drawMainframeLogo((pageSize - 36) / 2, 22, 36);
 
-  // Gallery Location Map Card (Rounded outline map container)
-  const mapBoxX = 22;
-  const mapBoxY = 66;
-  const mapBoxW = 166;
-  const mapBoxH = 92;
+    // Gallery Location Map Card (Rounded outline map container)
+    const mapBoxX = 22;
+    const mapBoxY = 66;
+    const mapBoxW = 166;
+    const mapBoxH = 92;
 
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.35);
-  doc.roundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3, 3);
+    doc.setDrawColor(80, 80, 80);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3, 3);
 
-  // Clean vector road map illustration
-  doc.setDrawColor(120, 120, 120);
-  doc.setLineWidth(0.3);
+    // Clean vector road map illustration
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.3);
 
-  // Roads
-  doc.line(mapBoxX + 38, mapBoxY, mapBoxX + 38, mapBoxY + mapBoxH); // Street 1
-  doc.line(mapBoxX + 58, mapBoxY + 18, mapBoxX + 58, mapBoxY + mapBoxH);
-  doc.line(mapBoxX + 78, mapBoxY + 18, mapBoxX + 78, mapBoxY + mapBoxH);
-  doc.line(mapBoxX + 98, mapBoxY + 18, mapBoxX + 98, mapBoxY + mapBoxH);
-  doc.line(mapBoxX, mapBoxY + mapBoxH - 24, mapBoxX + mapBoxW, mapBoxY + mapBoxH - 24); // 26th street
+    // Roads
+    doc.line(mapBoxX + 38, mapBoxY, mapBoxX + 38, mapBoxY + mapBoxH);
+    doc.line(mapBoxX + 58, mapBoxY + 18, mapBoxX + 58, mapBoxY + mapBoxH);
+    doc.line(mapBoxX + 78, mapBoxY + 18, mapBoxX + 78, mapBoxY + mapBoxH);
+    doc.line(mapBoxX + 98, mapBoxY + 18, mapBoxX + 98, mapBoxY + mapBoxH);
+    doc.line(mapBoxX, mapBoxY + mapBoxH - 24, mapBoxX + mapBoxW, mapBoxY + mapBoxH - 24);
 
-  // Mainframe pinpoint box on map
-  doc.setFillColor(34, 140, 160); // Teal Mainframe location
-  doc.rect(mapBoxX + 58, mapBoxY + 30, 20, 24, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(5.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('MAINFRAME', mapBoxX + 68, mapBoxY + 43, { align: 'center' });
+    // Mainframe pinpoint box on map
+    doc.setFillColor(34, 140, 160);
+    doc.rect(mapBoxX + 58, mapBoxY + 30, 20, 24, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text('MAINFRAME', mapBoxX + 68, mapBoxY + 43, { align: 'center' });
 
-  // Map Road Names
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5);
-  doc.setTextColor(90, 90, 90);
-  doc.text('26th Street', mapBoxX + 80, mapBoxY + mapBoxH - 26, { align: 'center' });
-  doc.text('Shahrah-e-Attar', mapBoxX + 112, mapBoxY + 50);
+    // Bottom Gray Banner (#7d858c)
+    const bannerH = 22;
+    const bannerY = pageSize - bannerH;
 
-  // Bottom Gray Banner (#7d858c)
-  const bannerH = 22;
-  const bannerY = pageSize - bannerH;
+    doc.setFillColor(125, 133, 140);
+    doc.rect(0, bannerY, pageSize, bannerH, 'F');
 
-  doc.setFillColor(125, 133, 140); // #7d858c
-  doc.rect(0, bannerY, pageSize, bannerH, 'F');
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('F-73/9, Block 4, Clifton Karachi Pakistan. +92 21 3582 4455 . +92 300 828 5600', pageSize / 2, bannerY + 8, { align: 'center' });
-  doc.text('mainframethegallery@gmail.com | www.mainframethegallery.com', pageSize / 2, bannerY + 15, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text('F-73/9, Block 4, Clifton Karachi Pakistan. +92 21 3582 4455 . +92 300 828 5600', pageSize / 2, bannerY + 8, { align: 'center' });
+    doc.text('mainframethegallery@gmail.com | www.mainframethegallery.com', pageSize / 2, bannerY + 15, { align: 'center' });
+  }
 
   // Save PDF file
   const cleanFilename = `Catalog - ${(exhibition.document_name || 'Exhibition').replace(/[^a-zA-Z0-9_-]/g, ' ')}.pdf`;
