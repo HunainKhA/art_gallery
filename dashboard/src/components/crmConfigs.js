@@ -149,9 +149,9 @@ export const LIST_COLUMNS = {
     { key: 'artist_name', label: 'Artist' },
     { 
       key: 'price', 
-      label: 'Price (PKR)', 
+      label: 'Sale Price (PKR)', 
       format: (v, row) => {
-        const val = parseFloat(v) || parseFloat(row?.purchase_price) || parseFloat(row?.purchase_gallery_price_c) || parseFloat(row?.sale_gallery_price_c) || parseFloat(row?.purchase_price_c) || parseFloat(row?.purchase_gallery_price) || parseFloat(row?.sale_gallery_price) || 0;
+        const val = parseFloat(row?.sale_gallery_price) || parseFloat(row?.sale_gallery_price_c) || parseFloat(row?.purchase_gallery_price) || parseFloat(row?.purchase_gallery_price_c) || parseFloat(v) || parseFloat(row?.purchase_price) || 0;
         return val > 0 ? `${val.toLocaleString()} PKR` : 'Inquiry';
       }
     },
