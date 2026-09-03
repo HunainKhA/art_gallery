@@ -149,9 +149,11 @@ export const formatArtworkPrice = (art, currency = 'PKR') => {
 };
 
 /**
- * Generates and downloads the clean borderless Catalogue PDF:
- * Directly starts from Artwork #1 (or custom cover if uploaded),
- * centered captions with/without prices, NO extra back cover logo page.
+ * Generates and downloads the luxury square Exhibition Catalogue PDF:
+ * - If Exhibition: Includes Banner, Exhibition Statement, and Artist Career/Bio page.
+ * - If Custom: Direct clean flow without empty covers.
+ * - Artwork Pages: 1 per page with centered caption (Title | Medium | Size | Price).
+ * - No extra trailing logo pages.
  */
 export const generateCatalogPDF = async (exhibition, artworks, onProgress, options = {}) => {
   if (!artworks || artworks.length === 0) {
@@ -182,7 +184,32 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     artistMap.get(aId).artworks.push(art);
   }
 
-  // 2. Parallel preload custom cover (if any) and ALL artworks in fast pool
+  // Preload missing artist bios in parallel if not present
+  const hasBanner = !!(exhibition.filename || exhibition.banner_image || exhibition.id);
+  if (hasBanner) {
+    const bioPromises = [];
+    for (const [artistId, artistInfo] of artistMap.entries()) {
+      const fetchId = (artistId && artistId !== 'unknown') ? artistId : exhibition.artist_id;
+      if (fetchId && !artistInfo.bio) {
+        bioPromises.push(
+          fetch(getApiUrl(`/api/artists/${fetchId}`))
+            .then(res => res.ok ? res.json() : null)
+            .then(aData => {
+              if (aData) {
+                artistInfo.bio = stripHtml(aData.artist_biography || aData.bio || '');
+                if (aData.name) artistInfo.name = aData.name;
+              }
+            })
+            .catch(() => null)
+        );
+      }
+    }
+    if (bioPromises.length > 0) {
+      await Promise.all(bioPromises);
+    }
+  }
+
+  // 2. Parallel preload cover and ALL artworks in fast pool
   let coverUrl = null;
   if (exhibition.filename) {
     coverUrl = getApiUrl(`/api/artworks/image/${exhibition.filename}`);
@@ -215,16 +242,15 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   const isGroupShow = artistMap.size > 1;
   const showTypeLabel = isGroupShow ? 'Group exhibition' : (firstArtistName ? `Solo show by ${firstArtistName}` : 'Exhibition');
 
-  const hasBanner = !!(coverData && coverData.dataUrl);
   const cleanDesc = stripHtml(exhibition.description || '').trim();
   const hasDescription = cleanDesc.length > 10;
 
   let isFirstPageUsed = false;
 
   // =========================================================================
-  // PAGE 1: COVER PAGE (ONLY IF BANNER IS PRESENT)
+  // PAGE 1: EXHIBITION COVER / BANNER (ONLY IF BANNER IS ATTACHED)
   // =========================================================================
-  if (hasBanner) {
+  if (coverData && coverData.dataUrl) {
     isFirstPageUsed = true;
     const scale = Math.max(pageSize / coverData.width, pageSize / coverData.height);
     const renderW = coverData.width * scale;
@@ -235,14 +261,14 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     doc.addImage(coverData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH, undefined, 'FAST');
 
     // =========================================================================
-    // PAGE 2: INVITATION & EXHIBITION DETAILS PAGE (ONLY IF BANNER & DESC EXIST)
+    // PAGE 2: EXHIBITION INTRODUCTION & CURATORIAL NOTE (ONLY IF DESC EXISTS)
     // =========================================================================
     if (hasDescription) {
       doc.addPage([pageSize, pageSize], 'portrait');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.setTextColor(34, 51, 102);
+      doc.setFontSize(16);
+      doc.setTextColor(20, 20, 20);
       doc.text(exhibitionTitle, 22, 28);
 
       doc.setFont('helvetica', 'normal');
@@ -263,12 +289,41 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   }
 
   // =========================================================================
-  // ARTWORKS PAGES (DIRECT FLOW, NO BORDERS, CENTERED MATTER, OPTIONAL PRICE)
+  // ARTIST CAREER / BIOGRAPHY & ARTWORK PAGES
   // =========================================================================
   let artworkCounter = 0;
 
   for (const [_, artistInfo] of artistMap.entries()) {
-    // Render Artworks (1 artwork per page)
+    // 1. Artist Career / Biography Page (Included for exhibitions with bio)
+    if (coverData && artistInfo.bio && artistInfo.bio.trim().length > 15) {
+      if (!isFirstPageUsed) {
+        isFirstPageUsed = true;
+      } else {
+        doc.addPage([pageSize, pageSize], 'portrait');
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.setTextColor(20, 20, 20);
+      doc.text(artistInfo.name, 22, 28);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Artist Biography & Career', 22, 35);
+
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.3);
+      doc.line(22, 40, pageSize - 22, 40);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(40, 40, 40);
+      const bioLines = doc.splitTextToSize(artistInfo.bio, 166);
+      doc.text(bioLines.slice(0, 36), 22, 48, { lineHeightFactor: 1.45 });
+    }
+
+    // 2. Render Artworks (1 artwork per page)
     for (const art of artistInfo.artworks) {
       artworkCounter += 1;
 
