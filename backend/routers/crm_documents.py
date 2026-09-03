@@ -354,7 +354,8 @@ def get_exhibition_cover_image(exhibition_id: str):
     then exhibition ID, or falls back to the first artwork's image in the exhibition.
     """
     import os
-    from fastapi.responses import RedirectResponse, FileResponse
+    from fastapi.responses import FileResponse
+    from .artworks import get_upload_map, get_artwork_image
     
     upload_dir = Config.UPLOAD_DIR
     
@@ -365,13 +366,9 @@ def get_exhibition_cover_image(exhibition_id: str):
         if os.path.exists(direct) and os.path.isfile(direct):
             return direct
         name_lower = name.lower()
-        try:
-            for root, dirs, files in os.walk(upload_dir):
-                for f in files:
-                    if f.lower() == name_lower:
-                        return os.path.join(root, f)
-        except Exception:
-            pass
+        fmap = get_upload_map()
+        if name_lower in fmap:
+            return fmap[name_lower]
         return None
 
     def try_serve(filename):
@@ -387,7 +384,7 @@ def get_exhibition_cover_image(exhibition_id: str):
                 media_type = "image/webp"
             elif ext == ".gif":
                 media_type = "image/gif"
-            return FileResponse(path, media_type=media_type, headers={"Cache-Control": "no-cache, must-revalidate"})
+            return FileResponse(path, media_type=media_type, headers={"Cache-Control": "public, max-age=86400"})
         return None
 
     ex_res = None
@@ -402,7 +399,7 @@ def get_exhibition_cover_image(exhibition_id: str):
     except Exception as e:
         print(f"Error checking exhibition filename: {e}")
 
-    # 2. Check exhibition ID directly or with extensions (legacy sugar storage)
+    # 2. Check exhibition ID directly or with extensions
     match = try_serve(exhibition_id)
     if match:
         return match
@@ -422,30 +419,25 @@ def get_exhibition_cover_image(exhibition_id: str):
     except Exception as e:
         print(f"Error checking exhibition document_name: {e}")
 
-    # 4. Fallback: Query linked artworks in this exhibition
+    # 4. Fallback: Query linked artworks in this exhibition and serve first artwork's image
     try:
         art_query = """
-            SELECT c.id, c.filename, c.document_name 
+            SELECT c.id, c.filename 
             FROM art_collections c
             INNER JOIN art_exhibitions_art_collections_1_c rel
                 ON c.id = rel.art_exhibitions_art_collections_1art_collections_idb AND rel.deleted = 0
             WHERE rel.art_exhibitions_art_collections_1art_exhibitions_ida = %s AND c.deleted = 0
             ORDER BY c.date_entered ASC
-            LIMIT 20;
+            LIMIT 5;
         """
         art_rows = execute_query(art_query, (exhibition_id,))
         for art in art_rows:
-            # Try art filename first
             if art.get("filename"):
                 match = try_serve(art["filename"])
                 if match:
                     return match
-            # Try art id
-            match = try_serve(art["id"])
-            if match:
-                return match
-            for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
-                match = try_serve(f"{art['id']}{ext}")
+            if art.get("id"):
+                match = try_serve(art["id"])
                 if match:
                     return match
     except Exception as e:
@@ -461,15 +453,10 @@ def get_exhibition_cover_image(exhibition_id: str):
                 match = try_serve(aid)
                 if match:
                     return match
-                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG']:
-                    match = try_serve(f"{aid}{ext}")
-                    if match:
-                        return match
     except Exception as e:
         print(f"Error checking exhibition custom artwork_ids: {e}")
 
-    # 6. If no image found, return 404 so frontend knows there is no banner
-    raise HTTPException(status_code=404, detail="Exhibition cover banner image not found")
+    raise HTTPException(status_code=404, detail="Cover image not found")
 
 
 @router.get("/catalogues/{catalogue_id}/artworks")
