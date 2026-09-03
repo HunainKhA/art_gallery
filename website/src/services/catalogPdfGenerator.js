@@ -137,19 +137,21 @@ export const formatDimensionsString = (art) => {
 };
 
 /**
- * Formats price cleanly (e.g. PKR 150,000 or PKR 150,000 (Sold) or Sold)
+ * Formats price cleanly.
+ * NOTE: If artwork is Sold, NEVER show the numerical price, ONLY show 'Sold'.
  */
 export const formatArtworkPrice = (art, currency = 'PKR') => {
-  const isSold = (art.status === 'Sold' || art.collection_status === 'Sold');
-  const rawPrice = art.price ?? art.price_pkr ?? art.retail_price ?? art.sale_price;
-  const numPrice = Number(rawPrice);
+  const isSold = (
+    String(art.status || '').toLowerCase() === 'sold' ||
+    String(art.collection_status || '').toLowerCase() === 'sold'
+  );
 
   if (isSold) {
-    if (!isNaN(numPrice) && numPrice > 0) {
-      return `PKR ${Math.round(numPrice).toLocaleString()} (Sold)`;
-    }
     return 'Sold';
   }
+
+  const rawPrice = art.price ?? art.price_pkr ?? art.retail_price ?? art.sale_price;
+  const numPrice = Number(rawPrice);
 
   if (isNaN(numPrice) || numPrice <= 0) {
     return 'Price on Inquiry';
@@ -260,6 +262,23 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   const isGroupShow = artistMap.size > 1;
   const showTypeLabel = isGroupShow ? 'Group exhibition' : (firstArtistName ? `Solo show by ${firstArtistName}` : 'Exhibition');
 
+  // Helper to draw standard luxury MAINFRAME Monogram/Logo
+  const drawMainframeLogo = (x, y, size = 32) => {
+    doc.setFillColor(35, 31, 32);
+    doc.rect(x, y, size, size, 'F');
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.25);
+    doc.rect(x + 2, y + 2, size - 4, size - 4);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(size * 0.22);
+    doc.setTextColor(255, 255, 255);
+    doc.text('MAINFRAME', x + size / 2, y + size * 0.72, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(size * 0.11);
+    doc.setTextColor(200, 200, 200);
+    doc.text('T H E   G A L L E R Y', x + size / 2, y + size * 0.88, { align: 'center' });
+  };
+
   const cleanDesc = stripHtml(exhibition.description || '').trim();
   const hasDescription = cleanDesc.length > 10;
 
@@ -279,7 +298,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     doc.addImage(coverData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH, undefined, 'FAST');
 
     // =========================================================================
-    // PAGE 2: EXHIBITION INTRODUCTION & CURATORIAL NOTE (ONLY IF DESC EXISTS)
+    // PAGE 2: EXHIBITION INTRODUCTION & CURATORIAL NOTE (ONLY IF DESC EXIST)
     // =========================================================================
     if (hasDescription) {
       doc.addPage([pageSize, pageSize], 'portrait');
@@ -370,7 +389,18 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
       const { inchPart, cmPart } = formatDimensionsString(art);
       const titleStr = formatArtworkTitle(art);
       const mediumStr = (art.medium_name || '').trim();
-      const priceStr = includePrice ? formatArtworkPrice(art, currency) : (art.status === 'Sold' ? 'Sold' : '');
+      const isSold = (
+        String(art.status || '').toLowerCase() === 'sold' ||
+        String(art.collection_status || '').toLowerCase() === 'sold'
+      );
+
+      // Rule: If Sold -> Show 'Sold' (no price). If Available and includePrice -> Show PKR Price.
+      let priceStr = '';
+      if (isSold) {
+        priceStr = 'Sold';
+      } else if (includePrice) {
+        priceStr = formatArtworkPrice(art, currency);
+      }
 
       const parts = [];
       if (mediumStr) parts.push(mediumStr);
@@ -422,6 +452,62 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
       doc.text(pageNumText, badgeX + badgeW / 2, badgeY + 5.2, { align: 'center' });
     }
   }
+
+  // =========================================================================
+  // FINAL PAGE: GALLERY LOCATION MAP & CONTACT BANNER
+  // =========================================================================
+  doc.addPage([pageSize, pageSize], 'portrait');
+
+  // Mainframe Logo at top center
+  drawMainframeLogo((pageSize - 36) / 2, 22, 36);
+
+  // Gallery Location Map Card (Rounded outline map container)
+  const mapBoxX = 22;
+  const mapBoxY = 66;
+  const mapBoxW = 166;
+  const mapBoxH = 92;
+
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3, 3);
+
+  // Clean vector road map illustration
+  doc.setDrawColor(120, 120, 120);
+  doc.setLineWidth(0.3);
+
+  // Roads
+  doc.line(mapBoxX + 38, mapBoxY, mapBoxX + 38, mapBoxY + mapBoxH);
+  doc.line(mapBoxX + 58, mapBoxY + 18, mapBoxX + 58, mapBoxY + mapBoxH);
+  doc.line(mapBoxX + 78, mapBoxY + 18, mapBoxX + 78, mapBoxY + mapBoxH);
+  doc.line(mapBoxX + 98, mapBoxY + 18, mapBoxX + 98, mapBoxY + mapBoxH);
+  doc.line(mapBoxX, mapBoxY + mapBoxH - 24, mapBoxX + mapBoxW, mapBoxY + mapBoxH - 24);
+
+  // Mainframe pinpoint box on map
+  doc.setFillColor(34, 140, 160);
+  doc.rect(mapBoxX + 58, mapBoxY + 30, 20, 24, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(5.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('MAINFRAME', mapBoxX + 68, mapBoxY + 43, { align: 'center' });
+
+  // Location Details Text on Map
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(50, 50, 50);
+  doc.text('Clifton, Block 4, Karachi', mapBoxX + 12, mapBoxY + 12);
+
+  // Bottom Gray Banner (#7d858c)
+  const bannerH = 22;
+  const bannerY = pageSize - bannerH;
+
+  doc.setFillColor(125, 133, 140);
+  doc.rect(0, bannerY, pageSize, bannerH, 'F');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('F-73/9, Block 4, Clifton Karachi Pakistan. +92 21 3582 4455 . +92 300 828 5600', pageSize / 2, bannerY + 8, { align: 'center' });
+  doc.text('mainframethegallery@gmail.com | www.mainframethegallery.com', pageSize / 2, bannerY + 15, { align: 'center' });
 
   // Save PDF file
   const priceSuffix = includePrice ? ' (With Prices)' : '';
