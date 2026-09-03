@@ -1,34 +1,22 @@
+import os
 import pymysql
 from config import Config
-from database import get_db_connection, execute_query
 
-print("Testing local database connection settings...")
-print(f"Host: {Config.DB_HOST}")
-print(f"User: {Config.DB_USER}")
-print(f"Database: {Config.DB_NAME}")
-print(f"Port: {Config.DB_PORT}")
+print(f"Testing DB Connection to: Host={Config.DB_HOST}, User={Config.DB_USER}, DB={Config.DB_NAME}...")
 
 try:
-    conn = get_db_connection()
-    print("SUCCESS: Connection established!")
-    
-    print("Testing artwork query...")
-    query = """
-        SELECT 
-            c.id AS id,
-            c.document_name AS title
-        FROM art_collections c
-        LIMIT 5;
-    """
+    conn = pymysql.connect(
+        host=Config.DB_HOST,
+        user=Config.DB_USER,
+        password=Config.DB_PASSWORD,
+        database=Config.DB_NAME,
+        port=Config.DB_PORT,
+        cursorclass=pymysql.cursors.DictCursor
+    )
     with conn.cursor() as cursor:
-        cursor.execute(query)
-        res = cursor.fetchall()
-        print(f"SUCCESS: Fetched {len(res)} artworks!")
-        for row in res:
-            print(f"- {row['title']}")
-            
+        cursor.execute("SELECT COUNT(*) as total FROM art_collections;")
+        res = cursor.fetchone()
+        print(f"SUCCESS: Connected! Total artworks in DB: {res.get('total')}")
     conn.close()
 except Exception as e:
-    print(f"FAILED: An error occurred:")
-    import traceback
-    traceback.print_exc()
+    print(f"FAILED: {e}")
