@@ -342,6 +342,87 @@ def upload_mainframe_signature(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save signature: {str(e)}")
 
+@router.get("/next-code")
+def get_next_artwork_code(artist_id: str):
+    """
+    Generates the next sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, ZUB-4955).
+    """
+    import re
+    
+    if not artist_id:
+        return {"code": ""}
+        
+    try:
+        artist = execute_query(
+            "SELECT id, first_name, last_name, name FROM art_artists WHERE id = %s AND deleted = 0;",
+            (artist_id,),
+            fetch="one"
+        )
+        if not artist:
+            return {"code": ""}
+            
+        full_name = (artist.get("name") or f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}").strip()
+        
+        # 1. Determine artist code prefix
+        name_clean = full_name.replace('"', '').replace("'", '').strip()
+        m = re.match(r'^([A-Za-z]\.[A-Za-z])', name_clean)
+        if m:
+            code_prefix = m.group(1).upper()
+        else:
+            tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
+            if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
+                code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
+            elif len(tokens) >= 1 and len(tokens[0]) >= 3:
+                code_prefix = tokens[0][:3].upper()
+            elif len(tokens) >= 2:
+                code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
+            else:
+                code_prefix = "ART"
+        
+        # 2. Query all existing codes for this artist ID AND matching prefix in database
+        art_codes = execute_query("""
+            SELECT DISTINCT cstm.code_c, c.document_name 
+            FROM art_collections c
+            LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE c.deleted = 0 
+              AND (
+                  rel.art_artists_art_collectionsart_artists_ida = %s 
+                  OR cstm.code_c LIKE %s 
+                  OR c.document_name LIKE %s
+              );
+        """, (artist_id, f"{code_prefix}-%", f"{code_prefix}-%"))
+        
+        numbers = []
+        if art_codes:
+            for row in art_codes:
+                for candidate in [row.get("code_c"), row.get("document_name")]:
+                    val = str(candidate or "").strip()
+                    m = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
+                    if m and m.group(1).upper() == code_prefix.upper():
+                        numbers.append(int(m.group(2)))
+                    elif m and (row.get("code_c") or row.get("document_name")):
+                        numbers.append(int(m.group(2)))
+        
+        if numbers:
+            next_num = max(numbers) + 1
+        else:
+            # Global highest counter fallback
+            global_res = execute_query("""
+                SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
+                FROM art_collections_cstm cstm
+                JOIN art_collections c ON cstm.id_c = c.id
+                WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
+            """, fetch="one")
+            global_max = (global_res.get("max_global") if global_res else None) or 5000
+            next_num = global_max + 1
+            
+        suggested_code = f"{code_prefix}-{next_num}"
+        return {"code": suggested_code, "prefix": code_prefix, "number": next_num}
+    except Exception as e:
+        print(f"Error generating next code: {e}")
+        return {"code": ""}
+
 @router.get("/{artwork_id}")
 def get_artwork_by_id(artwork_id: str):
     """
@@ -962,89 +1043,6 @@ async def preview_pdf_catalog(
             "deal_type": "Sale_Basis",
             "purchase_price": 0.0
         })
-
-@router.get("/next-code")
-def get_next_artwork_code(artist_id: str):
-    """
-    Generates the next sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, ZUB-4955).
-    """
-    import re
-    
-    if not artist_id:
-        return {"code": ""}
-        
-    try:
-        artist = execute_query(
-            "SELECT id, first_name, last_name, name FROM art_artists WHERE id = %s AND deleted = 0;",
-            (artist_id,),
-            fetch="one"
-        )
-        if not artist:
-            return {"code": ""}
-            
-        full_name = (artist.get("name") or f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}").strip()
-        
-        # 1. Determine artist code prefix
-        name_clean = full_name.replace('"', '').replace("'", '').strip()
-        dot_match = re.match(r'^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?', name_clean)
-        if dot_match:
-            code_prefix = dot_match.group(1).upper()
-        else:
-            parts = [p.strip() for p in re.split(r'[\s.]+', name_clean) if p.strip()]
-            if len(parts) >= 2 and len(parts[0]) == 1 and len(parts[1]) == 1:
-                code_prefix = f"{parts[0]}.{parts[1]}".upper()
-            elif len(parts) >= 1 and len(parts[0]) >= 3:
-                code_prefix = parts[0][:3].upper()
-            elif len(parts) >= 2:
-                code_prefix = f"{parts[0][:2]}{parts[1][:1]}".upper()
-            else:
-                code_prefix = "ART"
-        
-        # 2. Query all existing codes for this artist ID AND matching prefix in database
-        art_codes = execute_query("""
-            SELECT DISTINCT cstm.code_c, c.document_name 
-            FROM art_collections c
-            LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
-            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            WHERE c.deleted = 0 
-              AND (
-                  rel.art_artists_art_collectionsart_artists_ida = %s 
-                  OR cstm.code_c LIKE %s 
-                  OR c.document_name LIKE %s
-              );
-        """, (artist_id, f"{code_prefix}-%", f"{code_prefix}-%"))
-        
-        numbers = []
-        if art_codes:
-            for row in art_codes:
-                for candidate in [row.get("code_c"), row.get("document_name")]:
-                    val = str(candidate or "").strip()
-                    m = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
-                    if m and m.group(1).upper() == code_prefix.upper():
-                        numbers.append(int(m.group(2)))
-                    elif m and rel_check := (row.get("code_c") or row.get("document_name")):
-                        # Also accept numbers if linked to this artist
-                        numbers.append(int(m.group(2)))
-        
-        if numbers:
-            next_num = max(numbers) + 1
-        else:
-            # Global highest counter fallback
-            global_res = execute_query("""
-                SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
-                FROM art_collections_cstm cstm
-                JOIN art_collections c ON cstm.id_c = c.id
-                WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
-            """, fetch="one")
-            global_max = (global_res.get("max_global") if global_res else None) or 5000
-            next_num = global_max + 1
-            
-        suggested_code = f"{code_prefix}-{next_num}"
-        return {"code": suggested_code, "prefix": code_prefix, "number": next_num}
-    except Exception as e:
-        print(f"Error generating next code: {e}")
-        return {"code": ""}
-
 
 @router.get("/temp-image/{temp_id}")
 def get_temp_artwork_image(temp_id: str):

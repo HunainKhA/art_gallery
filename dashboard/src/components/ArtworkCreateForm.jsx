@@ -117,8 +117,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     setFormData(prev => ({ 
       ...prev, 
       artist_id: artistId,
-      code: `${fallbackPrefix}-5008`,
-      title: `${fallbackPrefix}-5008`
+      code: '',
+      title: ''
     }));
 
     if (!artistId || isEdit) return;
@@ -134,9 +134,23 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
             code: data.code,
             title: data.code
           }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            code: `${fallbackPrefix}-1001`,
+            title: `${fallbackPrefix}-1001`
+          }));
         }
       })
-      .catch(() => setLoadingCode(false));
+      .catch((err) => {
+        console.error("Failed to fetch next code:", err);
+        setLoadingCode(false);
+        setFormData(prev => ({
+          ...prev,
+          code: `${fallbackPrefix}-1001`,
+          title: `${fallbackPrefix}-1001`
+        }));
+      });
   };
 
   // Price Calculation Logic
