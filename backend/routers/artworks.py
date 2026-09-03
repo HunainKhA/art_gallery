@@ -954,10 +954,9 @@ async def preview_pdf_catalog(
 @router.get("/next-code")
 def get_next_artwork_code(artist_id: str):
     """
-    Generates the next sequential artwork code for a given artist (e.g. A.Q-4865, ZUB-4955, FAR-5007).
+    Generates the next sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, ZUB-4955).
     """
     import re
-    from collections import Counter
     
     if not artist_id:
         return {"code": ""}
@@ -973,54 +972,59 @@ def get_next_artwork_code(artist_id: str):
             
         full_name = (artist.get("name") or f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}").strip()
         
-        # 1. Check existing codes for this artist
-        art_codes = execute_query("""
-            SELECT cstm.code_c 
-            FROM art_collections c
-            JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
-            JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0 AND cstm.code_c IS NOT NULL;
-        """, (artist_id,))
+        # 1. Determine artist code prefix
+        name_clean = full_name.replace('"', '').replace("'", '').strip()
+        dot_match = re.match(r'^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?', name_clean)
+        if dot_match:
+            code_prefix = dot_match.group(1).upper()
+        else:
+            parts = [p.strip() for p in re.split(r'[\s.]+', name_clean) if p.strip()]
+            if len(parts) >= 2 and len(parts[0]) == 1 and len(parts[1]) == 1:
+                code_prefix = f"{parts[0]}.{parts[1]}".upper()
+            elif len(parts) >= 1 and len(parts[0]) >= 3:
+                code_prefix = parts[0][:3].upper()
+            elif len(parts) >= 2:
+                code_prefix = f"{parts[0][:2]}{parts[1][:1]}".upper()
+            else:
+                code_prefix = "ART"
         
-        prefix_numbers = []
+        # 2. Query all existing codes for this artist ID AND matching prefix in database
+        art_codes = execute_query("""
+            SELECT DISTINCT cstm.code_c, c.document_name 
+            FROM art_collections c
+            LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE c.deleted = 0 
+              AND (
+                  rel.art_artists_art_collectionsart_artists_ida = %s 
+                  OR cstm.code_c LIKE %s 
+                  OR c.document_name LIKE %s
+              );
+        """, (artist_id, f"{code_prefix}-%", f"{code_prefix}-%"))
+        
+        numbers = []
         if art_codes:
             for row in art_codes:
-                val = str(row.get("code_c") or "").strip()
-                match = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
-                if match:
-                    prefix_numbers.append((match.group(1), int(match.group(2))))
+                for candidate in [row.get("code_c"), row.get("document_name")]:
+                    val = str(candidate or "").strip()
+                    m = re.match(r'^([A-Za-z0-9._]+)-(\d+)$', val)
+                    if m and m.group(1).upper() == code_prefix.upper():
+                        numbers.append(int(m.group(2)))
+                    elif m and rel_check := (row.get("code_c") or row.get("document_name")):
+                        # Also accept numbers if linked to this artist
+                        numbers.append(int(m.group(2)))
         
-        # 2. Get global highest artwork sequence number in system
-        global_res = execute_query("""
-            SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
-            FROM art_collections_cstm cstm
-            JOIN art_collections c ON cstm.id_c = c.id
-            WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
-        """, fetch="one")
-        global_max = (global_res.get("max_global") if global_res else None) or 5000
-                    
-        if prefix_numbers:
-            prefixes = [p[0] for p in prefix_numbers]
-            best_prefix = Counter(prefixes).most_common(1)[0][0]
-            artist_max_num = max(num for p, num in prefix_numbers if p == best_prefix)
-            next_num = artist_max_num + 1
-            code_prefix = best_prefix
+        if numbers:
+            next_num = max(numbers) + 1
         else:
-            # Generate smart prefix for new artist
-            name_clean = full_name.replace('"', '').replace("'", '').strip()
-            dot_match = re.match(r'^([A-Za-z]\.[A-Za-z](?:\.[A-Za-z])?)\.?', name_clean)
-            if dot_match:
-                code_prefix = dot_match.group(1).upper()
-            else:
-                parts = [p.strip() for p in re.split(r'[\s.]+', name_clean) if p.strip()]
-                if len(parts) >= 2 and len(parts[0]) == 1 and len(parts[1]) == 1:
-                    code_prefix = f"{parts[0]}.{parts[1]}".upper()
-                elif len(parts) >= 1 and len(parts[0]) >= 3:
-                    code_prefix = parts[0][:3].upper()
-                elif len(parts) >= 2:
-                    code_prefix = f"{parts[0][:2]}{parts[1][:1]}".upper()
-                else:
-                    code_prefix = "ART"
+            # Global highest counter fallback
+            global_res = execute_query("""
+                SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_global
+                FROM art_collections_cstm cstm
+                JOIN art_collections c ON cstm.id_c = c.id
+                WHERE c.deleted = 0 AND cstm.code_c REGEXP '-[0-9]+$';
+            """, fetch="one")
+            global_max = (global_res.get("max_global") if global_res else None) or 5000
             next_num = global_max + 1
             
         suggested_code = f"{code_prefix}-{next_num}"
