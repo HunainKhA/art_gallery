@@ -68,9 +68,24 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         comm = Math.round(((rPrice - pPrice) / rPrice) * 100);
       }
 
+      let realCode = '';
+      const candidates = [editRecord.code, editRecord.document_name, editRecord.title, editRecord.code_c];
+      for (const cand of candidates) {
+        if (cand && typeof cand === 'string') {
+          const val = cand.trim();
+          if (val.includes('-') && !/^\d+$/.test(val)) {
+            realCode = val;
+            break;
+          }
+        }
+      }
+      if (!realCode) {
+        realCode = editRecord.code || editRecord.document_name || editRecord.title || editRecord.code_c || '';
+      }
+
       setFormData({
         id: editRecord.id,
-        title: editRecord.document_name || editRecord.title || '',
+        title: realCode || editRecord.document_name || editRecord.title || '',
         artist_id: editRecord.artist_id || '',
         category_id: editRecord.category_id || '',
         medium_id: editRecord.medium_id || '',
@@ -81,7 +96,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         purchase_price: pPrice,
         price: rPrice,
         commission_pct: comm,
-        code: editRecord.code_c || editRecord.code || '',
+        code: realCode,
         with_frame: editRecord.with_frame_c || editRecord.with_frame || '0',
         frame_charges: editRecord.frame_charges_c || editRecord.frame_charges || 0,
         description: editRecord.description || '',

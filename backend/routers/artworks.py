@@ -131,7 +131,11 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 cstm.collection_size_width_c AS width,
                 cstm.with_frame_c AS with_frame,
                 cstm.frame_charges_c AS frame_charges,
-                cstm.code_c AS code,
+                CASE 
+                    WHEN cstm.code_c IS NOT NULL AND cstm.code_c LIKE '%-%' THEN cstm.code_c
+                    WHEN c.document_name IS NOT NULL AND c.document_name LIKE '%-%' THEN c.document_name
+                    ELSE COALESCE(NULLIF(cstm.code_c, ''), c.document_name, '')
+                END AS code,
                 cstm.authenticity_letter_field_c AS authenticity_letter,
                 cstm.sale_c AS deal_type,
                 cstm.purchase_price_c AS purchase_price,
