@@ -516,18 +516,29 @@ def get_artist_portfolio_report(artist_id: str):
             c.filename AS image,
             c.collection_status AS status,
             c.date_entered AS date_added,
-            cstm.sale_gallery_price_c AS price,
+            COALESCE(
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, '0'),
+                cstm.purchase_gallery_price_c,
+                cstm.sale_gallery_price_c,
+                '0'
+            ) AS price,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.code_c AS code,
             cstm.sale_c AS deal_type,
-            cstm.purchase_price_c AS purchase_price,
+            COALESCE(
+                NULLIF(cstm.purchase_artist_price_c, '0'),
+                NULLIF(cstm.purchase_price_c, '0'),
+                NULLIF(cstm.artist_price_c, '0'),
+                '0'
+            ) AS purchase_price,
             m.name AS medium_name,
             (
                 SELECT inv.invoice_id1 
                 FROM saleinvoicedetail d 
                 JOIN saleinvoice inv ON d.invoice_id = inv.invoice_id1 AND d.branch_id = inv.branch_id
-                WHERE (d.paintingId = c.id OR (cstm.code_c IS NOT NULL AND cstm.code_c != '' AND d.code = cstm.code_c)) 
+                WHERE (d.paintingId = c.id OR (c.document_name IS NOT NULL AND c.document_name != '' AND d.code = c.document_name) OR (cstm.code_c IS NOT NULL AND cstm.code_c != '' AND d.code = cstm.code_c)) 
                   AND inv.is_cancel = 0
                 ORDER BY inv.invoice_id1 DESC 
                 LIMIT 1
@@ -585,15 +596,15 @@ def get_artist_portfolio_report(artist_id: str):
                 dim = 'N/A'
                 
             # Status normalization (Available, Sold, Return)
-            raw_status = (art.get("status") or "").strip()
-            if raw_status.lower() in ["sold"]:
+            raw_status = (art.get("status") or "").strip().lower()
+            if "sold" in raw_status and "not" not in raw_status:
                 norm_status = "Sold"
                 total_sold_value += price_num
                 if "gallery" in deal_raw.lower() or "purchase" in deal_raw.lower():
                     total_artist_share += purchase_price
                 else:
                     total_artist_share += (0.60 * price_num)
-            elif raw_status.lower() in ["return", "returned"]:
+            elif "return" in raw_status:
                 norm_status = "Return"
                 total_unsold_value += price_num
             else:
@@ -603,12 +614,14 @@ def get_artist_portfolio_report(artist_id: str):
             inv_no = art.get("invoice_number")
             inv_display = f"#{inv_no}" if inv_no else ""
             
+            code_display = str(art.get("title") or art.get("code") or "N/A").strip()
+            
             artworks_data.append({
                 "id": str(art.get("id")),
                 "index": idx,
-                "code": art.get("code") or "N/A",
+                "code": code_display,
                 "deal_type": deal_display,
-                "title": art.get("title") or "Untitled",
+                "title": str(art.get("title") or "Untitled").strip(),
                 "medium": art.get("medium_name") or "Original Medium",
                 "size": dim,
                 "price": price_str,
