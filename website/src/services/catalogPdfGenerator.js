@@ -124,8 +124,8 @@ export const formatDimensionsString = (art) => {
     const l = parseFloat(String(rawLength).replace(/[^\d.]/g, ''));
     const w = parseFloat(String(rawWidth).replace(/[^\d.]/g, ''));
     if (!isNaN(w) && !isNaN(l) && w > 0 && l > 0) {
-      const lStr = Number.isInteger(l) ? String(int(l)) : String(l);
-      const wStr = Number.isInteger(w) ? String(int(w)) : String(w);
+      const lStr = Number.isInteger(l) ? String(Math.round(l)) : String(l);
+      const wStr = Number.isInteger(w) ? String(Math.round(w)) : String(w);
       inchPart = `${lStr}" x ${wStr}"`;
       cmPart = `${Math.round(l * 2.54)} x ${Math.round(w * 2.54)} cm`;
     }
