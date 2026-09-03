@@ -728,7 +728,6 @@ export default function ArtistsSection({
                   {/* Artworks Slideshow */}
                   {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
                     <div>
-                      <h4 className="bio-slideshow-title" style={{ marginTop: 0 }}>Artist's Work Gallery</h4>
                       <div className="bio-slideshow-frame">
                         <img
                           src={getArtworkImageUrl(selectedArtist.artworks[currentSlideIndex].id)}
