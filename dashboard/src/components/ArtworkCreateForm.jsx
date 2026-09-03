@@ -435,44 +435,35 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           </div>
         </div>
 
-        {/* ROW 3: Pricing Section with Gallery Commission & Share Auto-Calculation */}
+        {/* 🎨 PROFESSIONAL PRICING & COMMISSION BREAKDOWN (WITH HORIZONTAL ROWS) */}
         <div style={{
-          backgroundColor: 'rgba(212, 175, 55, 0.04)',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-          borderRadius: '10px',
-          padding: '1.25rem',
+          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '12px',
+          padding: '1.25rem 1.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.75rem'
+          gap: '1rem',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-              <Calculator size={16} /> Pricing Calculator ({formData.commission_pct || 40}% Gallery Margin)
-            </div>
-            {formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                Total with Framing: PKR {(parseFloat(formData.price || 0) + parseFloat(formData.frame_charges || 0)).toLocaleString()}
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1.1fr 1.2fr', gap: '1rem', alignItems: 'center' }}>
+          {/* ROW 1: Gallery Price | Gallery % | Gallery Commission Amount */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.3fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Gallery Price (PKR) <span style={{ opacity: 0.7 }}>(Selling Price)</span>
+                Price (PKR) <span style={{ opacity: 0.7 }}>(Gallery Selling Price)</span>
               </label>
               <input
                 type="number"
                 placeholder="e.g. 400000"
                 value={formData.price}
                 onChange={(e) => handleGalleryPriceChange(e.target.value)}
-                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700 }}
+                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--accent-gold)', borderRadius: '8px', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.95rem' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Gallery %
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                Gallery Cut (%)
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -480,38 +471,115 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                   placeholder="40"
                   value={formData.commission_pct}
                   onChange={(e) => handleCommissionPctChange(e.target.value)}
-                  style={{ width: '100%', padding: '0.7rem 1.7rem 0.7rem 0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
+                  style={{ width: '100%', padding: '0.75rem 1.8rem 0.75rem 0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
                 />
                 <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
                 Gallery Charges ({formData.commission_pct || 40}%)
               </label>
-              <div style={{ padding: '0.7rem', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 600 }}>
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(212, 175, 55, 0.05)', border: '1px dashed rgba(212, 175, 55, 0.4)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.95rem', fontWeight: 700 }}>
                 PKR {galleryShare.toLocaleString()}
               </div>
             </div>
+          </div>
 
+          {/* HORIZONTAL DIVIDER */}
+          <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
+
+          {/* ROW 2: Artist Price (Net Amount to Artist) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2.2fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Artist Cost / Share)</span>
+                Artist Price (PKR) <span style={{ opacity: 0.7 }}>(Net Payout)</span>
               </label>
               <input
                 type="number"
                 placeholder="e.g. 240000"
                 value={formData.purchase_price}
                 onChange={(e) => handleArtistPriceChange(e.target.value)}
-                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600 }}
               />
+            </div>
+
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5', padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              💡 <em>Artist Share = Gallery Price minus {formData.commission_pct || 40}% Gallery Charges. Entering Artist Price will auto-calculate Gallery Price.</em>
+            </div>
+          </div>
+
+          {/* HORIZONTAL DIVIDER */}
+          <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
+
+          {/* ROW 3: Framing Charges & Total Price Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 1.5fr', gap: '1.25rem', alignItems: 'center' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                Framed?
+              </label>
+              <select
+                value={formData.with_frame}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    with_frame: val,
+                    frame_charges: val === '0' ? 0 : prev.frame_charges
+                  }));
+                }}
+                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+              >
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                Frame Charges (PKR)
+              </label>
+              <input
+                type="number"
+                placeholder={formData.with_frame === '1' ? "e.g. 5000" : "0"}
+                disabled={formData.with_frame !== '1'}
+                value={formData.with_frame === '1' ? formData.frame_charges : 0}
+                onChange={(e) => setFormData({ ...formData, frame_charges: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: formData.with_frame === '1' ? 'var(--bg-input)' : 'rgba(255,255,255,0.02)',
+                  border: formData.with_frame === '1' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: formData.with_frame === '1' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                  cursor: formData.with_frame === '1' ? 'text' : 'not-allowed',
+                  fontWeight: formData.with_frame === '1' ? 700 : 400
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                Final Selling Total (with Frame)
+              </label>
+              <div style={{
+                padding: '0.75rem 1rem',
+                background: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
+                border: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
+                borderRadius: '8px',
+                color: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? '#10b981' : 'var(--accent-gold)',
+                fontSize: '0.95rem',
+                fontWeight: 700
+              }}>
+                PKR {(parseFloat(formData.price || 0) + (formData.with_frame === '1' ? parseFloat(formData.frame_charges || 0) : 0)).toLocaleString()}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ROW 4: Category | Framed? | Frame Charges | Description */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1.5fr', gap: '1.25rem' }}>
+        {/* ROW 4: Category & Description */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
               Category / Collection Type *
@@ -527,49 +595,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 500 }}>
-              Framed?
-            </label>
-            <select
-              value={formData.with_frame}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFormData(prev => ({
-                  ...prev,
-                  with_frame: val,
-                  frame_charges: val === '0' ? 0 : prev.frame_charges
-                }));
-              }}
-              style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-            >
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 500 }}>
-              Frame Charges (PKR)
-            </label>
-            <input
-              type="number"
-              placeholder={formData.with_frame === '1' ? "e.g. 5000" : "0"}
-              disabled={formData.with_frame !== '1'}
-              value={formData.with_frame === '1' ? formData.frame_charges : 0}
-              onChange={(e) => setFormData({ ...formData, frame_charges: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: formData.with_frame === '1' ? 'var(--bg-input)' : 'rgba(255,255,255,0.02)',
-                border: formData.with_frame === '1' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                borderRadius: '8px',
-                color: formData.with_frame === '1' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                cursor: formData.with_frame === '1' ? 'text' : 'not-allowed'
-              }}
-            />
           </div>
 
           <div>
