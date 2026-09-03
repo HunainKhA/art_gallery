@@ -128,11 +128,20 @@ export const formatDimensionsString = (art) => {
 };
 
 /**
- * Formats price cleanly (e.g. PKR 150,000)
+ * Formats price cleanly (e.g. PKR 150,000 or PKR 150,000 (Sold) or Sold)
  */
 export const formatArtworkPrice = (art, currency = 'PKR') => {
+  const isSold = (art.status === 'Sold' || art.collection_status === 'Sold');
   const rawPrice = art.price ?? art.price_pkr ?? art.retail_price ?? art.sale_price;
   const numPrice = Number(rawPrice);
+
+  if (isSold) {
+    if (!isNaN(numPrice) && numPrice > 0) {
+      return `PKR ${Math.round(numPrice).toLocaleString()} (Sold)`;
+    }
+    return 'Sold';
+  }
+
   if (isNaN(numPrice) || numPrice <= 0) {
     return 'Price on Inquiry';
   }
@@ -140,11 +149,20 @@ export const formatArtworkPrice = (art, currency = 'PKR') => {
 };
 
 /**
+ * Formats artwork display title (e.g. "Title (Code)" or "Code" if title is identical/empty)
+ */
+export const formatArtworkTitle = (art) => {
+  const rawTitle = (art.title || '').trim();
+  const rawCode = (art.code || '').trim();
+
+  if (rawTitle && rawCode && rawTitle !== rawCode && !rawTitle.includes(rawCode)) {
+    return `${rawTitle} (${rawCode})`;
+  }
+  return rawTitle || rawCode || 'Untitled';
+};
+
+/**
  * Generates and downloads the luxury square Exhibition Catalogue PDF:
- * - If Exhibition (with cover): Includes Banner, Exhibition Statement, and Artist Career/Bio page.
- * - If Custom without cover: Direct clean flow without empty covers.
- * - Artwork Pages: 1 per page with centered caption (Title | Medium | Size | Price).
- * - No extra trailing logo pages.
  */
 export const generateCatalogPDF = async (exhibition, artworks, onProgress, options = {}) => {
   if (!artworks || artworks.length === 0) {
@@ -155,10 +173,10 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
   const includePrice = options.includePrice === true;
   const currency = options.currency || 'PKR';
 
-  // 1. Group artworks by Artist
+  // 1. Group artworks by Artist (Include ALL artworks: Available, Reserved, and Sold)
   const artistMap = new Map();
   for (const art of artworks) {
-    const aId = art.artist_id || art.artist || 'unknown';
+    const aId = art.artist_id || exhibition.artist_id || 'unknown';
     const aName = art.artist_name || art.artist || 'Featured Artist';
     if (!artistMap.has(aId)) {
       artistMap.set(aId, {
@@ -305,7 +323,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
       doc.text(bioLines.slice(0, 36), 22, 48, { lineHeightFactor: 1.45 });
     }
 
-    // 2. Individual Artwork Pages
+    // 2. Individual Artwork Pages (All artworks included)
     for (const art of artistInfo.artworks) {
       artworkCounter++;
 
@@ -343,14 +361,15 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
       }
 
       // Bottom Caption Row (Centered horizontally below the painting)
-      const titleStr = art.title || art.code || 'Untitled';
+      const titleStr = formatArtworkTitle(art);
       const mediumStr = art.medium_name || '';
       const dimStr = formatDimensionsString(art);
-      const priceStr = includePrice ? formatArtworkPrice(art, currency) : '';
+      const priceStr = includePrice ? formatArtworkPrice(art, currency) : (art.status === 'Sold' ? 'Sold' : '');
 
       const parts = [];
       if (mediumStr) parts.push(mediumStr);
-      if (dimStr) parts.push(dimStr);
+      if (inchPart) parts.push(inchPart);
+      if (cmPart) parts.push(cmPart);
       if (priceStr) parts.push(priceStr);
 
       const subCaption = parts.join(' | ');
@@ -398,7 +417,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress, optio
     }
   }
 
-  // Save PDF file (No trailing back cover page)
+  // Save PDF file
   const priceSuffix = includePrice ? ' (With Prices)' : '';
   const cleanFilename = `Catalogue - ${(exhibition.document_name || 'Art Gallery').replace(/[^a-zA-Z0-9_-]/g, ' ')}${priceSuffix}.pdf`;
   doc.save(cleanFilename);
