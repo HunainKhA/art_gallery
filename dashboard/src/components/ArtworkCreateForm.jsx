@@ -418,7 +418,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Price (PKR) <span style={{ opacity: 0.7 }}>(Gallery Selling Price for Dashboard / Website)</span>
+                Price (PKR)
               </label>
               <input
                 type="number"
@@ -486,8 +486,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
           {/* HORIZONTAL DIVIDER */}
           <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: '0.25rem 0' }} />
 
-          {/* ROW 3: Framing Charges & Total Amount */}
-          <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 1.5fr', gap: '1.25rem', alignItems: 'center' }}>
+          {/* ROW 3: Framing Setup */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'center' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 500 }}>
                 Framed?
@@ -536,23 +536,6 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
                   fontWeight: formData.with_frame === '1' ? 700 : 400
                 }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Amount
-              </label>
-              <div style={{
-                padding: '0.75rem 1rem',
-                background: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
-                border: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
-                borderRadius: '8px',
-                color: formData.with_frame === '1' && parseFloat(formData.frame_charges || 0) > 0 ? '#10b981' : 'var(--accent-gold)',
-                fontSize: '0.95rem',
-                fontWeight: 700
-              }}>
-                PKR {(parseFloat(formData.price || 0) + (formData.with_frame === '1' ? parseFloat(formData.frame_charges || 0) : 0)).toLocaleString()}
-              </div>
             </div>
           </div>
         </div>
