@@ -74,7 +74,15 @@ def create_payment_intent(data: PaymentIntentRequest):
     # Query database to get price of each artwork in cart
     format_strings = ','.join(['%s'] * len(data.artwork_ids))
     query = f"""
-        SELECT c.id, cstm.sale_gallery_price_c AS price 
+        SELECT c.id, 
+            COALESCE(
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, '0'),
+                NULLIF(cstm.purchase_price_c, '0'),
+                cstm.purchase_gallery_price_c,
+                cstm.sale_gallery_price_c,
+                '0'
+            ) AS price 
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         WHERE c.id IN ({format_strings}) AND c.deleted = 0 AND c.collection_status IN ('Available', 'not_sold');
@@ -166,7 +174,17 @@ def confirm_order(data: OrderConfirmationRequest):
             # 2. Insert items into art_order_items & get price details
             for artwork_id in data.artwork_ids:
                 # Fetch artwork price
-                price_query = "SELECT sale_gallery_price_c AS price FROM art_collections_cstm WHERE id_c = %s;"
+                price_query = """
+                    SELECT COALESCE(
+                        NULLIF(purchase_gallery_price_c, '0'),
+                        NULLIF(sale_gallery_price_c, '0'),
+                        NULLIF(purchase_price_c, '0'),
+                        purchase_gallery_price_c,
+                        sale_gallery_price_c,
+                        '0'
+                    ) AS price 
+                    FROM art_collections_cstm WHERE id_c = %s;
+                """
                 cursor.execute(price_query, (artwork_id,))
                 art_data = cursor.fetchone()
                 art_price = float(art_data["price"]) if art_data and art_data["price"] else 0.0

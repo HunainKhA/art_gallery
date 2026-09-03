@@ -151,14 +151,26 @@ def get_artist_by_id(artist_id: str):
             c.id AS id,
             c.document_name AS title,
             c.filename AS image,
-            cstm.sale_gallery_price_c AS price,
+            COALESCE(
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, '0'),
+                NULLIF(cstm.purchase_price_c, '0'),
+                cstm.purchase_gallery_price_c,
+                cstm.sale_gallery_price_c,
+                '0'
+            ) AS price,
             c.collection_status AS status,
             cstm.collection_size_length_c AS length,
-            cstm.collection_size_width_c AS width
+            cstm.collection_size_width_c AS width,
+            m.name AS medium_name
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         LEFT JOIN art_artists_art_collections_c rel 
             ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_medium_art_collections_c med_rel 
+            ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+        LEFT JOIN art_medium m 
+            ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0;
     """
     try:

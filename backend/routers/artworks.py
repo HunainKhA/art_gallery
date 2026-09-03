@@ -1796,7 +1796,14 @@ def get_artwork_tag(artwork_id: str):
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.code_c AS code,
-            cstm.sale_gallery_price_c AS price,
+            COALESCE(
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, '0'),
+                NULLIF(cstm.purchase_price_c, '0'),
+                cstm.purchase_gallery_price_c,
+                cstm.sale_gallery_price_c,
+                '0'
+            ) AS price,
             CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
             m.name AS medium_name
         FROM art_collections c

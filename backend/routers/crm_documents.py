@@ -209,7 +209,14 @@ def get_exhibition_artworks(exhibition_id: str):
             c.filename AS image,
             c.description AS description,
             c.collection_status AS status,
-            cstm.sale_gallery_price_c AS price,
+            COALESCE(
+                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                NULLIF(cstm.sale_gallery_price_c, '0'),
+                NULLIF(cstm.purchase_price_c, '0'),
+                cstm.purchase_gallery_price_c,
+                cstm.sale_gallery_price_c,
+                '0'
+            ) AS price,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             cstm.code_c AS code,
@@ -252,7 +259,14 @@ def get_exhibition_artworks(exhibition_id: str):
                             c.filename AS image,
                             c.description AS description,
                             c.collection_status AS status,
-                            cstm.sale_gallery_price_c AS price,
+                            COALESCE(
+                                NULLIF(cstm.purchase_gallery_price_c, '0'),
+                                NULLIF(cstm.sale_gallery_price_c, '0'),
+                                NULLIF(cstm.purchase_price_c, '0'),
+                                cstm.purchase_gallery_price_c,
+                                cstm.sale_gallery_price_c,
+                                '0'
+                            ) AS price,
                             cstm.collection_size_length_c AS length,
                             cstm.collection_size_width_c AS width,
                             cstm.code_c AS code,
@@ -290,7 +304,14 @@ def get_exhibition_artworks(exhibition_id: str):
                         c.filename AS image,
                         c.description AS description,
                         c.collection_status AS status,
-                        cstm.sale_gallery_price_c AS price,
+                        COALESCE(
+                            NULLIF(cstm.purchase_gallery_price_c, '0'),
+                            NULLIF(cstm.sale_gallery_price_c, '0'),
+                            NULLIF(cstm.purchase_price_c, '0'),
+                            cstm.purchase_gallery_price_c,
+                            cstm.sale_gallery_price_c,
+                            '0'
+                        ) AS price,
                         cstm.collection_size_length_c AS length,
                         cstm.collection_size_width_c AS width,
                         cstm.code_c AS code,
@@ -500,7 +521,14 @@ def get_catalogue_artworks(catalogue_id: str):
                 c.filename AS image,
                 c.description AS description,
                 c.collection_status AS status,
-                cstm.sale_gallery_price_c AS price,
+                COALESCE(
+                    NULLIF(cstm.purchase_gallery_price_c, '0'),
+                    NULLIF(cstm.sale_gallery_price_c, '0'),
+                    NULLIF(cstm.purchase_price_c, '0'),
+                    cstm.purchase_gallery_price_c,
+                    cstm.sale_gallery_price_c,
+                    '0'
+                ) AS price,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
                 cstm.code_c AS code,

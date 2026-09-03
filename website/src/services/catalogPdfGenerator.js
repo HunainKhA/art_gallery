@@ -32,7 +32,6 @@ export const extractCareerBio = (bioHtml) => {
       if (tds.length >= 2) {
         const label = (tds[0].textContent || '').trim();
         const lowerLabel = label.toLowerCase();
-        // Strictly exclude art shows, exhibitions, solo/group shows, participations
         if (/exhibition|show|solo|group|participat|art\s*show/i.test(lowerLabel)) {
           return;
         }
@@ -80,7 +79,8 @@ export const extractCareerBio = (bioHtml) => {
 
 /**
  * Loads an image from URL, draws to an offscreen canvas to guarantee CORS/Base64,
- * and returns the DataURL along with its natural width & height.
+ * resizes efficiently to maximum needed display resolution for ultra-fast PDF compiling,
+ * and returns the DataURL along with its width & height.
  */
 export const loadImageData = (url) => {
   return new Promise((resolve) => {
@@ -92,18 +92,35 @@ export const loadImageData = (url) => {
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
+        let origW = img.naturalWidth || img.width || 800;
+        let origH = img.naturalHeight || img.height || 600;
+        
+        const maxDim = 1400;
+        let targetW = origW;
+        let targetH = origH;
+
+        if (targetW > maxDim || targetH > maxDim) {
+          if (targetW > targetH) {
+            targetH = Math.round((targetH * maxDim) / targetW);
+            targetW = maxDim;
+          } else {
+            targetW = Math.round((targetW * maxDim) / targetH);
+            targetH = maxDim;
+          }
+        }
+
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width || 800;
-        canvas.height = img.naturalHeight || img.height || 600;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
         resolve({
           dataUrl,
-          width: canvas.width,
-          height: canvas.height
+          width: targetW,
+          height: targetH
         });
       } catch (e) {
         console.warn('Canvas toDataURL failed for image:', url, e);
@@ -121,21 +138,21 @@ export const loadImageData = (url) => {
  * Formats artwork dimensions nicely (e.g. 7" x 36" | 18x91 cm)
  */
 export const formatDimensionsString = (art) => {
-  const dims = renderDimensions(art.width, art.length);
+  const dims = renderDimensions(art);
   let inchPart = '';
   let cmPart = '';
 
-  if (art.width && art.length) {
-    const w = parseFloat(art.width);
+  if (art.length && art.width) {
     const l = parseFloat(art.length);
-    if (!isNaN(w) && !isNaN(l)) {
-      inchPart = `${w}" x ${l}"`;
-      cmPart = `${Math.round(w * 2.54)}x${Math.round(l * 2.54)} cm`;
+    const w = parseFloat(art.width);
+    if (!isNaN(w) && !isNaN(l) && (w > 0 || l > 0)) {
+      inchPart = `${l}" x ${w}"`;
+      cmPart = `${Math.round(l * 2.54)} x ${Math.round(w * 2.54)} cm`;
     }
   }
 
-  if (!inchPart && dims.inStr) {
-    inchPart = dims.inStr.replace(/\s*in$/i, '"').trim();
+  if (!inchPart && dims.inchStr) {
+    inchPart = dims.inchStr.trim();
   }
   if (!cmPart && dims.cmStr) {
     cmPart = dims.cmStr.trim();
@@ -145,106 +162,108 @@ export const formatDimensionsString = (art) => {
 };
 
 /**
- * Generates and downloads the EXACT square luxury Exhibition Catalogue PDF (Ditto design):
- * - Square Format: 210mm x 210mm
- * - Page 1: Full-Bleed Artwork Cover with Title overlay
- * - Page 2: Fine-Bordered Exhibition Title & Date Card with Mainframe Logo
- * - Page 3..: Artist Biography & Statement (only when bio exists; skipped if empty so NO blank pages)
- * - Artworks Pages: Fine-Bordered square page, centered artwork, caption, and bottom-right badge (01, 02...)
- * - Back Cover: Mainframe Logo, Location / Contact Info and gray footer bar
+ * Formats price cleanly (e.g. PKR 150,000)
  */
-export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
+export const formatArtworkPrice = (art, currency = 'PKR') => {
+  const rawPrice = art.price ?? art.price_pkr ?? art.retail_price ?? art.sale_price;
+  const numPrice = Number(rawPrice);
+  if (isNaN(numPrice) || numPrice <= 0) {
+    return 'Price on Inquiry';
+  }
+  return `PKR ${Math.round(numPrice).toLocaleString()}`;
+};
+
+/**
+ * Generates and downloads the luxury square Exhibition Catalogue PDF:
+ */
+export const generateCatalogPDF = async (exhibition, artworks, onProgress, options = {}) => {
   if (!artworks || artworks.length === 0) {
     alert("No artworks available to generate catalogue.");
     return;
   }
 
-  if (onProgress) onProgress("Preloading high-resolution artworks and assets...");
+  const includePrice = options.includePrice === true;
+  const currency = options.currency || 'PKR';
 
-  // 1. Preload Cover Image
-  let coverData = null;
-  const coverUrl = getApiUrl(`/api/crm/exhibitions/image/${exhibition.id}`);
-  try {
-    coverData = await loadImageData(coverUrl);
-  } catch {
-    coverData = null;
-  }
+  if (onProgress) onProgress("Preparing catalogue assets...");
 
-  // 2. Preload Logo Image
-  let logoData = null;
-  try {
-    logoData = await loadImageData(getApiUrl('/api/artworks/logo'));
-    if (!logoData) {
-      logoData = await loadImageData('/logo.png');
-    }
-  } catch {
-    logoData = null;
-  }
-
-  // 3. Preload all artwork images in parallel
-  const artworksWithData = await Promise.all(
-    artworks.map(async (art) => {
-      const artImgUrl = getApiUrl(`/api/artworks/image/${art.id}`);
-      const imgData = await loadImageData(artImgUrl);
-      return {
-        ...art,
-        imgData
-      };
-    })
-  );
-
-  // 4. Group artworks by Artist (for Solo / Group exhibitions)
+  // 1. Group artworks by Artist
   const artistMap = new Map();
-  for (const art of artworksWithData) {
-    const artistId = art.artist_id || exhibition.artist_id || 'unknown';
-    const artistName = (art.artist_name || exhibition.artist_name || '').trim() || 'Featured Artist';
+  for (const art of artworks) {
+    const aId = art.artist_id || exhibition.artist_id || 'unknown';
+    const aName = (art.artist_name || exhibition.artist_name || '').trim() || 'Featured Artist';
     const rawBio = art.artist_bio || art.bio || '';
     const cleanBio = stripHtml(rawBio);
 
-    if (!artistMap.has(artistId)) {
-      artistMap.set(artistId, {
-        id: artistId,
-        name: artistName,
+    if (!artistMap.has(aId)) {
+      artistMap.set(aId, {
+        id: aId,
+        name: aName,
         bio: cleanBio,
         profileImage: art.artist_profile_image || null,
         artworks: []
       });
     }
-    artistMap.get(artistId).artworks.push(art);
+    artistMap.get(aId).artworks.push(art);
   }
 
-  // Proactively fetch artist biography & profile picture from API if missing
+  // 2. Preload missing artist bios in parallel
+  const missingBioPromises = [];
   for (const [artistId, artistInfo] of artistMap.entries()) {
     const fetchId = (artistId && artistId !== 'unknown') ? artistId : exhibition.artist_id;
-    if (fetchId) {
-      try {
-        const res = await fetch(getApiUrl(`/api/artists/${fetchId}`));
-        if (res.ok) {
-          const aData = await res.json();
-          if (aData) {
-            if (aData.bio || aData.artist_biography) {
-              artistInfo.bio = aData.bio || aData.artist_biography;
+    if (fetchId && !artistInfo.bio) {
+      missingBioPromises.push(
+        fetch(getApiUrl(`/api/artists/${fetchId}`))
+          .then(res => res.ok ? res.json() : null)
+          .then(aData => {
+            if (aData) {
+              artistInfo.bio = aData.artist_biography || aData.bio || '';
+              if (aData.name) artistInfo.name = aData.name;
             }
-            if (!artistInfo.name || artistInfo.name === 'Featured Artist') {
-              artistInfo.name = `${aData.first_name || ''} ${aData.last_name || ''}`.trim() || artistInfo.name;
-            }
-            if (!artistInfo.profileImageData) {
-              const artistImgUrl = getApiUrl(`/api/artists/image/${fetchId}`);
-              const pData = await loadImageData(artistImgUrl);
-              if (pData) artistInfo.profileImageData = pData;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("Could not fetch artist bio from API for", fetchId, e);
-      }
+          })
+          .catch(e => console.warn("Could not fetch artist bio for", fetchId, e))
+      );
     }
+  }
+  if (missingBioPromises.length > 0) {
+    await Promise.all(missingBioPromises);
+  }
+
+  // 3. Parallel preload cover, back cover, logo, and ALL artworks
+  if (onProgress) onProgress(`Loading ${artworks.length} artwork images in parallel...`);
+
+  let coverUrl = null;
+  if (exhibition.filename) {
+    coverUrl = getApiUrl(`/api/artworks/image/${exhibition.filename}`);
+  } else if (exhibition.id) {
+    coverUrl = getApiUrl(`/api/crm/exhibitions/image/${exhibition.id}`);
+  }
+
+  const [coverData, backCoverData, logoData, loadedArtworks] = await Promise.all([
+    coverUrl ? loadImageData(coverUrl) : Promise.resolve(null),
+    loadImageData(catalogBackCoverImg || '/assets/catalog_back_cover.png'),
+    loadImageData(getApiUrl('/api/artworks/logo')).catch(() => null),
+    Promise.all(
+      artworks.map(async (art) => {
+        const artImgUrl = art.id
+          ? getApiUrl(`/api/artworks/image/${art.id}`)
+          : (art.filename ? getApiUrl(`/api/artworks/image/${art.filename}`) : getApiUrl(`/api/artworks/image/${art.image}`));
+        const imgData = await loadImageData(artImgUrl);
+        return {
+          ...art,
+          imgData
+        };
+      })
+    )
+  ]);
+
+  // Re-map loaded artworks
+  const loadedArtMap = new Map(loadedArtworks.map(a => [a.id || a.code, a]));
+  for (const [_, artistInfo] of artistMap.entries()) {
+    artistInfo.artworks = artistInfo.artworks.map(art => loadedArtMap.get(art.id || art.code) || art);
   }
 
   if (onProgress) onProgress("Rendering luxury square catalogue...");
-
-  // Preload back cover image
-  const backCoverData = await loadImageData(catalogBackCoverImg || '/assets/catalog_back_cover.png');
 
   // Square Page Size: 210mm x 210mm
   const pageSize = 210;
@@ -260,19 +279,12 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   const isGroupShow = artistMap.size > 1;
   const showTypeLabel = isGroupShow ? 'Group exhibition' : (firstArtistName ? `Solo show by ${firstArtistName}` : 'Exhibition');
 
-  // Helper to draw standard outer framing line (12mm inset)
-  const drawPageBorder = () => {
-    doc.setDrawColor(45, 45, 45);
-    doc.setLineWidth(0.35);
-    doc.rect(12, 12, pageSize - 24, pageSize - 24);
-  };
-
   // Helper to draw Mainframe Logo Square
   const drawMainframeLogo = (x, y, size = 26) => {
     if (logoData) {
       doc.addImage(logoData.dataUrl, 'PNG', x, y, size, size);
     } else {
-      doc.setFillColor(50, 45, 42); // Dark brown box
+      doc.setFillColor(50, 45, 42);
       doc.rect(x, y, size, size, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
@@ -284,200 +296,73 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     }
   };
 
-  // Clean Exhibition Title
-  const cleanTitle = (exhibition.document_name || 'EXHIBITION').replace(/["']/g, '').trim().toUpperCase();
+  const hasBanner = !!(coverData && coverData.dataUrl);
+  const cleanDesc = stripHtml(exhibition.description || '').trim();
+  const hasDescription = cleanDesc.length > 10;
+
+  let isFirstPageUsed = false;
 
   // =========================================================================
-  // PAGE 1: FULL-BLEED ARTWORK FRONT COVER
+  // PAGE 1: COVER PAGE (ONLY IF BANNER IS PRESENT)
   // =========================================================================
-  const coverBg = coverData || artworksWithData[0]?.imgData;
-  if (coverBg) {
-    // Render cover full bleed 210x210
-    const scale = Math.max(pageSize / coverBg.width, pageSize / coverBg.height);
-    const renderW = coverBg.width * scale;
-    const renderH = coverBg.height * scale;
+  if (hasBanner) {
+    isFirstPageUsed = true;
+    const scale = Math.max(pageSize / coverData.width, pageSize / coverData.height);
+    const renderW = coverData.width * scale;
+    const renderH = coverData.height * scale;
     const renderX = (pageSize - renderW) / 2;
     const renderY = (pageSize - renderH) / 2;
 
-    doc.addImage(coverBg.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
+    doc.addImage(coverData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH, undefined, 'FAST');
 
-    // Only add text overlay if using fallback artwork (if dedicated cover poster was uploaded, it already has design)
-    if (!coverData) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(26);
-      doc.setTextColor(255, 255, 255);
-      doc.text(cleanTitle, 18, 30);
+    // =========================================================================
+    // PAGE 2: INVITATION & EXHIBITION DETAILS PAGE (ONLY IF BANNER & DESC EXIST)
+    // =========================================================================
+    if (hasDescription) {
+      doc.addPage([pageSize, pageSize], 'portrait');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(255, 255, 255);
-      doc.text(showTypeLabel, 18, 42);
+      doc.setFontSize(18);
+      doc.setTextColor(34, 51, 102);
+      doc.text(exhibitionTitle, 22, 28);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(70, 70, 70);
+      doc.text(showTypeLabel, 22, 34);
+
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.3);
+      doc.line(22, 38, pageSize - 22, 38);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(40, 40, 40);
+      const splitStmt = doc.splitTextToSize(cleanDesc, 166);
+      doc.text(splitStmt.slice(0, 38), 22, 45, { lineHeightFactor: 1.45 });
     }
-  } else {
-    drawPageBorder();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.setTextColor(34, 51, 102);
-    doc.text(cleanTitle, pageSize / 2, 80, { align: 'center' });
-    doc.setFontSize(12);
-    doc.setTextColor(60, 60, 60);
-    doc.text(showTypeLabel, pageSize / 2, 95, { align: 'center' });
   }
 
   // =========================================================================
-  // PAGE 2: INVITATION & EXHIBITION DETAILS PAGE
-  // =========================================================================
-  doc.addPage([pageSize, pageSize], 'portrait');
-  drawPageBorder();
-
-  // Title in Deep Navy
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(34, 51, 102); // #223366
-  doc.text(cleanTitle, pageSize - 18, 42, { align: 'right' });
-
-  // Subtitle
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(11);
-  doc.setTextColor(70, 70, 70);
-  doc.text(showTypeLabel, pageSize - 18, 52, { align: 'right' });
-
-  // Dates & Timings in center
-  const startDateStr = exhibition.active_date 
-    ? new Date(exhibition.active_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    : 'Saturday, 29th August, 2026';
-
-  const endDateStr = exhibition.exp_date 
-    ? new Date(exhibition.exp_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '5th Sep, 2026';
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(14);
-  doc.setTextColor(70, 70, 70);
-  doc.text(startDateStr, pageSize - 18, 95, { align: 'right' });
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(30, 30, 30);
-  doc.text('5 - 8 pm', pageSize - 18, 108, { align: 'right' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`The show will continue till ${endDateStr}`, pageSize - 18, 155, { align: 'right' });
-
-  // Mainframe Logo at bottom left
-  drawMainframeLogo(18, pageSize - 44, 26);
-
-  // =========================================================================
-  // ARTIST BIOGRAPHIES & ARTWORKS PAGES
+  // ARTWORKS PAGES (NO BORDERS, CENTERED MATTER, OPTIONAL PRICE)
   // =========================================================================
   let artworkCounter = 0;
 
   for (const [_, artistInfo] of artistMap.entries()) {
-    // 1. RENDER ARTIST CAREER & SHOW DESCRIPTION (ONLY IF CAREER / DESC EXISTS, EXCLUDING ART SHOWS LISTS)
-    const cleanCareer = extractCareerBio(artistInfo.bio);
-    const cleanDesc = stripHtml(exhibition.description || '');
-
-    if (cleanCareer || cleanDesc) {
-      doc.addPage([pageSize, pageSize], 'portrait');
-      drawPageBorder();
-
-      let cursorY = 22;
-
-      // Profile Image
-      if (artistInfo.profileImageData) {
-        const pImg = artistInfo.profileImageData;
-        const pSize = 42;
-        doc.addImage(pImg.dataUrl, 'JPEG', 20, cursorY, pSize, pSize);
-
-        // Artist Name beside photo
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(20, 20, 20);
-        doc.text(artistInfo.name, 68, cursorY + 25);
-
-        cursorY += pSize + 10;
-      } else {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.setTextColor(20, 20, 20);
-        doc.text(artistInfo.name, 20, cursorY + 8);
-        cursorY += 16;
-      }
-
-      // "Career" Header & Text
-      if (cleanCareer && cleanCareer.trim().length > 10) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(20, 20, 20);
-        doc.text('Career', 20, cursorY);
-        cursorY += 6;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(50, 50, 50);
-
-        const splitBio = doc.splitTextToSize(cleanCareer, 170);
-        for (const line of splitBio) {
-          if (cursorY > pageSize - 22) {
-            doc.addPage([pageSize, pageSize], 'portrait');
-            drawPageBorder();
-            cursorY = 22;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8.5);
-            doc.setTextColor(50, 50, 50);
-          }
-          doc.text(line, 20, cursorY);
-          cursorY += 4.3;
-        }
-        cursorY += 6;
-      }
-
-      // Exhibition Statement / Show Description
-      if (cleanDesc && cleanDesc.trim().length > 10) {
-        if (cursorY > pageSize - 36) {
-          doc.addPage([pageSize, pageSize], 'portrait');
-          drawPageBorder();
-          cursorY = 22;
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(20, 20, 20);
-        doc.text(`On ${exhibition.document_name || 'Exhibition'}`, 20, cursorY);
-        cursorY += 6;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(50, 50, 50);
-        const splitStmt = doc.splitTextToSize(cleanDesc, 170);
-        for (const line of splitStmt) {
-          if (cursorY > pageSize - 22) {
-            doc.addPage([pageSize, pageSize], 'portrait');
-            drawPageBorder();
-            cursorY = 22;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8.5);
-            doc.setTextColor(50, 50, 50);
-          }
-          doc.text(line, 20, cursorY);
-          cursorY += 4.3;
-        }
-      }
-    }
-
-    // 2. RENDER ARTWORKS (1 ARTWORK PER PAGE)
+    // Render Artworks (1 artwork per page)
     for (const art of artistInfo.artworks) {
       artworkCounter += 1;
-      doc.addPage([pageSize, pageSize], 'portrait');
-      drawPageBorder();
 
-      // Artwork Image Box (centered inside 186x186 framing)
-      const maxArtW = 168;
-      const maxArtH = 155;
-      const boxX = 21;
-      const boxY = 21;
+      if (!isFirstPageUsed) {
+        isFirstPageUsed = true;
+      } else {
+        doc.addPage([pageSize, pageSize], 'portrait');
+      }
+
+      // Artwork Image Box (Centered inside page)
+      const maxArtW = 170;
+      const maxArtH = 158;
+      const boxY = 22;
 
       if (art.imgData) {
         const ratio = Math.min(maxArtW / art.imgData.width, maxArtH / art.imgData.height);
@@ -486,47 +371,57 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
         const renderX = (pageSize - renderW) / 2;
         const renderY = boxY + (maxArtH - renderH) / 2;
 
-        doc.addImage(art.imgData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH);
+        doc.addImage(art.imgData.dataUrl, 'JPEG', renderX, renderY, renderW, renderH, undefined, 'FAST');
       }
 
-      // Artwork Caption at Bottom (Y ≈ 190mm)
+      // Artwork Caption at Bottom (Centered horizontally below the painting)
       const { inchPart, cmPart } = formatDimensionsString(art);
-      const titleStr = art.title || 'Untitled';
+      const titleStr = art.title || art.code || 'Untitled';
       const mediumStr = (art.medium_name || '').trim();
+      const priceStr = includePrice ? formatArtworkPrice(art, currency) : '';
 
       const parts = [];
-      if (isGroupShow && art.artist_name) {
-        parts.push(art.artist_name.trim());
-      }
       if (mediumStr) parts.push(mediumStr);
       if (inchPart) parts.push(inchPart);
       if (cmPart) parts.push(cmPart);
+      if (priceStr) parts.push(priceStr);
 
       const subCaption = parts.join(' | ');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(20, 20, 20);
-
-      // Measure title width to place separator and subcaption seamlessly
+      doc.setFontSize(10);
       const titleW = doc.getTextWidth(titleStr);
-      doc.text(titleStr, 22, 191);
+
+      let subW = 0;
+      if (subCaption) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        subW = doc.getTextWidth(` | ${subCaption}`);
+      }
+
+      const totalW = titleW + subW;
+      const startX = (pageSize - totalW) / 2;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(20, 20, 20);
+      doc.text(titleStr, startX, 192);
 
       if (subCaption) {
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(9.5);
         doc.setTextColor(70, 70, 70);
-        doc.text(` | ${subCaption}`, 22 + titleW, 191);
+        doc.text(` | ${subCaption}`, startX + titleW, 192);
       }
 
       // Page Number Badge (Bottom Right Corner: 01, 02...)
       const pageNumText = String(artworkCounter).padStart(2, '0');
       const badgeW = 10;
       const badgeH = 7.5;
-      const badgeX = pageSize - 12 - badgeW;
+      const badgeX = pageSize - 14 - badgeW;
       const badgeY = pageSize - 12 - badgeH;
 
-      doc.setFillColor(125, 133, 140); // #7d858c
+      doc.setFillColor(125, 133, 140);
       doc.rect(badgeX, badgeY, badgeW, badgeH, 'F');
 
       doc.setFont('helvetica', 'bold');
@@ -537,7 +432,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   }
 
   // =========================================================================
-  // FINAL PAGE: BACK COVER & LOCATION / CONTACT BANNER
+  // FINAL PAGE: BACK COVER & LOCATION / CONTACT BANNER (NO BORDER)
   // =========================================================================
   doc.addPage([pageSize, pageSize], 'portrait');
 
@@ -547,36 +442,6 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
     // Fallback: Mainframe Logo at top center
     drawMainframeLogo((pageSize - 36) / 2, 22, 36);
 
-    // Gallery Location Map Card (Rounded outline map container)
-    const mapBoxX = 22;
-    const mapBoxY = 66;
-    const mapBoxW = 166;
-    const mapBoxH = 92;
-
-    doc.setDrawColor(80, 80, 80);
-    doc.setLineWidth(0.35);
-    doc.roundedRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 3, 3);
-
-    // Clean vector road map illustration
-    doc.setDrawColor(120, 120, 120);
-    doc.setLineWidth(0.3);
-
-    // Roads
-    doc.line(mapBoxX + 38, mapBoxY, mapBoxX + 38, mapBoxY + mapBoxH);
-    doc.line(mapBoxX + 58, mapBoxY + 18, mapBoxX + 58, mapBoxY + mapBoxH);
-    doc.line(mapBoxX + 78, mapBoxY + 18, mapBoxX + 78, mapBoxY + mapBoxH);
-    doc.line(mapBoxX + 98, mapBoxY + 18, mapBoxX + 98, mapBoxY + mapBoxH);
-    doc.line(mapBoxX, mapBoxY + mapBoxH - 24, mapBoxX + mapBoxW, mapBoxY + mapBoxH - 24);
-
-    // Mainframe pinpoint box on map
-    doc.setFillColor(34, 140, 160);
-    doc.rect(mapBoxX + 58, mapBoxY + 30, 20, 24, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text('MAINFRAME', mapBoxX + 68, mapBoxY + 43, { align: 'center' });
-
-    // Bottom Gray Banner (#7d858c)
     const bannerH = 22;
     const bannerY = pageSize - bannerH;
 
@@ -591,6 +456,7 @@ export const generateCatalogPDF = async (exhibition, artworks, onProgress) => {
   }
 
   // Save PDF file
-  const cleanFilename = `Catalog - ${(exhibition.document_name || 'Exhibition').replace(/[^a-zA-Z0-9_-]/g, ' ')}.pdf`;
+  const priceSuffix = includePrice ? ' (With Prices)' : '';
+  const cleanFilename = `Catalogue - ${(exhibition.document_name || 'Art Gallery').replace(/[^a-zA-Z0-9_-]/g, ' ')}${priceSuffix}.pdf`;
   doc.save(cleanFilename);
 };
