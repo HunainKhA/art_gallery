@@ -190,7 +190,7 @@ export default function useGalleryState() {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Fetch artworks dynamically based on selectedCategory or searchQuery
+  // 2. Fetch artworks dynamically based on selectedCategory, searchQuery, or activeTab
   useEffect(() => {
     setLoadingArtworks(true);
     fetchArtworks({ search: searchQuery, category: selectedCategory })
@@ -203,6 +203,19 @@ export default function useGalleryState() {
         setError("Could not load artworks. Please check database connection.");
         setLoadingArtworks(false);
       });
+  }, [selectedCategory, searchQuery, activeTab]);
+
+  // Real-time window focus sync
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      fetchArtworks({ search: searchQuery, category: selectedCategory })
+        .then(data => {
+          if (data) setArtworks(data);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
   }, [selectedCategory, searchQuery]);
 
   // 3. Hash router listener
