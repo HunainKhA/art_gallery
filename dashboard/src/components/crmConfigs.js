@@ -151,7 +151,7 @@ export const LIST_COLUMNS = {
       key: 'price', 
       label: 'Price (PKR)', 
       format: (v, row) => {
-        const val = parseFloat(v) || parseFloat(row?.purchase_price) || parseFloat(row?.purchase_gallery_price) || parseFloat(row?.sale_gallery_price) || 0;
+        const val = parseFloat(v) || parseFloat(row?.purchase_price) || parseFloat(row?.purchase_gallery_price_c) || parseFloat(row?.sale_gallery_price_c) || parseFloat(row?.purchase_price_c) || parseFloat(row?.purchase_gallery_price) || parseFloat(row?.sale_gallery_price) || 0;
         return val > 0 ? `${val.toLocaleString()} PKR` : 'Inquiry';
       }
     },

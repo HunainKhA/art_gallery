@@ -171,20 +171,34 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         
         artworks = execute_query(query, tuple(params))
         for art in artworks:
-            try:
-                raw_p = str(art["price"]).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip() if art["price"] else "0"
-                art["price"] = float(raw_p) if raw_p else 0.0
-            except (ValueError, TypeError):
-                art["price"] = 0.0
+            candidates = [
+                art.get("price"),
+                art.get("sale_gallery_price_c"),
+                art.get("purchase_gallery_price_c"),
+                art.get("purchase_price_c"),
+                art.get("purchase_price"),
+                art.get("purchase_gallery_price"),
+                art.get("sale_gallery_price")
+            ]
+            final_price = 0.0
+            for cand in candidates:
+                if cand is not None:
+                    try:
+                        clean_val = str(cand).replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                        p_val = float(clean_val) if clean_val else 0.0
+                        if p_val > 0:
+                            final_price = p_val
+                            break
+                    except (ValueError, TypeError):
+                        pass
+            
+            art["price"] = final_price
             
             try:
-                raw_pur = str(art.get("purchase_price") or art.get("purchase_gallery_price") or art.get("sale_gallery_price") or "0").replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
+                raw_pur = str(art.get("purchase_price") or art.get("purchase_price_c") or art.get("purchase_gallery_price") or "0").replace(",", "").replace("$", "").replace("Rs.", "").replace("PKR", "").strip()
                 art["purchase_price"] = float(raw_pur) if raw_pur else 0.0
             except (ValueError, TypeError):
                 art["purchase_price"] = 0.0
-                
-            if art["price"] == 0.0 and art["purchase_price"] > 0:
-                art["price"] = art["purchase_price"]
                 
             art["deal_type"] = art["deal_type"] if art["deal_type"] else "Sale_Basis"
             
