@@ -63,18 +63,43 @@ def fix_all_duplicate_codes():
             rows = cursor.fetchall()
             print(f"Total active artworks found: {len(rows)}")
 
-            next_seq = 5007
-            print(f"Reassigning ALL {len(rows)} active artworks sequentially starting at {next_seq}...")
+            items_to_reindex = []
+            updates = []
 
             for r in rows:
                 code = (r.get("code_c") or r.get("document_name") or "").strip()
+                
                 orig_prefix = ""
+                num = None
                 if "-" in code:
-                    orig_prefix = code.rsplit("-", 1)[0].strip().upper()
+                    orig_prefix, num_str = code.rsplit("-", 1)
+                    orig_prefix = orig_prefix.strip().upper()
+                    if num_str.isdigit():
+                        num = int(num_str)
 
                 prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
-                new_code = f"{prefix}-{next_seq}"
-                updates.append((new_code, r["id"]))
+
+                # Historical items <= 5006 stay unchanged (unless prefix fix like ANO -> A.H needed)
+                if num and 100 <= num <= 5006:
+                    if orig_prefix != prefix:
+                        new_code = f"{prefix}-{num}"
+                        updates.append((new_code, r["id"]))
+                else:
+                    # All recent/6000s/unassigned items are collected for linear 5007+ re-indexing
+                    items_to_reindex.append({
+                        "id": r["id"],
+                        "prefix": prefix,
+                        "orig_code": code,
+                        "num": num
+                    })
+
+            # Re-index all recent/6000s items strictly sequentially starting at 5007
+            next_seq = 5007
+            print(f"Reassigning {len(items_to_reindex)} recent artworks sequentially starting at {next_seq}...")
+
+            for item in items_to_reindex:
+                new_code = f"{item['prefix']}-{next_seq}"
+                updates.append((new_code, item["id"]))
                 next_seq += 1
 
             print(f"Total artworks requiring update: {len(updates)}")

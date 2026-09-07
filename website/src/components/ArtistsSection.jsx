@@ -467,7 +467,6 @@ export default function ArtistsSection({
           {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
               {[...selectedArtist.artworks]
-                .filter(art => !isArchiveStatus(art.status))
                 .sort((a, b) => {
                   const aSold = isSoldStatus(a.status) ? 1 : 0;
                   const bSold = isSoldStatus(b.status) ? 1 : 0;
