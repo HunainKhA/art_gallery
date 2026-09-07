@@ -59,7 +59,10 @@ def fix_all_duplicate_codes():
             rows = cursor.fetchall()
             print(f"Total active artworks found: {len(rows)}")
 
-            parsed_items = []
+            legacy_assigned_numbers = set()
+            recent_items = []
+            updates = []
+            
             for r in rows:
                 code = (r.get("code_c") or r.get("document_name") or "").strip()
                 prefix = generate_artist_prefix(r["first_name"], r["last_name"])
@@ -70,43 +73,30 @@ def fix_all_duplicate_codes():
                     if num_str.isdigit():
                         num = int(num_str)
                 
-                parsed_items.append({
-                    "id": r["id"],
-                    "orig_code": code,
-                    "prefix": prefix,
-                    "num": num
-                })
-
-            assigned_numbers = set()
-            updates = []
-            items_to_reassign = []
-
-            # Pass 1: Retain valid historical codes ONLY in range 1000..5999.
-            # Any code >= 6000 (like 6135..6143) or < 1000 or duplicate belongs to the recent batch!
-            for item in parsed_items:
-                num = item["num"]
-                prefix = item["prefix"]
-                orig_code = item["orig_code"]
-                
-                if num and num >= 1000 and num < 6000 and num not in assigned_numbers:
-                    assigned_numbers.add(num)
-                    orig_prefix = orig_code.rsplit("-", 1)[0].upper() if "-" in orig_code else ""
+                # Fixed historical legacy codes (num <= 5006)
+                if num and num >= 100 and num <= 5006 and num not in legacy_assigned_numbers:
+                    legacy_assigned_numbers.add(num)
+                    orig_prefix = code.rsplit("-", 1)[0].upper() if "-" in code else ""
                     if orig_prefix != prefix.upper():
                         new_code = f"{prefix}-{num}"
-                        updates.append((new_code, item["id"]))
+                        updates.append((new_code, r["id"]))
                 else:
-                    items_to_reassign.append(item)
+                    recent_items.append({
+                        "id": r["id"],
+                        "prefix": prefix,
+                        "orig_code": code,
+                        "num": num
+                    })
 
-            # Pass 2: Reassign items starting strictly from 5009 upwards
-            next_seq = 5009
-            for item in items_to_reassign:
-                prefix = item["prefix"]
-                while next_seq in assigned_numbers:
+            # Re-index all recent items starting strictly at 5007 right after FAR-5006!
+            next_seq = 5007
+            for item in recent_items:
+                while next_seq in legacy_assigned_numbers:
                     next_seq += 1
                 
-                new_code = f"{prefix}-{next_seq}"
-                assigned_numbers.add(next_seq)
-                updates.append((new_code, item["id"]))
+                new_code = f"{item['prefix']}-{next_seq}"
+                if new_code != item["orig_code"]:
+                    updates.append((new_code, item["id"]))
                 next_seq += 1
 
             print(f"Total artworks requiring code/prefix update: {len(updates)}")
@@ -124,7 +114,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential 5009+ codes!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential 5007+ codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")

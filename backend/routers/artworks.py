@@ -528,7 +528,7 @@ def generate_next_code_for_artist(artist_id: str):
         
         val1 = (global_res1.get("max_val") if global_res1 else 0) or 0
         val2 = (global_res2.get("max_val") if global_res2 else 0) or 0
-        overall_max = max(val1, val2, 5008)
+        overall_max = max(val1, val2, 5006)
         
         next_num = overall_max + 1
         suggested_code = f"{code_prefix}-{next_num}"
