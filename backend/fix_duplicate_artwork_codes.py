@@ -122,11 +122,7 @@ def fix_all_duplicate_codes():
 
                 artist_full = f"{r.get('first_name') or ''} {r.get('last_name') or ''}".strip().upper()
 
-                is_recent = False
-                if num:
-                    if num in (5062, 5794, 5928, 5929, 5930, 5931, 5932, 5933, 5936) or (num >= 5645 and num <= 5685) or (num >= 5007 and num <= 5027):
-                        if any(k in artist_full for k in ['ANWAR MAQSOOD', 'ANWAR', 'MAQSOOD', 'GHULAM MUHAMMAD', 'GHULAM RASUL', 'AMNA FAISAL', 'JAMIL NAQSH', 'SHAHANA MASHKOOR', 'SHAHANA']):
-                            is_recent = True
+                is_recent = row_id not in id_to_doc
 
                 if is_recent:
                     r["prefix"] = prefix
