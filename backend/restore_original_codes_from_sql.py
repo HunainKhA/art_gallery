@@ -17,42 +17,47 @@ def parse_original_sql_codes():
         content = f.read()
 
     start_str = "INSERT INTO `art_collections` VALUES "
-    start_pos = content.find(start_str)
-    if start_pos == -1:
-        return {}
+    pos = 0
 
-    end_pos = content.find(";\n", start_pos)
-    if end_pos == -1:
-        end_pos = len(content)
+    while True:
+        start_pos = content.find(start_str, pos)
+        if start_pos == -1:
+            break
+        
+        end_pos = content.find(";\n", start_pos)
+        if end_pos == -1:
+            end_pos = len(content)
 
-    insert_block = content[start_pos + len(start_str):end_pos]
-    tuples = insert_block.split("),(")
+        insert_block = content[start_pos + len(start_str):end_pos]
+        tuples = insert_block.split("),(")
 
-    for t in tuples:
-        t_clean = t.lstrip("(").rstrip(")")
-        fields = []
-        in_quote = False
-        cur = []
-        i = 0
-        while i < len(t_clean):
-            c = t_clean[i]
-            if c == "'" and (i == 0 or t_clean[i-1] != "\\"):
-                in_quote = not in_quote
-            elif c == "," and not in_quote:
-                fields.append("".join(cur).strip().strip("'"))
-                cur = []
+        for t in tuples:
+            t_clean = t.lstrip("(").rstrip(")")
+            fields = []
+            in_quote = False
+            cur = []
+            i = 0
+            while i < len(t_clean):
+                c = t_clean[i]
+                if c == "'" and (i == 0 or t_clean[i-1] != "\\"):
+                    in_quote = not in_quote
+                elif c == "," and not in_quote:
+                    fields.append("".join(cur).strip().strip("'"))
+                    cur = []
+                    i += 1
+                    continue
+                cur.append(c)
                 i += 1
-                continue
-            cur.append(c)
-            i += 1
-        if cur:
-            fields.append("".join(cur).strip().strip("'"))
+            if cur:
+                fields.append("".join(cur).strip().strip("'"))
 
-        if len(fields) >= 9:
-            row_id = fields[0]
-            doc_name = fields[8]
-            if row_id and len(row_id) == 36 and doc_name:
-                id_to_doc[row_id] = doc_name
+            if len(fields) >= 9:
+                row_id = fields[0]
+                doc_name = fields[8]
+                if row_id and len(row_id) == 36 and doc_name:
+                    id_to_doc[row_id] = doc_name
+
+        pos = end_pos + 1
 
     return id_to_doc
 
