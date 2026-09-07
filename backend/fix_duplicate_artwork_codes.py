@@ -57,6 +57,7 @@ def fix_all_duplicate_codes():
             rows = cursor.fetchall()
             print(f"Total active artworks found: {len(rows)}")
 
+            items_to_reindex = []
             updates = []
 
             for r in rows:
@@ -70,19 +71,27 @@ def fix_all_duplicate_codes():
                         num = int(num_str)
 
                 prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
+                r["prefix"] = prefix
+                r["num"] = num
 
-                # Any 6000s series code (e.g. 6136, 6137, 6148, 6156) is converted directly to 5007+ series!
-                if num and num >= 5500:
-                    new_num = num - 1129
-                    if new_num < 5007:
-                        new_num = 5007
-                    new_code = f"{prefix}-{new_num}"
-                    updates.append((new_code, r["id"]))
+                # Any artwork with num > 5006 or num in 5500/6000s range is re-indexed starting cleanly from 5007!
+                if num and num > 5006:
+                    items_to_reindex.append(r)
                 elif orig_prefix and orig_prefix != prefix and num:
                     new_code = f"{prefix}-{num}"
                     updates.append((new_code, r["id"]))
 
-            print(f"Total artworks being updated from 6000s to 5007+ range: {len(updates)}")
+            # Sort recent items by original numeric order
+            items_to_reindex.sort(key=lambda x: x["num"] if x["num"] is not None else 999999)
+
+            next_seq = 5007
+            for item in items_to_reindex:
+                new_code = f"{item['prefix']}-{next_seq}"
+                updates.append((new_code, item["id"]))
+                next_seq += 1
+
+            print(f"Total artworks updated: {len(updates)}")
+            print(f"Max clean code assigned: {next_seq - 1}")
             
             for new_code, row_id in updates:
                 cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, row_id))
@@ -94,7 +103,7 @@ def fix_all_duplicate_codes():
                     cursor.execute("INSERT INTO art_collections_cstm (id_c, code_c) VALUES (%s, %s);", (row_id, new_code))
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {len(updates)} artworks to 5007+ series!")
+            print(f"SUCCESSFULLY updated {len(updates)} artworks!")
             return len(updates)
     except Exception as e:
         conn.rollback()
