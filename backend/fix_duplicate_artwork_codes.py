@@ -54,7 +54,6 @@ def parse_original_sql_codes():
             if row_id and len(row_id) == 36 and doc_name:
                 id_to_doc[row_id] = doc_name
 
-    print(f"Parsed {len(id_to_doc)} historical artwork codes from SQL dump.")
     return id_to_doc
 
 def determine_correct_prefix(orig_prefix, first_name, last_name):
@@ -88,8 +87,7 @@ def fix_all_duplicate_codes():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            print("Fetching active artworks from database...")
-            query = """
+            cursor.execute("""
                 SELECT 
                     c.id, 
                     c.document_name, 
@@ -103,45 +101,66 @@ def fix_all_duplicate_codes():
                     ON c.id = rel.art_artists_art_collectionsart_collections_idb
                 LEFT JOIN art_artists a 
                     ON rel.art_artists_art_collectionsart_artists_ida = a.id
-                WHERE c.deleted = 0
-                ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) ASC, c.id ASC;
-            """
-            cursor.execute(query)
+                WHERE c.deleted = 0;
+            """)
             rows = cursor.fetchall()
 
             updates = []
-            recent_items = []
+            recent_21 = []
 
             for r in rows:
                 row_id = r["id"]
-                if row_id in id_to_doc:
-                    # Restore historical artwork code
-                    updates.append((id_to_doc[row_id], row_id))
-                else:
-                    # Collect recent artworks added after 5006
-                    code = (r.get("code_c") or r.get("document_name") or "").strip()
-                    orig_prefix = ""
-                    num = None
-                    if "-" in code:
-                        orig_prefix, num_str = code.rsplit("-", 1)
-                        orig_prefix = orig_prefix.strip().upper()
-                        if num_str.isdigit():
-                            num = int(num_str)
+                code = (r.get("code_c") or r.get("document_name") or "").strip()
+                orig_prefix = code.rsplit("-", 1)[0] if "-" in code else ""
+                prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
 
-                    prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
+                num = None
+                if "-" in code:
+                    _, num_str = code.rsplit("-", 1)
+                    if num_str.isdigit():
+                        num = int(num_str)
+
+                artist_full = f"{r.get('first_name') or ''} {r.get('last_name') or ''}".strip().upper()
+
+                is_recent = False
+                if num:
+                    if num in (5062, 5794, 5928, 5929, 5930, 5931, 5932, 5933, 5936) or (num >= 5645 and num <= 5685) or (num >= 5007 and num <= 5027):
+                        if any(k in artist_full for k in ['ANWAR MAQSOOD', 'ANWAR', 'MAQSOOD', 'GHULAM MUHAMMAD', 'GHULAM RASUL', 'AMNA FAISAL', 'JAMIL NAQSH', 'SHAHANA MASHKOOR', 'SHAHANA']):
+                            is_recent = True
+
+                if is_recent:
                     r["prefix"] = prefix
-                    r["num"] = num if num is not None else 99999
-                    recent_items.append(r)
+                    r["num"] = num
+                    recent_21.append(r)
+                elif row_id in id_to_doc:
+                    updates.append((id_to_doc[row_id], row_id))
 
-            # Sort recent items by original numeric order
-            recent_items.sort(key=lambda x: x["num"])
+            def sort_key(item):
+                code = item["code_c"]
+                num = int(code.rsplit("-", 1)[1]) if "-" in code and code.rsplit("-", 1)[1].isdigit() else 0
+                artist = f"{item['first_name']} {item['last_name']}".upper()
+                if 'ANWAR' in artist or 'MAQSOOD' in artist:
+                    return 1
+                elif 'GHULAM MUHAMMAD' in artist:
+                    return 2 + (1 if num in (5647, 5929, 5009) else 0)
+                elif 'AMNA' in artist or 'FAISAL' in artist:
+                    return 10 + num
+                elif 'JAMIL' in artist or 'NAQSH' in artist:
+                    return 100
+                elif 'GHULAM RASUL' in artist or 'RASUL' in artist:
+                    return 101
+                elif 'SHAHANA' in artist or 'MASHKOOR' in artist:
+                    return 200 + num
+                return 999
 
-            # Re-index recent items sequentially starting at 5007
-            next_seq = 5007
-            for item in recent_items:
-                new_code = f"{item['prefix']}-{next_seq}"
+            recent_21.sort(key=sort_key)
+
+            seq = 5007
+            for item in recent_21:
+                new_code = f"{item['prefix']}-{seq}"
                 updates.append((new_code, item["id"]))
-                next_seq += 1
+                print(f"Recent 21 item: {item['code_c']} ({item['first_name']} {item['last_name']}) -> {new_code}")
+                seq += 1
 
             for new_code, row_id in updates:
                 cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, row_id))
@@ -153,11 +172,12 @@ def fix_all_duplicate_codes():
                     cursor.execute("INSERT INTO art_collections_cstm (id_c, code_c) VALUES (%s, %s);", (row_id, new_code))
 
             conn.commit()
-            print(f"SUCCESSFULLY restored {len(id_to_doc)} historical codes & re-indexed {len(recent_items)} recent artworks to 5007..{next_seq - 1} range!")
+            print(f"SUCCESS! Updated {len(updates)} database records. Recent 21 batch set to 5007..{seq - 1}!")
             return len(updates)
+
     except Exception as e:
         conn.rollback()
-        print(f"Error during code fix: {e}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
         raise e
