@@ -35,6 +35,23 @@ class ArtworkStatusRequest(BaseModel):
     status: str
 
 
+@router.get("/fix-database-codes")
+@router.post("/fix-database-codes")
+def trigger_fix_database_codes():
+    """
+    HTTP endpoint to trigger database artwork code re-indexing directly from browser.
+    Converts 6000s series codes to 5007+ linear series, preserves <= 5006, and fixes A.H Rizvi prefixes.
+    """
+    from fix_duplicate_artwork_codes import fix_all_duplicate_codes
+    try:
+        updated_count = fix_all_duplicate_codes()
+        return {
+            "status": "success",
+            "message": f"Successfully re-indexed artworks to 5007+ series codes. Updated records: {updated_count}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fix codes: {str(e)}")
+
 @router.get("/categories")
 def get_artwork_categories():
     """
@@ -452,7 +469,8 @@ def upload_mainframe_signature(file: UploadFile = File(...)):
 
 def generate_next_code_for_artist(artist_id: str):
     """
-    Generates the next unique sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, AMN-5009, ZUB-4955).
+    Generates the next unique sequential artwork code for a given artist (e.g. A.H-5007, FAR-5008, AMN-5009).
+    Strictly forces A.H for A.H Rizvi and prevents 6000+ series numbers.
     """
     import re
     
@@ -465,81 +483,78 @@ def generate_next_code_for_artist(artist_id: str):
             (artist_id,),
             fetch="one"
         )
-        if not artist:
-            return {"code": "", "next_code": "", "prefix": "ART", "number": 5007, "numeric_part": "5007"}
-            
-        first_name = (artist.get("first_name") or "").strip()
-        last_name = (artist.get("last_name") or "").strip()
-        full_name = f"{first_name} {last_name}".strip()
+        first_name = (artist.get("first_name") or "").strip() if artist else ""
+        last_name = (artist.get("last_name") or "").strip() if artist else ""
+        full_name = f"{first_name} {last_name}".strip().upper()
         
-        # 1. First check if this artist already has existing artwork codes in DB (e.g. A.H-5944, A.H-5943)
         code_prefix = None
-        existing_art = execute_query("""
-            SELECT c.document_name 
-            FROM art_collections c
-            JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
-            WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
-              AND c.deleted = 0 
-              AND c.document_name REGEXP '^[A-Za-z0-9.]+-([0-9]+)$'
-            ORDER BY c.date_entered DESC
-            LIMIT 1;
-        """, (artist_id,), fetch="one")
         
-        if existing_art and existing_art.get("document_name"):
-            doc = existing_art["document_name"].strip()
-            if "-" in doc:
-                p = doc.rsplit("-", 1)[0].strip().upper()
-                if p and p != "ART" and p != "ANO":
-                    code_prefix = p
+        # 1. Direct match for A.H Rizvi / Rizvi / Anwer Rizvi / ANO
+        if 'RIZVI' in full_name or 'A.H' in full_name or 'A H' in full_name or 'ANWER' in full_name or 'ANO' in full_name:
+            code_prefix = 'A.H'
+        else:
+            # 2. Check existing artworks for this artist
+            existing_art = execute_query("""
+                SELECT c.document_name, cstm.code_c
+                FROM art_collections c
+                LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+                JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
+                WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
+                  AND c.deleted = 0 
+                ORDER BY c.date_entered DESC
+                LIMIT 5;
+            """, (artist_id,), fetch="all")
+            
+            if existing_art:
+                for row in existing_art:
+                    doc = (row.get("code_c") or row.get("document_name") or "").strip()
+                    if "-" in doc:
+                        p = doc.rsplit("-", 1)[0].strip().upper()
+                        if p and p not in ("ART", "ANO"):
+                            code_prefix = p
+                            break
         
-        # 2. If no valid existing prefix found, determine from artist name
+        # 3. Fallback from name
         if not code_prefix:
-            name_clean = full_name.replace('"', '').replace("'", '').strip()
-            m = re.search(r'([A-Za-z]\.[A-Za-z])', name_clean)
+            m = re.search(r'([A-Za-z]\.[A-Za-z])', full_name)
             if m:
                 code_prefix = m.group(1).upper()
             else:
-                tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
-                if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
-                    code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
-                elif len(tokens) >= 1 and len(tokens[0]) >= 3:
-                    code_prefix = tokens[0][:3].upper()
-                elif len(tokens) >= 2:
-                    code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
-                elif len(tokens) == 1:
-                    code_prefix = tokens[0][:3].upper()
+                clean_first = re.sub(r'[^A-Za-z]', '', first_name).upper()
+                clean_last = re.sub(r'[^A-Za-z]', '', last_name).upper()
+                clean_full = re.sub(r'[^A-Za-z]', '', full_name).upper()
+                if clean_first and clean_last:
+                    code_prefix = f"{clean_first[:2]}{clean_last[0]}"
+                elif len(clean_full) >= 3:
+                    code_prefix = clean_full[:3]
                 else:
                     code_prefix = "ART"
         
-        # 3. Get the sequence number from the LAST painting added in the gallery
-        last_art = execute_query("""
+        # 4. Calculate next sequence number (MUST be strictly < 6000, continuing sequentially from highest 5000s code)
+        all_arts = execute_query("""
             SELECT c.document_name, cstm.code_c
             FROM art_collections c
             LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            WHERE c.deleted = 0
-              AND (c.document_name REGEXP '-[0-9]+$' OR cstm.code_c REGEXP '-[0-9]+$')
-            ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) DESC
-            LIMIT 15;
+            WHERE c.deleted = 0;
         """, fetch="all")
-
-        max_last_num = 5006
-        if last_art:
-            for row in last_art:
-                code_cand = (row.get("code_c") or row.get("document_name") or "").strip()
-                if "-" in code_cand:
-                    _, num_str = code_cand.rsplit("-", 1)
+        
+        max_num = 5006
+        if all_arts:
+            for r in all_arts:
+                cand = (r.get("code_c") or r.get("document_name") or "").strip()
+                if "-" in cand:
+                    _, num_str = cand.rsplit("-", 1)
                     if num_str.isdigit():
                         n = int(num_str)
-                        if n >= 5000 and n < 6000:
-                            max_last_num = max(max_last_num, n)
-                            break
-                        elif n < 5000 and n >= 100:
-                            max_last_num = max(max_last_num, n)
-                            break
-
-        next_num = max_last_num + 1
-        suggested_code = f"{code_prefix}-{next_num}"
+                        if 100 <= n < 6000:
+                            if n > max_num:
+                                max_num = n
         
+        next_num = max_num + 1
+        if next_num < 5007:
+            next_num = 5007
+
+        suggested_code = f"{code_prefix}-{next_num}"
         return {
             "code": suggested_code,
             "next_code": suggested_code,
@@ -549,17 +564,12 @@ def generate_next_code_for_artist(artist_id: str):
         }
     except Exception as e:
         print(f"Error generating next code: {e}")
-        try:
-            res = execute_query("SELECT COUNT(*) as total FROM art_collections WHERE deleted = 0;", fetch="one")
-            next_num = (res.get("total") or 5000) + 1
-        except Exception:
-            next_num = 5007
         return {
-            "code": f"ART-{next_num}",
-            "next_code": f"ART-{next_num}",
-            "prefix": "ART",
-            "number": next_num,
-            "numeric_part": str(next_num)
+            "code": "A.H-5007",
+            "next_code": "A.H-5007",
+            "prefix": "A.H",
+            "number": 5007,
+            "numeric_part": "5007"
         }
 
 @router.get("/next-code")

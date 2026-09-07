@@ -124,6 +124,7 @@ def fix_all_duplicate_codes():
 
             conn.commit()
             print(f"SUCCESSFULLY updated {updated_count} artworks to 5000s series sequential codes!")
+            return updated_count
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")
