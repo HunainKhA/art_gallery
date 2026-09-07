@@ -547,8 +547,9 @@ def generate_next_code_for_artist(artist_id: str):
                     _, num_str = cand.rsplit("-", 1)
                     if num_str.isdigit():
                         n = int(num_str)
-                        if n > max_num:
-                            max_num = n
+                        if 100 <= n < 6000:
+                            if n > max_num:
+                                max_num = n
         
         next_num = max_num + 1
         if next_num < 5007:
