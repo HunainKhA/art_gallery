@@ -37,6 +37,7 @@ class ArtworkStatusRequest(BaseModel):
 
 @router.get("/fix-database-codes")
 @router.post("/fix-database-codes")
+@router.get("/fix-db-codes-now")
 def trigger_fix_database_codes():
     """
     HTTP endpoint to trigger database artwork code re-indexing directly from browser.
