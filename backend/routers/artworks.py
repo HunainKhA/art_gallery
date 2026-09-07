@@ -595,8 +595,8 @@ def get_artwork_by_id(artwork_id: str):
             cstm.with_frame_c AS with_frame,
             cstm.frame_charges_c AS frame_charges,
             CASE 
-                WHEN cstm.code_c IS NOT NULL AND cstm.code_c LIKE '%-%' THEN cstm.code_c
-                WHEN c.document_name IS NOT NULL AND c.document_name LIKE '%-%' THEN c.document_name
+                WHEN cstm.code_c IS NOT NULL AND cstm.code_c LIKE '%%-%%' THEN cstm.code_c
+                WHEN c.document_name IS NOT NULL AND c.document_name LIKE '%%-%%' THEN c.document_name
                 ELSE COALESCE(NULLIF(cstm.code_c, ''), c.document_name, '')
             END AS code,
             cstm.authenticity_letter_field_c AS authenticity_letter,
