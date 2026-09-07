@@ -266,7 +266,7 @@ export default function CollectionsSection({
                         paddingTop: '0.85rem'
                       }}>
                         {isSoldStatus(art.status) ? (
-                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
                             Sold
                           </span>
                         ) : (
@@ -621,7 +621,7 @@ export default function CollectionsSection({
                       paddingTop: '0.85rem'
                     }}>
                       {isSoldStatus(art.status) ? (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
                           Sold
                         </span>
                       ) : (
@@ -632,16 +632,8 @@ export default function CollectionsSection({
                               fontSize: '12px', 
                               color: 'var(--text-primary)', 
                               fontWeight: 400, 
-                              fontFamily: 'Montserrat, sans-serif',
-                              cursor: (!websiteSettings?.hide_prices && !guestSession) ? 'pointer' : 'default'
+                              fontFamily: 'Montserrat, sans-serif'
                             }}
-                            onClick={(e) => {
-                              if (!websiteSettings?.hide_prices && !guestSession && setIsGuestModalOpen) {
-                                e.stopPropagation();
-                                setIsGuestModalOpen(true);
-                              }
-                            }}
-                            title={(!websiteSettings?.hide_prices && !guestSession) ? "Click to login & view price" : ""}
                           >
                             {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) 
                               ? formatPrice(art.price, currency, exchangeRates) 

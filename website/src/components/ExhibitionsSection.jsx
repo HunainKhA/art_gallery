@@ -1280,13 +1280,15 @@ export default function ExhibitionsSection({
                           paddingTop: '0.85rem'
                         }}>
                           {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif' }}>
+                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
                               Sold
                             </span>
                           ) : (
                             <>
                               <span className="status-inquiry" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>
-                                Inquiry
+                                {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
+                                  ? formatPrice(art.price, currency, exchangeRates)
+                                  : 'Inquiry'}
                               </span>
                               <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
                                 Available

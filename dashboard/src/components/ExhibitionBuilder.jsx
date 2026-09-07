@@ -157,8 +157,8 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
   };
 
   // Filter artworks: New Work vs Old/Exhibited Work
-  const newArtworks = artworks.filter(art => art.is_exhibited);
-  const oldArtworks = artworks.filter(art => !art.is_exhibited);
+  const newArtworks = artworks.filter(art => !art.is_exhibited);
+  const oldArtworks = artworks.filter(art => art.is_exhibited);
 
   const [uploadingGuests, setUploadingGuests] = useState(false);
 
@@ -836,8 +836,8 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
                               gap: '0.6rem',
                               padding: '0.5rem',
                               borderRadius: '6px',
-                              border: `1px solid ${isChecked ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)'}`,
-                              background: isChecked ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255,255,255,0.01)',
+                              border: `1px solid ${isChecked ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+                              background: isChecked ? 'rgba(212, 175, 55, 0.08)' : 'rgba(255,255,255,0.01)',
                               cursor: 'pointer',
                               transition: 'all 0.2s',
                               userSelect: 'none'
@@ -856,7 +856,7 @@ export default function ExhibitionBuilder({ editRecord = null, onCancel, onSucce
                             </div>
                             <span style={{
                               fontSize: '0.8rem',
-                              color: isChecked ? '#fff' : 'var(--text-secondary)',
+                              color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
                               fontWeight: isChecked ? 600 : 400,
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',

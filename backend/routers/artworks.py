@@ -375,44 +375,68 @@ def upload_mainframe_signature(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save signature: {str(e)}")
 
-@router.get("/next-code")
-def get_next_artwork_code(artist_id: str):
+def generate_next_code_for_artist(artist_id: str):
     """
-    Generates the next sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, ZUB-4955).
+    Generates the next unique sequential artwork code for a given artist (e.g. A.Q-4868, FAR-5007, AMN-5009, ZUB-4955).
     """
     import re
     
     if not artist_id:
-        return {"code": ""}
+        return {"code": "", "next_code": "", "prefix": "ART", "number": 5007, "numeric_part": "5007"}
         
     try:
         artist = execute_query(
-            "SELECT id, first_name, last_name, name FROM art_artists WHERE id = %s AND deleted = 0;",
+            "SELECT id, first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0;",
             (artist_id,),
             fetch="one"
         )
         if not artist:
-            return {"code": ""}
+            return {"code": "", "next_code": "", "prefix": "ART", "number": 5007, "numeric_part": "5007"}
             
-        full_name = (artist.get("name") or f"{artist.get('first_name') or ''} {artist.get('last_name') or ''}").strip()
+        first_name = (artist.get("first_name") or "").strip()
+        last_name = (artist.get("last_name") or "").strip()
+        full_name = f"{first_name} {last_name}".strip()
         
-        # 1. Determine artist code prefix
-        name_clean = full_name.replace('"', '').replace("'", '').strip()
-        m = re.match(r'^([A-Za-z]\.[A-Za-z])', name_clean)
-        if m:
-            code_prefix = m.group(1).upper()
-        else:
-            tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
-            if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
-                code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
-            elif len(tokens) >= 1 and len(tokens[0]) >= 3:
-                code_prefix = tokens[0][:3].upper()
-            elif len(tokens) >= 2:
-                code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
+        # 1. First check if this artist already has existing artwork codes in DB to match prefix
+        code_prefix = None
+        existing_art = execute_query("""
+            SELECT c.document_name 
+            FROM art_collections c
+            JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
+            WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
+              AND c.deleted = 0 
+              AND c.document_name REGEXP '^[A-Za-z0-9.]+-([0-9]+)$'
+            ORDER BY c.date_entered DESC
+            LIMIT 1;
+        """, (artist_id,), fetch="one")
+        
+        if existing_art and existing_art.get("document_name"):
+            doc = existing_art["document_name"].strip()
+            if "-" in doc:
+                p = doc.rsplit("-", 1)[0].strip().upper()
+                if p and p != "ART":
+                    code_prefix = p
+        
+        # 2. If not found from existing artworks, determine prefix from artist name
+        if not code_prefix:
+            name_clean = full_name.replace('"', '').replace("'", '').strip()
+            m = re.match(r'^([A-Za-z]\.[A-Za-z])', name_clean)
+            if m:
+                code_prefix = m.group(1).upper()
             else:
-                code_prefix = "ART"
+                tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
+                if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
+                    code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
+                elif len(tokens) >= 1 and len(tokens[0]) >= 3:
+                    code_prefix = tokens[0][:3].upper()
+                elif len(tokens) >= 2:
+                    code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
+                elif len(tokens) == 1:
+                    code_prefix = tokens[0][:3].upper()
+                else:
+                    code_prefix = "ART"
         
-        # 2. Get global highest artwork sequence number across entire gallery
+        # 3. Get global highest artwork sequence number across entire gallery
         global_res1 = execute_query("""
             SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_val
             FROM art_collections_cstm cstm
@@ -428,15 +452,36 @@ def get_next_artwork_code(artist_id: str):
         
         val1 = (global_res1.get("max_val") if global_res1 else 0) or 0
         val2 = (global_res2.get("max_val") if global_res2 else 0) or 0
-        overall_max = max(val1, val2, 5008)
+        overall_max = max(val1, val2, 5006)
         
         next_num = overall_max + 1
-            
         suggested_code = f"{code_prefix}-{next_num}"
-        return {"code": suggested_code, "prefix": code_prefix, "number": next_num}
+        
+        return {
+            "code": suggested_code,
+            "next_code": suggested_code,
+            "prefix": code_prefix,
+            "number": next_num,
+            "numeric_part": str(next_num)
+        }
     except Exception as e:
         print(f"Error generating next code: {e}")
-        return {"code": f"ART-5009", "prefix": "ART", "number": 5009}
+        try:
+            res = execute_query("SELECT COUNT(*) as total FROM art_collections WHERE deleted = 0;", fetch="one")
+            next_num = (res.get("total") or 5000) + 1
+        except Exception:
+            next_num = 5007
+        return {
+            "code": f"ART-{next_num}",
+            "next_code": f"ART-{next_num}",
+            "prefix": "ART",
+            "number": next_num,
+            "numeric_part": str(next_num)
+        }
+
+@router.get("/next-code")
+def get_next_artwork_code(artist_id: str = ""):
+    return generate_next_code_for_artist(artist_id)
 
 @router.get("/{artwork_id}")
 def get_artwork_by_id(artwork_id: str):
@@ -675,24 +720,24 @@ def create_artwork(data: ArtworkRequest):
     
     # Auto-ensure unique sequential artwork code
     code_val = (data.code or '').strip()
-    if not code_val or "ART-" in code_val or "-5008" in code_val or code_val == "2":
-        if data.artist_id:
-            auto_code = get_next_artwork_code(data.artist_id).get("code")
-            if auto_code:
-                code_val = auto_code
-    if not code_val:
-        code_val = f"ART-{int(now.replace('-', '').replace(':', '').replace(' ', '')[-6:])}"
+    
+    # Check if code already exists in DB
+    existing_code = None
+    if code_val:
+        existing_code = execute_query("""
+            SELECT c.id FROM art_collections c
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE c.deleted = 0 AND (c.document_name = %s OR cstm.code_c = %s);
+        """, (code_val, code_val), fetch="one")
 
-    # Verify database uniqueness against both document_name and code_c
-    existing_code = execute_query("""
-        SELECT c.id FROM art_collections c
-        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        WHERE c.deleted = 0 AND (c.document_name = %s OR cstm.code_c = %s);
-    """, (code_val, code_val), fetch="one")
-    if existing_code and data.artist_id:
-        auto_code = get_next_artwork_code(data.artist_id).get("code")
-        if auto_code:
-            code_val = auto_code
+    # If code is empty, generic placeholder (ART-..., auto, 2), or ALREADY exists in DB:
+    if not code_val or code_val.startswith("ART-") or code_val in ("2", "auto") or existing_code:
+        if data.artist_id:
+            auto_code_info = generate_next_code_for_artist(data.artist_id)
+            if auto_code_info and auto_code_info.get("code"):
+                code_val = auto_code_info["code"]
+        if not code_val:
+            code_val = f"ART-{int(now.replace('-', '').replace(':', '').replace(' ', '')[-6:])}"
 
     title_val = code_val
     
@@ -2018,8 +2063,10 @@ def get_artwork_tag(artwork_id: str):
         else:
             price_formatted = ""
 
-        # Safe file name using painting title
-        file_base_name = (title or "Artwork").replace("'", "").replace('"', "").replace('/', '-').replace('\\', '-').strip()
+        # Safe file name using painting title or code
+        artwork_code = (artwork.get("code") or title or "").strip()
+        show_code = bool(artwork_code and artwork_code.lower() != "untitled")
+        file_base_name = (artwork_code or title or "Artwork").replace("'", "").replace('"', "").replace('/', '-').replace('\\', '-').strip()
         show_title = bool(title and title.lower() != "untitled")
 
         # HTML template
@@ -2455,7 +2502,7 @@ def get_artwork_tag(artwork_id: str):
                     <div class="right-col" id="rightCol">
                         <div class="details-container">
                             <div class="detail-line"><span class="detail-label">Artist Name:</span> <span class="detail-value">{artist}</span></div>
-                            {f'<div class="detail-line"><span class="detail-label">Title:</span> <span class="detail-value">{title}</span></div>' if show_title else ''}
+                            {f'<div class="detail-line"><span class="detail-label">Code:</span> <span class="detail-value">{artwork_code}</span></div>' if show_code else ''}
                             <div class="detail-line"><span class="detail-label">Medium:</span> <span class="detail-value">{medium}</span></div>
                             <div class="detail-line"><span class="detail-label">Size:</span> <span class="detail-value">{dimensions}</span></div>
                             {f'<div class="detail-line price-line"><span class="detail-label">Price:</span> <span class="detail-value">{price_formatted}</span></div>' if price_formatted else ''}
@@ -2471,70 +2518,11 @@ def get_artwork_tag(artwork_id: str):
         raise HTTPException(status_code=500, detail=f"Database or rendering error: {str(e)}")
 
 @router.get("/next-code/{artist_id}")
-def get_next_artwork_code(artist_id: str):
+def get_next_artwork_code_by_path(artist_id: str):
     """
     Calculates and returns the next sequential code for an artist.
     """
-    import re
-    from collections import Counter
-    
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            # 1. Fetch artist details
-            cursor.execute("SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0", (artist_id,))
-            artist = cursor.fetchone()
-            if not artist:
-                raise HTTPException(status_code=404, detail="Artist not found")
-                
-            first_name = artist.get("first_name") or ""
-            last_name = artist.get("last_name") or ""
-            full_name = f"{first_name} {last_name}".strip()
-            
-            # 2. Fetch existing artwork titles
-            cursor.execute("""
-                SELECT c.document_name 
-                FROM art_collections c
-                JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
-                WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
-                  AND c.deleted = 0 
-                  AND c.document_name LIKE '%%-%%'
-            """, (artist_id,))
-            
-            titles = [row["document_name"] for row in cursor.fetchall()]
-            
-            # 3. Parse existing titles
-            prefix_numbers = []
-            for t in titles:
-                match = re.match(r"^(.+?)-(\d+)$", t.strip())
-                if match:
-                    prefix = match.group(1)
-                    num = int(match.group(2))
-                    prefix_numbers.append((prefix, num))
-            
-            if prefix_numbers:
-                prefixes = [p[0] for p in prefix_numbers]
-                best_prefix = Counter(prefixes).most_common(1)[0][0]
-                max_num = max(num for p, num in prefix_numbers if p == best_prefix)
-                next_num = max_num + 1
-                next_code = f"{best_prefix}-{next_num}"
-                return {"next_code": next_code, "numeric_part": str(next_num)}
-                
-            # 4. Generate new prefix from name
-            cleaned_name = re.sub(r'[^a-zA-Z\s]', '', full_name)
-            parts = [p.strip() for p in cleaned_name.split() if p.strip()]
-            if len(parts) >= 2:
-                prefix = ".".join([p[0].upper() for p in parts[:3]])
-            elif len(parts) == 1:
-                prefix = parts[0][:3].upper()
-            else:
-                prefix = "ART"
-                
-            return {"next_code": f"{prefix}-101", "numeric_part": "101"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    finally:
-        connection.close()
+    return generate_next_code_for_artist(artist_id)
 
 
 class InquiryCreate(BaseModel):
@@ -2638,16 +2626,21 @@ def submit_artwork_inquiry(data: InquiryCreate):
     finally:
         connection.close()
 
-    # 5. Send SMTP email notification (try-except block so frontend always gets success if DB store works)
-    # Construct email body
-    email_body = f"""New Inquiry Received from Gallery Website:
+    # 5. Send SMTP email notification
+    from email.mime.multipart import MIMEMultipart
+    from config import Config
+
+    to_email = Config.INQUIRY_RECIPIENT_EMAIL or "mainframethegallery@gmail.com"
+    from_email = Config.SMTP_FROM_EMAIL or Config.SMTP_USER or "mainframethegallery@gmail.com"
+    subject = f"Website Inquiry: {artwork['title']} (Code: {artwork['code'] or 'N/A'}) - {data.name}"
+
+    email_body_text = f"""New Inquiry Received from Gallery Website:
 
 Artwork Details:
 ----------------
 Title: {artwork['title']}
 Code: {artwork['code'] or 'N/A'}
 Artist: {artwork['artist_name'] or 'N/A'}
-Image Link: http://localhost:8000/api/artworks/image/{artwork['id']}
 
 Customer Details:
 -----------------
@@ -2663,23 +2656,84 @@ Customer Message:
 -----------------
 {data.message}
 """
-    
-    to_email = "mainframethegallery@gmail.com"
-    subject = f"Website Inquiry: {artwork['title']} (Code: {artwork['code'] or 'N/A'})"
-    
-    msg = MIMEText(email_body, 'plain', 'utf-8')
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; border-bottom: 2px solid #d4af37; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="color: #1a202c; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 1px;">MAINFRAME THE GALLERY</h2>
+            <p style="color: #d4af37; margin: 5px 0 0 0; font-size: 13px; font-weight: 600; text-transform: uppercase;">New Artwork Inquiry Notification</p>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: #d4af37; margin-top: 0; margin-bottom: 10px; font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Artwork Details</h3>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr><td style="padding: 4px 0; color: #64748b; width: 100px;">Title:</td><td style="padding: 4px 0; font-weight: 600; color: #1e293b;">{artwork['title']}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Code:</td><td style="padding: 4px 0; font-weight: 600; color: #d4af37;">{artwork['code'] or 'N/A'}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Artist:</td><td style="padding: 4px 0; font-weight: 600; color: #1e293b;">{artwork['artist_name'] or 'N/A'}</td></tr>
+            </table>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: #1e293b; margin-top: 0; margin-bottom: 10px; font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Customer Details</h3>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr><td style="padding: 4px 0; color: #64748b; width: 100px;">Name:</td><td style="padding: 4px 0; font-weight: 600; color: #1e293b;">{data.name}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Email:</td><td style="padding: 4px 0; font-weight: 600; color: #2563eb;"><a href="mailto:{data.email}" style="color: #2563eb; text-decoration: none;">{data.email}</a></td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Mobile:</td><td style="padding: 4px 0; font-weight: 600; color: #1e293b;"><a href="tel:{data.mobile}" style="color: #1e293b; text-decoration: none;">{data.mobile}</a></td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Phone:</td><td style="padding: 4px 0; color: #1e293b;">{data.phone or 'N/A'}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Location:</td><td style="padding: 4px 0; color: #1e293b;">{data.city or ''} {data.country or ''}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Address:</td><td style="padding: 4px 0; color: #1e293b;">{data.address or 'N/A'}</td></tr>
+            </table>
+        </div>
+
+        <div style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: #854d0e; margin-top: 0; margin-bottom: 8px; font-size: 14px;">Customer Message / Special Request:</h3>
+            <p style="margin: 0; font-size: 14px; color: #713f12; line-height: 1.5; white-space: pre-wrap;">{data.message or 'No additional notes provided.'}</p>
+        </div>
+
+        <div style="text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+            This inquiry was automatically submitted via <a href="https://mainframethegallery.com" style="color: #d4af37; text-decoration: none;">mainframethegallery.com</a> and recorded in SugarCRM.
+        </div>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
     msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = "info@mainframethegallery.com"
+    msg['From'] = from_email
     msg['To'] = to_email
-    
+    if data.email:
+        msg['Reply-To'] = data.email
+
+    msg.attach(MIMEText(email_body_text, 'plain', 'utf-8'))
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
     email_sent = False
-    try:
-        # Try local SMTP relay
-        with smtplib.SMTP('localhost', 25, timeout=5) as server:
-            server.sendmail(msg['From'], [to_email], msg.as_string())
+
+    # 1. Try Authenticated SMTP (Gmail / Hostinger Titan / Custom SMTP) if configured
+    if Config.SMTP_USER and Config.SMTP_PASSWORD:
+        try:
+            if Config.SMTP_PORT == 465:
+                server = smtplib.SMTP_SSL(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10)
+            else:
+                server = smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10)
+                if Config.SMTP_USE_TLS:
+                    server.starttls()
+            server.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+            server.sendmail(from_email, [to_email], msg.as_string())
+            server.quit()
             email_sent = True
-    except Exception as e:
-        print(f"SMTP send failed: {str(e)}")
+            print(f"Inquiry email successfully sent to {to_email} via SMTP ({Config.SMTP_HOST})")
+        except Exception as e:
+            print(f"Authenticated SMTP send error ({Config.SMTP_HOST}): {str(e)}")
+
+    # 2. Fallback to local SMTP relay (localhost:25) if authenticated SMTP is not set or failed
+    if not email_sent:
+        try:
+            with smtplib.SMTP('localhost', 25, timeout=5) as server:
+                server.sendmail(from_email, [to_email], msg.as_string())
+                email_sent = True
+                print(f"Inquiry email sent to {to_email} via localhost:25 relay")
+        except Exception as e:
+            print(f"Localhost SMTP relay failed: {str(e)}")
 
     return {
         "success": True, 

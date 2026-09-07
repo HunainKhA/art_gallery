@@ -148,17 +148,18 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
       .then(r => r.json())
       .then(data => {
         setLoadingCode(false);
-        if (data?.code) {
+        const resolvedCode = data?.code || data?.next_code;
+        if (resolvedCode) {
           setFormData(prev => ({
             ...prev,
-            code: data.code,
-            title: data.code
+            code: resolvedCode,
+            title: resolvedCode
           }));
         } else {
           setFormData(prev => ({
             ...prev,
-            code: `${fallbackPrefix}-5009`,
-            title: `${fallbackPrefix}-5009`
+            code: `${fallbackPrefix}`,
+            title: `${fallbackPrefix}`
           }));
         }
       })
@@ -167,8 +168,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         setLoadingCode(false);
         setFormData(prev => ({
           ...prev,
-          code: `${fallbackPrefix}-5009`,
-          title: `${fallbackPrefix}-5009`
+          code: `${fallbackPrefix}`,
+          title: `${fallbackPrefix}`
         }));
       });
   };

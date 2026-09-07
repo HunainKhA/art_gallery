@@ -625,53 +625,13 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                         color: 'var(--text-primary)', 
                         fontSize: '14px', 
                         fontWeight: 100, 
-                        fontFamily: 'Montserrat, sans-serif',
-                        cursor: (!websiteSettings?.hide_prices && !guestSession) ? 'pointer' : 'default'
+                        fontFamily: 'Montserrat, sans-serif'
                       }}
-                      onClick={() => {
-                        if (!websiteSettings?.hide_prices && !guestSession && setIsGuestModalOpen) {
-                          setIsGuestModalOpen(true);
-                        }
-                      }}
-                      title={(!websiteSettings?.hide_prices && !guestSession) ? "Click to login & view price" : ""}
                     >
-                      Price on Request
+                      Inquiry
                     </span>
                   )}
                 </h2>
-                {/* Convert currency drop-down (Only for available items when online and allowed) */}
-                {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) && (
-                  artwork.status?.toLowerCase() !== 'sold' && 
-                  artwork.status?.toLowerCase() !== 'soldout' && 
-                  artwork.status?.toLowerCase() !== 'sold_out' && 
-                  artwork.status?.toLowerCase() !== 'return' && 
-                  artwork.status?.toLowerCase() !== 'archive' && 
-                  artwork.status?.toLowerCase() !== 'archived'
-                ) && (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Convert:</span>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="artwork-currency-select"
-                      style={{
-                        background: 'var(--bg-input)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '4px',
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '12px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="PKR">🇵🇰 PKR</option>
-                      <option value="USD">🇺🇸 USD</option>
-                      <option value="EUR">🇪🇺 EUR</option>
-                      <option value="GBP">🇬🇧 GBP</option>
-                      <option value="AED">🇦🇪 AED</option>
-                    </select>
-                  </div>
-                )}
               </div>
             );
           })()}

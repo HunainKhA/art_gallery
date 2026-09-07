@@ -167,7 +167,7 @@ export default function ContactSection() {
                   boxSizing: 'border-box'
                 }}
                 required
-                placeholder="Enter details about calligraphic paintings or frame services..."
+              // placeholder="Enter details about calligraphic paintings or frame services..."
               />
             </div>
             <button

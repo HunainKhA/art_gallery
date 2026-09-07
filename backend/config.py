@@ -62,3 +62,12 @@ class Config:
     
     # CORS Origins (Allowed Frontend URL)
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
+    # SMTP Email Settings
+    SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+    SMTP_USER = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "mainframethegallery@gmail.com")
+    INQUIRY_RECIPIENT_EMAIL = os.getenv("INQUIRY_RECIPIENT_EMAIL", "mainframethegallery@gmail.com")
