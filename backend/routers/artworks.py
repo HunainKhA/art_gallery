@@ -511,29 +511,33 @@ def generate_next_code_for_artist(artist_id: str):
                 else:
                     code_prefix = "ART"
         
-        # 3. Get global highest artwork sequence number across active 5000s range (5000 to 5999)
-        global_res1 = execute_query("""
-            SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_val
-            FROM art_collections_cstm cstm
-            JOIN art_collections c ON cstm.id_c = c.id
-            WHERE c.deleted = 0 
-              AND cstm.code_c REGEXP '-[0-9]+$'
-              AND CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 5999;
-        """, fetch="one")
-        
-        global_res2 = execute_query("""
-            SELECT MAX(CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED)) as max_val
-            FROM art_collections
-            WHERE deleted = 0 
-              AND document_name REGEXP '-[0-9]+$'
-              AND CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 5999;
-        """, fetch="one")
-        
-        val1 = (global_res1.get("max_val") if global_res1 else 0) or 0
-        val2 = (global_res2.get("max_val") if global_res2 else 0) or 0
-        overall_max = max(val1, val2, 5006)
-        
-        next_num = overall_max + 1
+        # 3. Get the sequence number from the LAST painting added in the gallery
+        last_art = execute_query("""
+            SELECT c.document_name, cstm.code_c
+            FROM art_collections c
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            WHERE c.deleted = 0
+              AND (c.document_name REGEXP '-[0-9]+$' OR cstm.code_c REGEXP '-[0-9]+$')
+            ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) DESC
+            LIMIT 15;
+        """, fetch="all")
+
+        max_last_num = 5006
+        if last_art:
+            for row in last_art:
+                code_cand = (row.get("code_c") or row.get("document_name") or "").strip()
+                if "-" in code_cand:
+                    _, num_str = code_cand.rsplit("-", 1)
+                    if num_str.isdigit():
+                        n = int(num_str)
+                        if n >= 5000 and n < 6000:
+                            max_last_num = max(max_last_num, n)
+                            break
+                        elif n < 5000 and n >= 100:
+                            max_last_num = max(max_last_num, n)
+                            break
+
+        next_num = max_last_num + 1
         suggested_code = f"{code_prefix}-{next_num}"
         
         return {
