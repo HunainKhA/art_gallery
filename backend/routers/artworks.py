@@ -546,7 +546,7 @@ def generate_next_code_for_artist(artist_id: str):
             WHERE c.deleted = 0;
         """, fetch="all")
         
-        max_num = 5006
+        max_num = 0
         if all_arts:
             for r in all_arts:
                 cand = (r.get("code_c") or r.get("document_name") or "").strip()
@@ -554,12 +554,10 @@ def generate_next_code_for_artist(artist_id: str):
                     _, num_str = cand.rsplit("-", 1)
                     if num_str.isdigit():
                         n = int(num_str)
-                        if 5000 <= n <= 5500 and n > max_num:
+                        if n > max_num:
                             max_num = n
         
-        next_num = max_num + 1
-        if next_num < 5007:
-            next_num = 5007
+        next_num = max_num + 1 if max_num > 0 else 5007
 
         suggested_code = f"{code_prefix}-{next_num}"
         return {
