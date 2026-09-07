@@ -51,7 +51,8 @@ def fix_all_duplicate_codes():
                     ON c.id = rel.art_artists_art_collectionsart_collections_idb
                 LEFT JOIN art_artists a 
                     ON rel.art_artists_art_collectionsart_artists_ida = a.id
-                WHERE c.deleted = 0;
+                WHERE c.deleted = 0
+                ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) ASC, c.id ASC;
             """
             cursor.execute(query)
             rows = cursor.fetchall()
@@ -74,20 +75,26 @@ def fix_all_duplicate_codes():
                 r["prefix"] = prefix
                 r["num"] = num
 
-                # Only items with num >= 6000 (e.g. 6136, 6137, 6156) are shifted into 5007+ range!
-                # All items <= 5999 (including 5007..5028) remain 100% untouched and preserved.
-                if num and num >= 6000:
-                    new_num = num - 1129
-                    if new_num < 5007:
-                        new_num = 5007
-                    new_code = f"{prefix}-{new_num}"
-                    updates.append((new_code, r["id"]))
-                elif orig_prefix and orig_prefix != prefix and num and num < 6000:
+                # Items <= 5006 remain 100% untouched
+                # All items > 5006 (like 5062, 5645, 5684, 6136, etc.) are collected for 5007+ linear re-indexing
+                if num and num > 5006:
+                    items_to_reindex.append(r)
+                elif orig_prefix and orig_prefix != prefix and num:
                     new_code = f"{prefix}-{num}"
                     updates.append((new_code, r["id"]))
 
-            print(f"Total artworks updated: {len(updates)}")
-            print(f"Max clean code assigned: {next_seq - 1}")
+            # Sort items to re-index by original numeric order
+            items_to_reindex.sort(key=lambda x: x["num"] if x["num"] is not None else 999999)
+
+            # Reassign cleanly starting at 5007 (5007, 5008, 5009, 5010...)
+            next_seq = 5007
+            for item in items_to_reindex:
+                new_code = f"{item['prefix']}-{next_seq}"
+                updates.append((new_code, item["id"]))
+                next_seq += 1
+
+            print(f"Total artworks being updated: {len(updates)}")
+            print(f"Highest code assigned: {next_seq - 1}")
             
             for new_code, row_id in updates:
                 cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, row_id))
@@ -99,7 +106,7 @@ def fix_all_duplicate_codes():
                     cursor.execute("INSERT INTO art_collections_cstm (id_c, code_c) VALUES (%s, %s);", (row_id, new_code))
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {len(updates)} artworks!")
+            print(f"SUCCESSFULLY updated {len(updates)} artworks to 5007..{next_seq - 1} range!")
             return len(updates)
     except Exception as e:
         conn.rollback()
