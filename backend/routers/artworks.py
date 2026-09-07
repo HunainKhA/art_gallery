@@ -102,9 +102,6 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             search_param = f"%{search}%"
             params.extend([search_param, search_param, search_param, search_param])
             
-        where_str = " AND ".join(where_clauses)
-        offset = (page - 1) * limit
-        
         query = f"""
             SELECT 
                 c.id AS id,
@@ -154,17 +151,6 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 FROM art_exhibitions_art_collections_1_c
                 WHERE deleted = 0
             ) exh_rel ON c.id = exh_rel.art_id
-            LEFT JOIN (
-                SELECT 
-                    COALESCE(NULLIF(d.paintingId, ''), d.code) as match_key,
-                    d.code as inv_code,
-                    d.paintingId as inv_pid,
-                    MAX(inv.total) AS invoice_sale_price
-                FROM saleinvoicedetail d
-                JOIN saleinvoice inv ON d.invoice_id = inv.invoice_id1 AND d.branch_id = inv.branch_id
-                WHERE inv.is_cancel = 0 AND inv.total > 0
-                GROUP BY match_key, d.code, d.paintingId
-            ) inv_p ON (c.id = inv_p.inv_pid OR c.document_name = inv_p.inv_code OR cstm.code_c = inv_p.inv_code)
             WHERE {where_str}
             ORDER BY c.date_entered DESC
             LIMIT %s OFFSET %s;
@@ -227,8 +213,96 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         return run_query()
     except Exception as e:
         import traceback
-        print(f"[ERROR in get_all_artworks]: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        print(f"[ERROR in get_all_artworks primary query]: {str(e)}\n{traceback.format_exc()}")
+        try:
+            where_clauses_fb = ["c.deleted = 0"]
+            params_fb = []
+            if category:
+                where_clauses_fb.append("(t.id = %s OR LOWER(TRIM(t.name)) = %s OR LOWER(TRIM(t.name)) LIKE %s)")
+                cat_clean = category.strip().lower()
+                params_fb.extend([category, cat_clean, f"%{cat_clean}%"])
+            if artist_id:
+                where_clauses_fb.append("a.id = %s")
+                params_fb.append(artist_id)
+            if medium_id:
+                where_clauses_fb.append("m.id = %s")
+                params_fb.append(medium_id)
+            if status:
+                st_lower = status.strip().lower()
+                if st_lower in ['sold', 'soldout', 'sold_out']:
+                    where_clauses_fb.append("LOWER(TRIM(c.collection_status)) IN ('sold', 'soldout', 'sold_out')")
+                elif st_lower in ['return', 'returned']:
+                    where_clauses_fb.append("LOWER(TRIM(c.collection_status)) IN ('return', 'returned')")
+                else:
+                    where_clauses_fb.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned'))")
+            if code:
+                where_clauses_fb.append("cstm.code_c = %s")
+                params_fb.append(code)
+            if search:
+                where_clauses_fb.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
+                search_param = f"%{search}%"
+                params_fb.extend([search_param, search_param, search_param, search_param])
+            where_str_fb = " AND ".join(where_clauses_fb)
+            offset_fb = (page - 1) * limit
+            params_fb.extend([limit, offset_fb])
+
+            fallback_query = f"""
+                SELECT 
+                    c.id AS id,
+                    c.document_name AS title,
+                    c.filename AS image,
+                    c.description AS description,
+                    CASE 
+                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
+                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                        ELSE 'Available'
+                    END AS status,
+                    cstm.*,
+                    cstm.collection_size_length_c AS length,
+                    cstm.collection_size_width_c AS width,
+                    cstm.with_frame_c AS with_frame,
+                    cstm.frame_charges_c AS frame_charges,
+                    CASE 
+                        WHEN cstm.code_c IS NOT NULL AND cstm.code_c LIKE '%-%' THEN cstm.code_c
+                        WHEN c.document_name IS NOT NULL AND c.document_name LIKE '%-%' THEN c.document_name
+                        ELSE COALESCE(NULLIF(cstm.code_c, ''), c.document_name, '')
+                    END AS code,
+                    cstm.authenticity_letter_field_c AS authenticity_letter,
+                    cstm.sale_c AS deal_type,
+                    a.id AS artist_id,
+                    CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
+                    t.id AS category_id,
+                    t.name AS category_name,
+                    m.id AS medium_id,
+                    m.name AS medium_name,
+                    0 AS is_exhibited
+                FROM art_collections c
+                LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+                LEFT JOIN art_artists_art_collections_c rel 
+                    ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+                LEFT JOIN art_artists a 
+                    ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                LEFT JOIN art_collectionstype_art_collections_c type_rel
+                    ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
+                LEFT JOIN art_collectionstype t
+                    ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+                LEFT JOIN art_medium_art_collections_c med_rel
+                    ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
+                LEFT JOIN art_medium m
+                    ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                WHERE {where_str_fb}
+                ORDER BY c.date_entered DESC
+                LIMIT %s OFFSET %s;
+            """
+            artworks = execute_query(fallback_query, tuple(params_fb))
+            for art in artworks:
+                art["price"] = 0.0
+                art["purchase_price"] = 0.0
+                art["deal_type"] = art["deal_type"] if art.get("deal_type") else "Sale_Basis"
+            return artworks
+        except Exception as e2:
+            print(f"[ERROR in get_all_artworks fallback query]: {str(e2)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e2)}")
 
 @router.get("/global-template")
 def get_global_template():
