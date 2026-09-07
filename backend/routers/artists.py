@@ -71,9 +71,12 @@ def get_all_artists():
                 JOIN art_artists_art_collections_c r2 
                   ON col.id = r2.art_artists_art_collectionsart_collections_idb AND r2.deleted = 0
                 WHERE r2.art_artists_art_collectionsart_artists_ida = a.id AND col.deleted = 0
-                  AND LOWER(TRIM(COALESCE(col.collection_status, ''))) NOT IN ('return', 'returned', 'archive', 'archived')
                 ORDER BY 
-                    CASE WHEN LOWER(TRIM(COALESCE(col.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 ELSE 0 END ASC,
+                    CASE 
+                        WHEN LOWER(TRIM(COALESCE(col.collection_status, ''))) IN ('not_sold', 'available', 'gallery purchase', 'sale basis') THEN 0
+                        WHEN LOWER(TRIM(COALESCE(col.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1
+                        ELSE 2
+                    END ASC,
                     col.date_entered DESC
                 LIMIT 1
             ) AS latest_artwork_image
