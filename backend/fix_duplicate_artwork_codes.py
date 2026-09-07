@@ -132,22 +132,26 @@ def fix_all_duplicate_codes():
                     updates.append((id_to_doc[row_id], row_id))
 
             def sort_key(item):
-                code = item["code_c"]
+                code = (item.get("code_c") or item.get("document_name") or "").strip()
                 num = int(code.rsplit("-", 1)[1]) if "-" in code and code.rsplit("-", 1)[1].isdigit() else 0
-                artist = f"{item['first_name']} {item['last_name']}".upper()
+                artist = f"{item.get('first_name') or ''} {item.get('last_name') or ''}".strip().upper()
+                date_ent = str(item.get("date_entered") or "")
+
                 if 'ANWAR' in artist or 'MAQSOOD' in artist:
-                    return 1
+                    rank = 1
                 elif 'GHULAM MUHAMMAD' in artist:
-                    return 2 + (1 if num in (5647, 5929, 5009) else 0)
+                    rank = 2
                 elif 'AMNA' in artist or 'FAISAL' in artist:
-                    return 10 + num
+                    rank = 3
                 elif 'JAMIL' in artist or 'NAQSH' in artist:
-                    return 100
+                    rank = 4
                 elif 'GHULAM RASUL' in artist or 'RASUL' in artist:
-                    return 101
+                    rank = 5
                 elif 'SHAHANA' in artist or 'MASHKOOR' in artist:
-                    return 200 + num
-                return 999
+                    rank = 6
+                else:
+                    rank = 7
+                return (rank, date_ent, num, str(item.get("id")))
 
             recent_21.sort(key=sort_key)
 
