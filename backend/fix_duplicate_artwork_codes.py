@@ -1,113 +1,135 @@
+import sys
+import os
 import re
-from database import execute_query, get_db_connection
 
-def extract_artist_prefix(artist_id: str, default_prefix: str = "ART") -> str:
-    if not artist_id:
-        return default_prefix
-    artist = execute_query(
-        "SELECT first_name, last_name FROM art_artists WHERE id = %s AND deleted = 0;",
-        (artist_id,),
-        fetch="one"
-    )
-    if not artist:
-        return default_prefix
-    first_name = (artist.get("first_name") or "").strip()
-    last_name = (artist.get("last_name") or "").strip()
-    full_name = f"{first_name} {last_name}".strip()
-    name_clean = full_name.replace('"', '').replace("'", '').strip()
-    
-    m = re.match(r'^([A-Za-z]\.[A-Za-z])', name_clean)
-    if m:
-        return m.group(1).upper()
-    tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
-    if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
-        return f"{tokens[0]}.{tokens[1]}".upper()
-    elif len(tokens) >= 1 and len(tokens[0]) >= 3:
-        return tokens[0][:3].upper()
-    elif len(tokens) >= 2:
-        return f"{tokens[0][:2]}{tokens[1][:1]}".upper()
-    elif len(tokens) == 1:
-        return tokens[0][:3].upper()
-    return default_prefix
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-def fix_duplicate_and_repeated_codes():
-    print("=== Scanning database for duplicate & repeated artwork codes ===")
+from database import get_db_connection
+
+def generate_artist_prefix(first_name, last_name):
+    first = (first_name or '').strip().upper()
+    last = (last_name or '').strip().upper()
     
-    # 1. Fetch all active artworks along with artist and custom code
-    query = """
-        SELECT 
-            c.id, 
-            c.document_name, 
-            c.date_entered,
-            cstm.code_c,
-            rel.art_artists_art_collectionsart_artists_ida as artist_id
-        FROM art_collections c
-        LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
-        WHERE c.deleted = 0
-        ORDER BY c.date_entered ASC;
-    """
-    artworks = execute_query(query)
-    print(f"Total active artworks scanned: {len(artworks)}")
-    
-    # Find all codes that appear more than once
-    code_counts = {}
-    for a in artworks:
-        doc_code = (a.get("document_name") or "").strip()
-        if doc_code:
-            code_counts[doc_code] = code_counts.get(doc_code, 0) + 1
+    if first and '.' in first:
+        parts = [p.strip() for p in first.split('.') if p.strip()]
+        if len(parts) >= 2:
+            return f"{parts[0]}.{parts[1]}"
+        elif len(parts) == 1:
+            return f"{parts[0]}."
             
-    duplicate_codes = {c: cnt for c, cnt in code_counts.items() if cnt > 1}
-    print(f"Duplicate codes found: {duplicate_codes}")
+    clean_first = re.sub(r'[^A-Z]', '', first)
+    clean_last = re.sub(r'[^A-Z]', '', last)
     
-    if not duplicate_codes:
-        print("No duplicate codes found! All artwork codes are unique.")
-        return
+    if clean_first and clean_last:
+        return f"{clean_first[:2]}{clean_last[0]}"
+    elif clean_first:
+        return clean_first[:3]
+    elif clean_last:
+        return clean_last[:3]
+    return "ART"
 
-    # Find highest sequence number currently in database
-    global_res = execute_query("""
-        SELECT MAX(CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED)) as max_val
-        FROM art_collections
-        WHERE deleted = 0 AND document_name REGEXP '-[0-9]+$';
-    """, fetch="one")
-    
-    current_max = (global_res.get("max_val") if global_res else 0) or 5006
-    print(f"Current highest sequential number: {current_max}")
-    
-    seen_codes = set()
-    updates = []
-    
-    next_seq = current_max + 1
-    
+def fix_all_duplicate_codes():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            for a in artworks:
-                doc_code = (a.get("document_name") or "").strip()
-                art_id = a["id"]
-                artist_id = a.get("artist_id")
+            print("Fetching all artworks ordered chronologically by date_entered ASC...")
+            query = """
+                SELECT 
+                    c.id, 
+                    c.document_name, 
+                    cstm.code_c, 
+                    c.date_entered, 
+                    a.id AS artist_id,
+                    a.first_name, 
+                    a.last_name
+                FROM art_collections c
+                LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+                LEFT JOIN art_artists_art_collections_c rel 
+                    ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+                LEFT JOIN art_artists a 
+                    ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                WHERE c.deleted = 0
+                ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) ASC, c.id ASC;
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            print(f"Total active artworks found: {len(rows)}")
+
+            # 1. Group artworks by artist
+            artist_artworks = {}
+            for r in rows:
+                art_id = r["artist_id"] or "unknown_artist"
+                prefix = generate_artist_prefix(r["first_name"], r["last_name"])
+                if art_id not in artist_artworks:
+                    artist_artworks[art_id] = {
+                        "prefix": prefix,
+                        "items": []
+                    }
+                artist_artworks[art_id]["items"].append(r)
+
+            # 2. Check for duplicate codes across database
+            all_codes_seen = set()
+            updates = []
+
+            for art_id, group in artist_artworks.items():
+                prefix = group["prefix"]
+                items = group["items"]
                 
-                # If this code is a duplicate and we've already kept one instance:
-                if doc_code in duplicate_codes and doc_code in seen_codes:
-                    prefix = doc_code.rsplit("-", 1)[0].strip().upper() if "-" in doc_code else extract_artist_prefix(artist_id)
-                    new_code = f"{prefix}-{next_seq}"
-                    next_seq += 1
+                # Check existing numbers already used by this artist
+                existing_numbers = set()
+                for item in items:
+                    code = (item.get("code_c") or item.get("document_name") or "").strip()
+                    if code and code.startswith(f"{prefix}-"):
+                        try:
+                            num_part = int(code.split("-")[-1])
+                            existing_numbers.add(num_part)
+                        except ValueError:
+                            pass
+
+                next_seq = 1
+                for item in items:
+                    current_code = (item.get("code_c") or item.get("document_name") or "").strip()
                     
-                    print(f"Fixing duplicate: Artwork ID {art_id} ({doc_code}) -> {new_code}")
-                    cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, art_id))
-                    cursor.execute("UPDATE art_collections_cstm SET code_c = %s WHERE id_c = %s;", (new_code, art_id))
-                    seen_codes.add(new_code)
-                else:
-                    if doc_code:
-                        seen_codes.add(doc_code)
-                        
-        conn.commit()
-        print("=== Successfully updated duplicate artwork codes to unique sequential numbers! ===")
+                    # If code is missing or duplicate across seen codes, re-assign sequence
+                    needs_new_code = False
+                    if not current_code or current_code in all_codes_seen:
+                        needs_new_code = True
+                    elif not current_code.startswith(f"{prefix}-"):
+                        needs_new_code = True
+
+                    if needs_new_code:
+                        while next_seq in existing_numbers:
+                            next_seq += 1
+                        new_code = f"{prefix}-{next_seq}"
+                        existing_numbers.add(next_seq)
+                        all_codes_seen.add(new_code)
+                        next_seq += 1
+                        updates.append((new_code, item["id"]))
+                    else:
+                        all_codes_seen.add(current_code)
+
+            print(f"Total artworks requiring unique code update: {len(updates)}")
+            
+            # 3. Apply updates to database
+            updated_count = 0
+            for new_code, row_id in updates:
+                cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, row_id))
+                cursor.execute("""
+                    INSERT INTO art_collections_cstm (id_c, code_c) 
+                    VALUES (%s, %s) 
+                    ON DUPLICATE KEY UPDATE code_c = VALUES(code_c);
+                """, (row_id, new_code))
+                updated_count += 1
+
+            conn.commit()
+            print(f"SUCCESSFULLY updated {updated_count} artworks with unique chronological sequence codes!")
     except Exception as e:
         conn.rollback()
-        print(f"Error updating database: {e}")
+        print(f"Error during code fix: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         conn.close()
 
 if __name__ == "__main__":
-    fix_duplicate_and_repeated_codes()
+    fix_all_duplicate_codes()
