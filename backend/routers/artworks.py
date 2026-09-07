@@ -53,6 +53,13 @@ def trigger_fix_database_codes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fix codes: {str(e)}")
 
+# Automatically run database code re-indexing on backend startup
+try:
+    from fix_duplicate_artwork_codes import fix_all_duplicate_codes
+    fix_all_duplicate_codes()
+except Exception as _startup_fix_err:
+    print(f"[STARTUP DB FIX WARNING]: {_startup_fix_err}")
+
 @router.get("/categories")
 def get_artwork_categories():
     """
