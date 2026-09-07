@@ -11,8 +11,8 @@ def generate_artist_prefix(first_name, last_name):
     last = (last_name or '').strip()
     full = f"{first} {last}".strip()
     
-    # Check for dotted initials at start (e.g. A.H Rizvi -> A.H, A.Q. Arif -> A.Q, A.S. Rind -> A.S)
-    m = re.match(r'^([A-Za-z]\.[A-Za-z])', full)
+    # Check for dotted initials (e.g. A.H Rizvi -> A.H, A.Q. Arif -> A.Q, A.S. Rind -> A.S)
+    m = re.search(r'([A-Za-z]\.[A-Za-z])', full)
     if m:
         return m.group(1).upper()
         

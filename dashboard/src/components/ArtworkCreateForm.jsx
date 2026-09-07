@@ -121,7 +121,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
     let fallbackPrefix = "ART";
     if (artistObj) {
       const name = (artistObj.name || `${artistObj.first_name || ''} ${artistObj.last_name || ''}`).replace(/['"]/g, '').trim();
-      const m = name.match(/^([A-Za-z]\.[A-Za-z])/);
+      const m = name.match(/([A-Za-z]\.[A-Za-z])/);
       if (m) {
         fallbackPrefix = m[1].toUpperCase();
       } else {

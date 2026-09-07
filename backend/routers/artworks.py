@@ -472,40 +472,43 @@ def generate_next_code_for_artist(artist_id: str):
         last_name = (artist.get("last_name") or "").strip()
         full_name = f"{first_name} {last_name}".strip()
         
-        # Determine prefix from artist name
-        name_clean = full_name.replace('"', '').replace("'", '').strip()
-        m = re.match(r'^([A-Za-z]\.[A-Za-z])', name_clean)
-        if m:
-            code_prefix = m.group(1).upper()
-        else:
-            tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
-            if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
-                code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
-            elif len(tokens) >= 1 and len(tokens[0]) >= 3:
-                code_prefix = tokens[0][:3].upper()
-            elif len(tokens) >= 2:
-                code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
-            elif len(tokens) == 1:
-                code_prefix = tokens[0][:3].upper()
+        # 1. First check if this artist already has existing artwork codes in DB (e.g. A.H-5944, A.H-5943)
+        code_prefix = None
+        existing_art = execute_query("""
+            SELECT c.document_name 
+            FROM art_collections c
+            JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
+            WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
+              AND c.deleted = 0 
+              AND c.document_name REGEXP '^[A-Za-z0-9.]+-([0-9]+)$'
+            ORDER BY c.date_entered DESC
+            LIMIT 1;
+        """, (artist_id,), fetch="one")
+        
+        if existing_art and existing_art.get("document_name"):
+            doc = existing_art["document_name"].strip()
+            if "-" in doc:
+                p = doc.rsplit("-", 1)[0].strip().upper()
+                if p and p != "ART" and p != "ANO":
+                    code_prefix = p
+        
+        # 2. If no valid existing prefix found, determine from artist name
+        if not code_prefix:
+            name_clean = full_name.replace('"', '').replace("'", '').strip()
+            m = re.search(r'([A-Za-z]\.[A-Za-z])', name_clean)
+            if m:
+                code_prefix = m.group(1).upper()
             else:
-                # Check DB as fallback
-                existing_art = execute_query("""
-                    SELECT c.document_name 
-                    FROM art_collections c
-                    JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
-                    WHERE rel.art_artists_art_collectionsart_artists_ida = %s 
-                      AND c.deleted = 0 
-                      AND c.document_name REGEXP '^[A-Za-z0-9.]+-([0-9]+)$'
-                    ORDER BY c.date_entered DESC
-                    LIMIT 1;
-                """, (artist_id,), fetch="one")
-                if existing_art and existing_art.get("document_name"):
-                    doc = existing_art["document_name"].strip()
-                    if "-" in doc:
-                        p = doc.rsplit("-", 1)[0].strip().upper()
-                        if p and p != "ART":
-                            code_prefix = p
-                if not code_prefix:
+                tokens = [t.strip() for t in re.split(r'[\s.]+', name_clean) if t.strip()]
+                if len(tokens) >= 2 and len(tokens[0]) == 1 and len(tokens[1]) == 1:
+                    code_prefix = f"{tokens[0]}.{tokens[1]}".upper()
+                elif len(tokens) >= 1 and len(tokens[0]) >= 3:
+                    code_prefix = tokens[0][:3].upper()
+                elif len(tokens) >= 2:
+                    code_prefix = f"{tokens[0][:2]}{tokens[1][:1]}".upper()
+                elif len(tokens) == 1:
+                    code_prefix = tokens[0][:3].upper()
+                else:
                     code_prefix = "ART"
         
         # 3. Get global highest artwork sequence number across active 5000s range (5000 to 5999)
