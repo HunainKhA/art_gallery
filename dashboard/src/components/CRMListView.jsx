@@ -201,12 +201,54 @@ export default function CRMListView({ module }) {
   };
 
   const safeData = Array.isArray(data) ? data : [];
-  const filteredData = safeData.filter(row => {
-    if (!search) return true;
-    return Object.values(row).some(val => 
-      String(val).toLowerCase().includes(search.toLowerCase())
-    );
+  
+  // Deduplicate records by ID
+  const uniqueMap = new Map();
+  safeData.forEach(item => {
+    if (item && item.id && !uniqueMap.has(item.id)) {
+      uniqueMap.set(item.id, item);
+    }
   });
+  const uniqueData = Array.from(uniqueMap.values());
+
+  const query = search.trim().toLowerCase();
+  let filteredData = uniqueData;
+
+  if (query) {
+    filteredData = uniqueData.filter(row => {
+      return Object.values(row).some(val => 
+        val !== null && val !== undefined && String(val).toLowerCase().includes(query)
+      );
+    });
+
+    // Sort search results so exact code/title/artist matches appear right at the top
+    filteredData.sort((a, b) => {
+      const codeA = String(a.code || a.code_c || a.document_name || '').toLowerCase();
+      const codeB = String(b.code || b.code_c || b.document_name || '').toLowerCase();
+      const titleA = String(a.title || a.name || '').toLowerCase();
+      const titleB = String(b.title || b.name || '').toLowerCase();
+      const artistA = String(a.artist_name || '').toLowerCase();
+      const artistB = String(b.artist_name || '').toLowerCase();
+
+      // 1. Exact code match
+      if (codeA === query && codeB !== query) return -1;
+      if (codeB === query && codeA !== query) return 1;
+
+      // 2. Code starts with query
+      if (codeA.startsWith(query) && !codeB.startsWith(query)) return -1;
+      if (codeB.startsWith(query) && !codeA.startsWith(query)) return 1;
+
+      // 3. Code contains query
+      if (codeA.includes(query) && !codeB.includes(query)) return -1;
+      if (codeB.includes(query) && !codeA.includes(query)) return 1;
+
+      // 4. Title or Artist starts with query
+      if ((titleA.startsWith(query) || artistA.startsWith(query)) && !(titleB.startsWith(query) || artistB.startsWith(query))) return -1;
+      if ((titleB.startsWith(query) || artistB.startsWith(query)) && !(titleA.startsWith(query) || artistA.startsWith(query))) return 1;
+
+      return 0;
+    });
+  }
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const activePage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage;

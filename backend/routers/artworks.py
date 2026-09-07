@@ -97,16 +97,16 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         params = []
         
         if category:
-            where_clauses.append("(t.id = %s OR LOWER(TRIM(t.name)) = %s OR LOWER(TRIM(t.name)) LIKE %s)")
+            where_clauses.append("(rel_type.category_id = %s OR LOWER(TRIM(rel_type.category_name)) = %s OR LOWER(TRIM(rel_type.category_name)) LIKE %s)")
             cat_clean = category.strip().lower()
             params.extend([category, cat_clean, f"%{cat_clean}%"])
             
         if artist_id:
-            where_clauses.append("a.id = %s")
+            where_clauses.append("rel_artist.artist_id = %s")
             params.append(artist_id)
             
         if medium_id:
-            where_clauses.append("m.id = %s")
+            where_clauses.append("rel_med.medium_id = %s")
             params.append(medium_id)
             
         if status:
@@ -123,9 +123,9 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             params.append(code)
             
         if search:
-            where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
+            where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR rel_artist.artist_name LIKE %s)")
             search_param = f"%{search}%"
-            params.extend([search_param, search_param, search_param, search_param])
+            params.extend([search_param, search_param, search_param])
             
         where_str = " AND ".join(where_clauses)
         offset = (page - 1) * limit
@@ -153,34 +153,51 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 END AS code,
                 cstm.authenticity_letter_field_c AS authenticity_letter,
                 cstm.sale_c AS deal_type,
-                a.id AS artist_id,
-                CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
-                t.id AS category_id,
-                t.name AS category_name,
-                m.id AS medium_id,
-                m.name AS medium_name,
+                rel_artist.artist_id AS artist_id,
+                rel_artist.artist_name AS artist_name,
+                rel_type.category_id AS category_id,
+                rel_type.category_name AS category_name,
+                rel_med.medium_id AS medium_id,
+                rel_med.medium_name AS medium_name,
                 IF(exh_rel.art_id IS NOT NULL, 1, 0) AS is_exhibited
             FROM art_collections c
             LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            LEFT JOIN art_artists_art_collections_c rel 
-                ON c.id = rel.art_artists_art_collectionsart_collections_idb
-            LEFT JOIN art_artists a 
-                ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
-            LEFT JOIN art_collectionstype_art_collections_c type_rel
-                ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
-            LEFT JOIN art_collectionstype t
-                ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
-            LEFT JOIN art_medium_art_collections_c med_rel
-                ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
-            LEFT JOIN art_medium m
-                ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+            LEFT JOIN (
+                SELECT 
+                    rel.art_artists_art_collectionsart_collections_idb AS art_id,
+                    MAX(a.id) AS artist_id,
+                    MAX(CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, ''))) AS artist_name
+                FROM art_artists_art_collections_c rel
+                JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                WHERE rel.deleted = 0
+                GROUP BY rel.art_artists_art_collectionsart_collections_idb
+            ) rel_artist ON c.id = rel_artist.art_id
+            LEFT JOIN (
+                SELECT 
+                    type_rel.art_collectionstype_art_collectionsart_collections_idb AS art_id,
+                    MAX(t.id) AS category_id,
+                    MAX(t.name) AS category_name
+                FROM art_collectionstype_art_collections_c type_rel
+                JOIN art_collectionstype t ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+                WHERE type_rel.deleted = 0
+                GROUP BY type_rel.art_collectionstype_art_collectionsart_collections_idb
+            ) rel_type ON c.id = rel_type.art_id
+            LEFT JOIN (
+                SELECT 
+                    med_rel.art_medium_art_collectionsart_collections_idb AS art_id,
+                    MAX(m.id) AS medium_id,
+                    MAX(m.name) AS medium_name
+                FROM art_medium_art_collections_c med_rel
+                JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                WHERE med_rel.deleted = 0
+                GROUP BY med_rel.art_medium_art_collectionsart_collections_idb
+            ) rel_med ON c.id = rel_med.art_id
             LEFT JOIN (
                 SELECT DISTINCT art_exhibitions_art_collections_1art_collections_idb AS art_id
                 FROM art_exhibitions_art_collections_1_c
                 WHERE deleted = 0
             ) exh_rel ON c.id = exh_rel.art_id
             WHERE {where_str}
-            GROUP BY c.id
             ORDER BY c.date_entered DESC
             LIMIT {int(limit)} OFFSET {int(offset)};
         """
@@ -234,8 +251,17 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             except (ValueError, TypeError):
                 art["length"] = 0.0
                 art["width"] = 0.0
-                
-        return artworks
+
+        # Python deduplication to guarantee unique artworks
+        seen_ids = set()
+        dedup_artworks = []
+        for art in artworks:
+            art_id = art.get("id")
+            if art_id not in seen_ids:
+                seen_ids.add(art_id)
+                dedup_artworks.append(art)
+
+        return dedup_artworks
 
     try:
         return run_query()
@@ -246,14 +272,14 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             where_clauses_fb = ["c.deleted = 0"]
             params_fb = []
             if category:
-                where_clauses_fb.append("(t.id = %s OR LOWER(TRIM(t.name)) = %s OR LOWER(TRIM(t.name)) LIKE %s)")
+                where_clauses_fb.append("(rel_type.category_id = %s OR LOWER(TRIM(rel_type.category_name)) = %s OR LOWER(TRIM(rel_type.category_name)) LIKE %s)")
                 cat_clean = category.strip().lower()
                 params_fb.extend([category, cat_clean, f"%{cat_clean}%"])
             if artist_id:
-                where_clauses_fb.append("a.id = %s")
+                where_clauses_fb.append("rel_artist.artist_id = %s")
                 params_fb.append(artist_id)
             if medium_id:
-                where_clauses_fb.append("m.id = %s")
+                where_clauses_fb.append("rel_med.medium_id = %s")
                 params_fb.append(medium_id)
             if status:
                 st_lower = status.strip().lower()
@@ -267,9 +293,9 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 where_clauses_fb.append("cstm.code_c = %s")
                 params_fb.append(code)
             if search:
-                where_clauses_fb.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR a.first_name LIKE %s OR a.last_name LIKE %s)")
+                where_clauses_fb.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR rel_artist.artist_name LIKE %s)")
                 search_param = f"%{search}%"
-                params_fb.extend([search_param, search_param, search_param, search_param])
+                params_fb.extend([search_param, search_param, search_param])
             where_str_fb = " AND ".join(where_clauses_fb)
             offset_fb = (page - 1) * limit
 
@@ -296,37 +322,61 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     END AS code,
                     cstm.authenticity_letter_field_c AS authenticity_letter,
                     cstm.sale_c AS deal_type,
-                    a.id AS artist_id,
-                    CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, '')) AS artist_name,
-                    t.id AS category_id,
-                    t.name AS category_name,
-                    m.id AS medium_id,
-                    m.name AS medium_name,
+                    rel_artist.artist_id AS artist_id,
+                    rel_artist.artist_name AS artist_name,
+                    rel_type.category_id AS category_id,
+                    rel_type.category_name AS category_name,
+                    rel_med.medium_id AS medium_id,
+                    rel_med.medium_name AS medium_name,
                     0 AS is_exhibited
                 FROM art_collections c
                 LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-                LEFT JOIN art_artists_art_collections_c rel 
-                    ON c.id = rel.art_artists_art_collectionsart_collections_idb
-                LEFT JOIN art_artists a 
-                    ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
-                LEFT JOIN art_collectionstype_art_collections_c type_rel
-                    ON c.id = type_rel.art_collectionstype_art_collectionsart_collections_idb AND type_rel.deleted = 0
-                LEFT JOIN art_collectionstype t
-                    ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
-                LEFT JOIN art_medium_art_collections_c med_rel
-                    ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
-                LEFT JOIN art_medium m
-                    ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                LEFT JOIN (
+                    SELECT 
+                        rel.art_artists_art_collectionsart_collections_idb AS art_id,
+                        MAX(a.id) AS artist_id,
+                        MAX(CONCAT(COALESCE(a.first_name, ''), ' ', COALESCE(a.last_name, ''))) AS artist_name
+                    FROM art_artists_art_collections_c rel
+                    JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                    WHERE rel.deleted = 0
+                    GROUP BY rel.art_artists_art_collectionsart_collections_idb
+                ) rel_artist ON c.id = rel_artist.art_id
+                LEFT JOIN (
+                    SELECT 
+                        type_rel.art_collectionstype_art_collectionsart_collections_idb AS art_id,
+                        MAX(t.id) AS category_id,
+                        MAX(t.name) AS category_name
+                    FROM art_collectionstype_art_collections_c type_rel
+                    JOIN art_collectionstype t ON type_rel.art_collectionstype_art_collectionsart_collectionstype_ida = t.id AND t.deleted = 0
+                    WHERE type_rel.deleted = 0
+                    GROUP BY type_rel.art_collectionstype_art_collectionsart_collections_idb
+                ) rel_type ON c.id = rel_type.art_id
+                LEFT JOIN (
+                    SELECT 
+                        med_rel.art_medium_art_collectionsart_collections_idb AS art_id,
+                        MAX(m.id) AS medium_id,
+                        MAX(m.name) AS medium_name
+                    FROM art_medium_art_collections_c med_rel
+                    JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
+                    WHERE med_rel.deleted = 0
+                    GROUP BY med_rel.art_medium_art_collectionsart_collections_idb
+                ) rel_med ON c.id = rel_med.art_id
                 WHERE {where_str_fb}
                 ORDER BY c.date_entered DESC
                 LIMIT {int(limit)} OFFSET {int(offset_fb)};
             """
             artworks = execute_query(fallback_query, tuple(params_fb))
+            seen_ids = set()
+            dedup_artworks = []
             for art in artworks:
                 art["price"] = 0.0
                 art["purchase_price"] = 0.0
                 art["deal_type"] = art["deal_type"] if art.get("deal_type") else "Sale_Basis"
-            return artworks
+                art_id = art.get("id")
+                if art_id not in seen_ids:
+                    seen_ids.add(art_id)
+                    dedup_artworks.append(art)
+            return dedup_artworks
         except Exception as e2:
             print(f"[ERROR in get_all_artworks fallback query]: {str(e2)}\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Database error: {str(e2)}")
