@@ -75,7 +75,7 @@ export default function ContactSection() {
               <div>
                 <strong style={{ color: 'var(--text-primary)', fontSize: '14px', display: 'block', fontWeight: 500 }}>Phone & Inquiries</strong>
                 <p style={{ color: 'var(--text-primary)', fontSize: '12px', marginTop: '0.25rem', lineHeight: '1.5', fontWeight: 400 }}>
-                  +92 21 35870000 | info@mainframethegallery.com
+                  +92 21 35870000 | mainframethegallery@gmail.com
                 </p>
               </div>
             </div>
