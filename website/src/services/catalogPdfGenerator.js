@@ -162,7 +162,7 @@ export const formatArtworkPrice = (art, currency = 'PKR') => {
   const numPrice = Number(rawPrice);
 
   if (isNaN(numPrice) || numPrice <= 0) {
-    return 'Price on Inquiry';
+    return 'Inquiry';
   }
   return `PKR ${Math.round(numPrice).toLocaleString()}`;
 };

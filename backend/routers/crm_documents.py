@@ -230,7 +230,7 @@ def get_exhibition_artworks(exhibition_id: str):
         INNER JOIN art_exhibitions_art_collections_1_c rel
             ON c.id = rel.art_exhibitions_art_collections_1art_collections_idb AND rel.deleted = 0
         LEFT JOIN art_artists_art_collections_c art_rel 
-            ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
+            ON c.id = art_rel.art_artists_art_collectionsart_collections_idb
         LEFT JOIN art_artists a 
             ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
         LEFT JOIN art_artists_cstm cstm_a
@@ -278,7 +278,7 @@ def get_exhibition_artworks(exhibition_id: str):
                         FROM art_collections c
                         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
                         LEFT JOIN art_artists_art_collections_c art_rel 
-                            ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
+                            ON c.id = art_rel.art_artists_art_collectionsart_collections_idb
                         LEFT JOIN art_artists a 
                             ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
                         LEFT JOIN art_artists_cstm cstm_a
@@ -322,9 +322,9 @@ def get_exhibition_artworks(exhibition_id: str):
                         a.filename AS artist_profile_image
                     FROM art_collections c
                     LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-                    INNER JOIN art_artists_art_collections_c art_rel 
-                        ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
-                    INNER JOIN art_artists a 
+                    LEFT JOIN art_artists_art_collections_c art_rel 
+                        ON c.id = art_rel.art_artists_art_collectionsart_collections_idb
+                    LEFT JOIN art_artists a 
                         ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
                     LEFT JOIN art_artists_cstm cstm_a
                         ON a.id = cstm_a.id_c
@@ -539,7 +539,7 @@ def get_catalogue_artworks(catalogue_id: str):
             FROM art_collections c
             LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
             LEFT JOIN art_artists_art_collections_c art_rel 
-                ON c.id = art_rel.art_artists_art_collectionsart_collections_idb AND art_rel.deleted = 0
+                ON c.id = art_rel.art_artists_art_collectionsart_collections_idb
             LEFT JOIN art_artists a 
                 ON art_rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
             WHERE c.id IN ({format_strings}) AND c.deleted = 0

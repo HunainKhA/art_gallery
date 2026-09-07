@@ -138,7 +138,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             FROM art_collections c
             LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
             LEFT JOIN art_artists_art_collections_c rel 
-                ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+                ON c.id = rel.art_artists_art_collectionsart_collections_idb
             LEFT JOIN art_artists a 
                 ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
             LEFT JOIN art_collectionstype_art_collections_c type_rel
@@ -280,7 +280,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 FROM art_collections c
                 LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
                 LEFT JOIN art_artists_art_collections_c rel 
-                    ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+                    ON c.id = rel.art_artists_art_collectionsart_collections_idb
                 LEFT JOIN art_artists a 
                     ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
                 LEFT JOIN art_collectionstype_art_collections_c type_rel
@@ -602,7 +602,7 @@ def get_artwork_by_id(artwork_id: str):
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         LEFT JOIN art_artists_art_collections_c rel 
-            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb
         LEFT JOIN art_artists a 
             ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
         LEFT JOIN art_collectionstype_art_collections_c type_rel
@@ -1465,7 +1465,7 @@ def get_artwork_authenticity_letter(artwork_id: str):
             m.name AS medium_name
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
         LEFT JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
         LEFT JOIN art_medium_art_collections_c med_rel ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
@@ -2088,7 +2088,7 @@ def get_artwork_tag(artwork_id: str):
             m.name AS medium_name
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+        LEFT JOIN art_artists_art_collections_c rel ON c.id = rel.art_artists_art_collectionsart_collections_idb
         LEFT JOIN art_artists a ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
         LEFT JOIN art_medium_art_collections_c med_rel ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0

@@ -49,9 +49,9 @@ def fix_all_duplicate_codes():
                 FROM art_collections c
                 LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
                 LEFT JOIN art_artists_art_collections_c rel 
-                    ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
+                    ON c.id = rel.art_artists_art_collectionsart_collections_idb
                 LEFT JOIN art_artists a 
-                    ON rel.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                    ON rel.art_artists_art_collectionsart_artists_ida = a.id
                 WHERE c.deleted = 0
                 ORDER BY COALESCE(c.date_entered, c.date_modified, c.id) ASC, c.id ASC;
             """
@@ -59,44 +59,49 @@ def fix_all_duplicate_codes():
             rows = cursor.fetchall()
             print(f"Total active artworks found: {len(rows)}")
 
-            legacy_assigned_numbers = set()
-            recent_items = []
+            used_numbers = set()
+            items_to_fix_6000s = []
             updates = []
-            
+
             for r in rows:
                 code = (r.get("code_c") or r.get("document_name") or "").strip()
                 prefix = generate_artist_prefix(r["first_name"], r["last_name"])
                 
                 num = None
+                orig_prefix = ""
                 if "-" in code:
-                    _, num_str = code.rsplit("-", 1)
+                    orig_prefix, num_str = code.rsplit("-", 1)
+                    orig_prefix = orig_prefix.strip().upper()
                     if num_str.isdigit():
                         num = int(num_str)
                 
-                # Fixed historical legacy codes (num <= 5006)
-                if num and num >= 100 and num <= 5006 and num not in legacy_assigned_numbers:
-                    legacy_assigned_numbers.add(num)
-                    orig_prefix = code.rsplit("-", 1)[0].upper() if "-" in code else ""
-                    if orig_prefix != prefix.upper():
-                        new_code = f"{prefix}-{num}"
-                        updates.append((new_code, r["id"]))
-                else:
-                    recent_items.append({
+                needs_prefix_fix = False
+                if orig_prefix == "ANO" or (orig_prefix != prefix.upper() and prefix.upper() == "A.H"):
+                    needs_prefix_fix = True
+
+                # If code is 6000+, single digit (<100), or missing -> target for 5000s conversion!
+                if not num or num >= 6000 or num < 100:
+                    items_to_fix_6000s.append({
                         "id": r["id"],
                         "prefix": prefix,
                         "orig_code": code,
                         "num": num
                     })
+                else:
+                    used_numbers.add(num)
+                    if needs_prefix_fix:
+                        new_code = f"{prefix}-{num}"
+                        updates.append((new_code, r["id"]))
 
-            # Re-index all recent items starting strictly at 5007 right after FAR-5006!
+            # Convert all 6000+ / single-digit codes into 5000s series starting at 5007
             next_seq = 5007
-            for item in recent_items:
-                while next_seq in legacy_assigned_numbers:
+            for item in items_to_fix_6000s:
+                while next_seq in used_numbers:
                     next_seq += 1
                 
                 new_code = f"{item['prefix']}-{next_seq}"
-                if new_code != item["orig_code"]:
-                    updates.append((new_code, item["id"]))
+                used_numbers.add(next_seq)
+                updates.append((new_code, item["id"]))
                 next_seq += 1
 
             print(f"Total artworks requiring code/prefix update: {len(updates)}")
@@ -114,7 +119,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential 5007+ codes!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks to 5000s series codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")
