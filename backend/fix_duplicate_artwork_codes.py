@@ -7,25 +7,29 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from database import get_db_connection
 
 def generate_artist_prefix(first_name, last_name):
-    first = (first_name or '').strip().upper()
-    last = (last_name or '').strip().upper()
+    first = (first_name or '').strip()
+    last = (last_name or '').strip()
+    full = f"{first} {last}".strip()
     
-    if first and '.' in first:
-        parts = [p.strip() for p in first.split('.') if p.strip()]
-        if len(parts) >= 2:
-            return f"{parts[0]}.{parts[1]}"
-        elif len(parts) == 1:
-            return f"{parts[0]}."
-            
-    clean_first = re.sub(r'[^A-Z]', '', first)
-    clean_last = re.sub(r'[^A-Z]', '', last)
+    # Check for dotted initials at start (e.g. A.H Rizvi -> A.H, A.Q. Arif -> A.Q, A.S. Rind -> A.S)
+    m = re.match(r'^([A-Za-z]\.[A-Za-z])', full)
+    if m:
+        return m.group(1).upper()
+        
+    m_space = re.match(r'^([A-Za-z]\s+[A-Za-z])\b', full)
+    if m_space:
+        parts = full.split()
+        if len(parts[0]) == 1 and len(parts[1]) == 1:
+            return f"{parts[0]}.{parts[1]}".upper()
+
+    clean_first = re.sub(r'[^A-Za-z]', '', first).upper()
+    clean_last = re.sub(r'[^A-Za-z]', '', last).upper()
+    clean_full = re.sub(r'[^A-Za-z]', '', full).upper()
     
     if clean_first and clean_last:
         return f"{clean_first[:2]}{clean_last[0]}"
-    elif clean_first:
-        return clean_first[:3]
-    elif clean_last:
-        return clean_last[:3]
+    elif len(clean_full) >= 3:
+        return clean_full[:3]
     return "ART"
 
 def fix_all_duplicate_codes():
@@ -67,7 +71,6 @@ def fix_all_duplicate_codes():
                     }
                 artist_artworks[art_id]["items"].append(r)
 
-            # 2. Check for duplicate codes across database
             all_codes_seen = set()
             updates = []
 
@@ -75,40 +78,45 @@ def fix_all_duplicate_codes():
                 prefix = group["prefix"]
                 items = group["items"]
                 
-                # Check existing numbers already used by this artist
-                existing_numbers = set()
+                # Determine highest valid sequence number >= 5000 for this artist
+                max_num = 5008
                 for item in items:
                     code = (item.get("code_c") or item.get("document_name") or "").strip()
-                    if code and code.startswith(f"{prefix}-"):
-                        try:
-                            num_part = int(code.split("-")[-1])
-                            existing_numbers.add(num_part)
-                        except ValueError:
-                            pass
+                    if code and "-" in code:
+                        p, num_str = code.rsplit("-", 1)
+                        if num_str.isdigit():
+                            n = int(num_str)
+                            if n > max_num:
+                                max_num = n
 
-                next_seq = 1
+                next_seq = max_num + 1
                 for item in items:
                     current_code = (item.get("code_c") or item.get("document_name") or "").strip()
                     
-                    # If code is missing or duplicate across seen codes, re-assign sequence
                     needs_new_code = False
                     if not current_code or current_code in all_codes_seen:
                         needs_new_code = True
-                    elif not current_code.startswith(f"{prefix}-"):
-                        needs_new_code = True
+                    else:
+                        # Check if code is single digit / low number (e.g. AMN-1 to AMN-6) or wrong prefix
+                        if "-" in current_code:
+                            p, num_str = current_code.rsplit("-", 1)
+                            if num_str.isdigit() and int(num_str) < 100:
+                                needs_new_code = True
+                            elif p.upper() != prefix.upper():
+                                needs_new_code = True
 
                     if needs_new_code:
-                        while next_seq in existing_numbers:
-                            next_seq += 1
                         new_code = f"{prefix}-{next_seq}"
-                        existing_numbers.add(next_seq)
+                        while new_code in all_codes_seen:
+                            next_seq += 1
+                            new_code = f"{prefix}-{next_seq}"
                         all_codes_seen.add(new_code)
                         next_seq += 1
                         updates.append((new_code, item["id"]))
                     else:
                         all_codes_seen.add(current_code)
 
-            print(f"Total artworks requiring unique code update: {len(updates)}")
+            print(f"Total artworks requiring unique 5009+ sequence update: {len(updates)}")
             
             # 3. Apply updates to database
             updated_count = 0
@@ -122,7 +130,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks with unique chronological sequence codes!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks with sequential 5009+ codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")
