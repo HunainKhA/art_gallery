@@ -72,7 +72,7 @@ def fix_all_duplicate_codes():
                 prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
 
                 # Any 6000s series code (e.g. 6136, 6137, 6148, 6156) is converted directly to 5007+ series!
-                if num and num >= 6000:
+                if num and num >= 5500:
                     new_num = num - 1129
                     if new_num < 5007:
                         new_num = 5007
