@@ -153,9 +153,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             ) exh_rel ON c.id = exh_rel.art_id
             WHERE {where_str}
             ORDER BY c.date_entered DESC
-            LIMIT %s OFFSET %s;
+            LIMIT {int(limit)} OFFSET {int(offset)};
         """
-        params.extend([limit, offset])
         
         artworks = execute_query(query, tuple(params))
         for art in artworks:
@@ -244,7 +243,6 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 params_fb.extend([search_param, search_param, search_param, search_param])
             where_str_fb = " AND ".join(where_clauses_fb)
             offset_fb = (page - 1) * limit
-            params_fb.extend([limit, offset_fb])
 
             fallback_query = f"""
                 SELECT 
@@ -292,7 +290,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
                 WHERE {where_str_fb}
                 ORDER BY c.date_entered DESC
-                LIMIT %s OFFSET %s;
+                LIMIT {int(limit)} OFFSET {int(offset_fb)};
             """
             artworks = execute_query(fallback_query, tuple(params_fb))
             for art in artworks:
