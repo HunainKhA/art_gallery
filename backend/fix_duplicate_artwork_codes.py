@@ -81,23 +81,23 @@ def fix_all_duplicate_codes():
             updates = []
             items_to_reassign = []
 
-            # Pass 1: Keep valid unique 4-digit numbers. Fix prefix if wrong (e.g. ANO-5010 -> A.H-5010).
+            # Pass 1: Retain valid historical codes ONLY in range 1000..5999.
+            # Any code >= 6000 (like 6135..6143) or < 1000 or duplicate belongs to the recent batch!
             for item in parsed_items:
                 num = item["num"]
                 prefix = item["prefix"]
                 orig_code = item["orig_code"]
                 
-                if num and num >= 1000 and num not in assigned_numbers:
+                if num and num >= 1000 and num < 6000 and num not in assigned_numbers:
                     assigned_numbers.add(num)
                     orig_prefix = orig_code.rsplit("-", 1)[0].upper() if "-" in orig_code else ""
                     if orig_prefix != prefix.upper():
                         new_code = f"{prefix}-{num}"
                         updates.append((new_code, item["id"]))
                 else:
-                    # Low number (<1000), duplicate number, or missing code
                     items_to_reassign.append(item)
 
-            # Pass 2: For items needing reassign, assign unique numbers starting from 5009 upwards
+            # Pass 2: Reassign items starting strictly from 5009 upwards
             next_seq = 5009
             for item in items_to_reassign:
                 prefix = item["prefix"]
@@ -124,7 +124,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential codes!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential 5009+ codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")

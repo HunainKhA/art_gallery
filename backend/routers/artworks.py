@@ -508,14 +508,14 @@ def generate_next_code_for_artist(artist_id: str):
                 if not code_prefix:
                     code_prefix = "ART"
         
-        # 3. Get global highest artwork sequence number across gallery (5000+)
+        # 3. Get global highest artwork sequence number across active 5000s range (5000 to 5999)
         global_res1 = execute_query("""
             SELECT MAX(CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED)) as max_val
             FROM art_collections_cstm cstm
             JOIN art_collections c ON cstm.id_c = c.id
             WHERE c.deleted = 0 
               AND cstm.code_c REGEXP '-[0-9]+$'
-              AND CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 99999;
+              AND CAST(SUBSTRING_INDEX(cstm.code_c, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 5999;
         """, fetch="one")
         
         global_res2 = execute_query("""
@@ -523,12 +523,12 @@ def generate_next_code_for_artist(artist_id: str):
             FROM art_collections
             WHERE deleted = 0 
               AND document_name REGEXP '-[0-9]+$'
-              AND CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 99999;
+              AND CAST(SUBSTRING_INDEX(document_name, '-', -1) AS UNSIGNED) BETWEEN 5000 AND 5999;
         """, fetch="one")
         
         val1 = (global_res1.get("max_val") if global_res1 else 0) or 0
         val2 = (global_res2.get("max_val") if global_res2 else 0) or 0
-        overall_max = max(val1, val2, 5021)
+        overall_max = max(val1, val2, 5008)
         
         next_num = overall_max + 1
         suggested_code = f"{code_prefix}-{next_num}"
