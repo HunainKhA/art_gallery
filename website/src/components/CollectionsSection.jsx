@@ -258,14 +258,15 @@ export default function CollectionsSection({
                     {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
                     <div style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
+                      justifyContent: isSoldStatus(art.status) ? 'flex-end' : 'space-between',
                       alignItems: 'center',
                       marginTop: 'auto',
                       borderTop: '1px solid var(--border-color)',
-                      paddingTop: '0.85rem'
+                      paddingTop: '0.85rem',
+                      width: '100%'
                     }}>
                       {isSoldStatus(art.status) ? (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                           Sold
                         </span>
                       ) : isArchiveStatus(art.status) ? (
@@ -615,14 +616,15 @@ export default function CollectionsSection({
                   {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    justifyContent: isSoldStatus(art.status) ? 'flex-end' : 'space-between',
                     alignItems: 'center',
                     marginTop: 'auto',
                     borderTop: '1px solid var(--border-color)',
-                    paddingTop: '0.85rem'
+                    paddingTop: '0.85rem',
+                    width: '100%'
                   }}>
                     {isSoldStatus(art.status) ? (
-                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                         Sold
                       </span>
                     ) : isArchiveStatus(art.status) ? (

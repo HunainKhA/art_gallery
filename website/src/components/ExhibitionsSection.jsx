@@ -1273,14 +1273,15 @@ export default function ExhibitionsSection({
                       {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
                         <div style={{
                           display: 'flex',
-                          justifyContent: 'space-between',
+                          justifyContent: (art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out')) ? 'flex-end' : 'space-between',
                           alignItems: 'center',
                           marginTop: 'auto',
                           borderTop: '1px solid var(--border-color)',
-                          paddingTop: '0.85rem'
+                          paddingTop: '0.85rem',
+                          width: '100%'
                         }}>
                           {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                               Sold
                             </span>
                           ) : (
