@@ -586,7 +586,6 @@ export default function ArtistsSection({
             );
           })()}
         </div>
-        </div>
       ) : (
         /* Artists Directory View */
         <div>
