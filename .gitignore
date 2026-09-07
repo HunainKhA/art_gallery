@@ -11,9 +11,8 @@ backend/.venv/
 **/__pycache__/
 *.pyc
 
-# Ignore React node_modules and builds
+# Ignore React node_modules
 **/node_modules/
-**/dist/
 
 # Ignore OS files
 .DS_Store
