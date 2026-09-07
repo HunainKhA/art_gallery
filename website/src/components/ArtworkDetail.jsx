@@ -604,15 +604,20 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
 
           {/* Price / Inquiry / Status */}
           {(() => {
-            const isArchived = artwork.status && (artwork.status.toLowerCase() === 'return' || artwork.status.toLowerCase() === 'archive' || artwork.status.toLowerCase() === 'archived');
-            if (isArchived) return null;
+            const statusLower = (artwork.status || '').toLowerCase();
+            const isSold = statusLower === 'sold' || statusLower === 'soldout' || statusLower === 'sold_out';
+            const isArchived = statusLower === 'return' || statusLower === 'returned' || statusLower === 'archive' || statusLower === 'archived';
 
             return (
               <div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 100, margin: 0, color: 'var(--text-primary)' }}>
-                  {artwork.status && (artwork.status.toLowerCase() === 'sold' || artwork.status.toLowerCase() === 'soldout' || artwork.status.toLowerCase() === 'sold_out') ? (
+                  {isSold ? (
                     <span className="status-sold" style={{ color: '#ef4444', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                       Sold
+                    </span>
+                  ) : isArchived ? (
+                    <span className="status-archived" style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
+                      {statusLower.includes('return') ? 'Returned' : 'Archive'}
                     </span>
                   ) : (!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) ? (
                     <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>

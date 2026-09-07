@@ -256,31 +256,33 @@ export default function CollectionsSection({
                     </p>
 
                     {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
-                    {!isArchiveStatus(art.status) && (
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginTop: 'auto',
-                        borderTop: '1px solid var(--border-color)',
-                        paddingTop: '0.85rem'
-                      }}>
-                        {isSoldStatus(art.status) ? (
-                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                            Sold
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 'auto',
+                      borderTop: '1px solid var(--border-color)',
+                      paddingTop: '0.85rem'
+                    }}>
+                      {isSoldStatus(art.status) ? (
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                          Sold
+                        </span>
+                      ) : isArchiveStatus(art.status) ? (
+                        <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                          {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archive'}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                            Inquiry
                           </span>
-                        ) : (
-                          <>
-                            <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                              Inquiry
-                            </span>
-                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
-                              Available
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            Available
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -611,41 +613,43 @@ export default function CollectionsSection({
                   </p>
 
                   {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
-                  {!isArchiveStatus(art.status) && (
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 'auto',
-                      borderTop: '1px solid var(--border-color)',
-                      paddingTop: '0.85rem'
-                    }}>
-                      {isSoldStatus(art.status) ? (
-                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                          Sold
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: 'auto',
+                    borderTop: '1px solid var(--border-color)',
+                    paddingTop: '0.85rem'
+                  }}>
+                    {isSoldStatus(art.status) ? (
+                      <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                        Sold
+                      </span>
+                    ) : isArchiveStatus(art.status) ? (
+                      <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                        {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archive'}
+                      </span>
+                    ) : (
+                      <>
+                        <span 
+                          className="status-inquiry" 
+                          style={{ 
+                            fontSize: '12px', 
+                            color: 'var(--text-primary)', 
+                            fontWeight: 400, 
+                            fontFamily: 'Montserrat, sans-serif'
+                          }}
+                        >
+                          {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) 
+                            ? formatPrice(art.price, currency, exchangeRates) 
+                            : 'Inquiry'}
                         </span>
-                      ) : (
-                        <>
-                          <span 
-                            className="status-inquiry" 
-                            style={{ 
-                              fontSize: '12px', 
-                              color: 'var(--text-primary)', 
-                              fontWeight: 400, 
-                              fontFamily: 'Montserrat, sans-serif'
-                            }}
-                          >
-                            {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) 
-                              ? formatPrice(art.price, currency, exchangeRates) 
-                              : 'Inquiry'}
-                          </span>
-                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
-                            Available
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        <span className="status-available" style={{ fontSize: '12px', fontWeight: 400, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                          Available
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

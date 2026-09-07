@@ -175,7 +175,6 @@ def get_artist_by_id(artist_id: str):
         LEFT JOIN art_medium m 
             ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0
-          AND LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('return', 'returned', 'archive', 'archived')
         ORDER BY 
             CASE 
                 WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 
