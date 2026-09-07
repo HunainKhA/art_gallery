@@ -202,49 +202,65 @@ export default function CRMListView({ module }) {
 
   const safeData = Array.isArray(data) ? data : [];
   
-  // Deduplicate records by ID
+  // Deduplicate records by canonical codeKey (or ID fallback)
   const uniqueMap = new Map();
   safeData.forEach(item => {
-    if (item && item.id && !uniqueMap.has(item.id)) {
-      uniqueMap.set(item.id, item);
+    if (!item) return;
+    const rawCode = (item.code || item.code_c || (module === 'collections' ? item.title : '') || '').trim().toLowerCase();
+    const isValCode = rawCode && rawCode !== 'null' && rawCode !== 'undefined';
+    const key = (module === 'collections' && isValCode) ? `code_${rawCode}` : `id_${item.id}`;
+    
+    if (key && !uniqueMap.has(key)) {
+      uniqueMap.set(key, item);
     }
   });
   const uniqueData = Array.from(uniqueMap.values());
 
   const query = search.trim().toLowerCase();
+  const normalizeStr = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cleanQuery = normalizeStr(search);
+
   let filteredData = uniqueData;
 
-  if (query) {
+  if (query || cleanQuery) {
     filteredData = uniqueData.filter(row => {
-      return Object.values(row).some(val => 
-        val !== null && val !== undefined && String(val).toLowerCase().includes(query)
-      );
+      return Object.values(row).some(val => {
+        if (val === null || val === undefined) return false;
+        const strVal = String(val).toLowerCase();
+        return strVal.includes(query) || (cleanQuery.length >= 2 && normalizeStr(strVal).includes(cleanQuery));
+      });
     });
 
-    // Sort search results so exact code/title/artist matches appear right at the top
+    // Sort search results so exact / normalized code/title/artist matches appear right at the top
     filteredData.sort((a, b) => {
       const codeA = String(a.code || a.code_c || a.document_name || '').toLowerCase();
       const codeB = String(b.code || b.code_c || b.document_name || '').toLowerCase();
+      const normCodeA = normalizeStr(codeA);
+      const normCodeB = normalizeStr(codeB);
+      
       const titleA = String(a.title || a.name || '').toLowerCase();
       const titleB = String(b.title || b.name || '').toLowerCase();
+      const normTitleA = normalizeStr(titleA);
+      const normTitleB = normalizeStr(titleB);
+
       const artistA = String(a.artist_name || '').toLowerCase();
       const artistB = String(b.artist_name || '').toLowerCase();
+      const normArtistA = normalizeStr(artistA);
+      const normArtistB = normalizeStr(artistB);
 
-      // 1. Exact code match
-      if (codeA === query && codeB !== query) return -1;
-      if (codeB === query && codeA !== query) return 1;
+      // 1. Exact or normalized code match
+      if ((codeA === query || normCodeA === cleanQuery) && (codeB !== query && normCodeB !== cleanQuery)) return -1;
+      if ((codeB === query || normCodeB === cleanQuery) && (codeA !== query && normCodeA !== cleanQuery)) return 1;
 
-      // 2. Code starts with query
-      if (codeA.startsWith(query) && !codeB.startsWith(query)) return -1;
-      if (codeB.startsWith(query) && !codeA.startsWith(query)) return 1;
+      // 2. Code starts with query or cleanQuery
+      if ((codeA.startsWith(query) || normCodeA.startsWith(cleanQuery)) && !(codeB.startsWith(query) || normCodeB.startsWith(cleanQuery))) return -1;
+      if ((codeB.startsWith(query) || normCodeB.startsWith(cleanQuery)) && !(codeA.startsWith(query) || normCodeA.startsWith(cleanQuery))) return 1;
 
-      // 3. Code contains query
-      if (codeA.includes(query) && !codeB.includes(query)) return -1;
-      if (codeB.includes(query) && !codeA.includes(query)) return 1;
-
-      // 4. Title or Artist starts with query
-      if ((titleA.startsWith(query) || artistA.startsWith(query)) && !(titleB.startsWith(query) || artistB.startsWith(query))) return -1;
-      if ((titleB.startsWith(query) || artistB.startsWith(query)) && !(titleA.startsWith(query) || artistA.startsWith(query))) return 1;
+      // 3. Artist / Title starts with query or cleanQuery
+      if ((artistA.startsWith(query) || normArtistA.startsWith(cleanQuery) || titleA.startsWith(query) || normTitleA.startsWith(cleanQuery)) &&
+          !(artistB.startsWith(query) || normArtistB.startsWith(cleanQuery) || titleB.startsWith(query) || normTitleB.startsWith(cleanQuery))) return -1;
+      if ((artistB.startsWith(query) || normArtistB.startsWith(cleanQuery) || titleB.startsWith(query) || normTitleB.startsWith(cleanQuery)) &&
+          !(artistA.startsWith(query) || normArtistA.startsWith(cleanQuery) || titleA.startsWith(query) || normTitleA.startsWith(cleanQuery))) return 1;
 
       return 0;
     });
@@ -254,7 +270,7 @@ export default function CRMListView({ module }) {
   const activePage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage;
   const indexOfLastItem = activePage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredData.length === 0 ? [] : filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
   const renderPagination = () => {
     if (filteredData.length === 0) return null;
