@@ -180,6 +180,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 WHERE deleted = 0
             ) exh_rel ON c.id = exh_rel.art_id
             WHERE {where_str}
+            GROUP BY c.id
             ORDER BY c.date_entered DESC
             LIMIT {int(limit)} OFFSET {int(offset)};
         """

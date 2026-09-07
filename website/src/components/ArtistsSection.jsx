@@ -466,7 +466,7 @@ export default function ArtistsSection({
           <h2 style={{ fontSize: '14px', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>  {selectedArtist.name}</h2>
           {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
             <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-              {[...selectedArtist.artworks]
+              {Array.from(new Map((selectedArtist.artworks || []).map(a => [a.id, a])).values())
                 .sort((a, b) => {
                   const aSold = isSoldStatus(a.status) ? 1 : 0;
                   const bSold = isSoldStatus(b.status) ? 1 : 0;
