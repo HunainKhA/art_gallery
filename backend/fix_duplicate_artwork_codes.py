@@ -36,7 +36,7 @@ def fix_all_duplicate_codes():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            print("Fetching all artworks ordered chronologically by date_entered ASC...")
+            print("Fetching all active artworks...")
             query = """
                 SELECT 
                     c.id, 
@@ -59,68 +59,62 @@ def fix_all_duplicate_codes():
             rows = cursor.fetchall()
             print(f"Total active artworks found: {len(rows)}")
 
-            # 1. Group artworks by artist
-            artist_artworks = {}
+            parsed_items = []
             for r in rows:
-                art_id = r["artist_id"] or "unknown_artist"
+                code = (r.get("code_c") or r.get("document_name") or "").strip()
                 prefix = generate_artist_prefix(r["first_name"], r["last_name"])
-                if art_id not in artist_artworks:
-                    artist_artworks[art_id] = {
-                        "prefix": prefix,
-                        "items": []
-                    }
-                artist_artworks[art_id]["items"].append(r)
-
-            all_codes_seen = set()
-            updates = []
-
-            for art_id, group in artist_artworks.items():
-                prefix = group["prefix"]
-                items = group["items"]
                 
-                # Determine highest valid sequence number >= 5000 for this artist
-                max_num = 5008
-                for item in items:
-                    code = (item.get("code_c") or item.get("document_name") or "").strip()
-                    if code and "-" in code:
-                        p, num_str = code.rsplit("-", 1)
-                        if num_str.isdigit():
-                            n = int(num_str)
-                            if n > max_num:
-                                max_num = n
+                num = None
+                if "-" in code:
+                    _, num_str = code.rsplit("-", 1)
+                    if num_str.isdigit():
+                        num = int(num_str)
+                
+                parsed_items.append({
+                    "id": r["id"],
+                    "orig_code": code,
+                    "prefix": prefix,
+                    "num": num
+                })
 
-                next_seq = max_num + 1
-                for item in items:
-                    current_code = (item.get("code_c") or item.get("document_name") or "").strip()
-                    
-                    needs_new_code = False
-                    if not current_code or current_code in all_codes_seen:
-                        needs_new_code = True
-                    else:
-                        # Check if code is single digit / low number (e.g. AMN-1 to AMN-6) or wrong prefix
-                        if "-" in current_code:
-                            p, num_str = current_code.rsplit("-", 1)
-                            if num_str.isdigit() and int(num_str) < 100:
-                                needs_new_code = True
-                            elif p.upper() != prefix.upper():
-                                needs_new_code = True
+            assigned_numbers = set()
+            updates = []
+            items_to_reassign = []
 
-                    if needs_new_code:
-                        new_code = f"{prefix}-{next_seq}"
-                        while new_code in all_codes_seen:
-                            next_seq += 1
-                            new_code = f"{prefix}-{next_seq}"
-                        all_codes_seen.add(new_code)
-                        next_seq += 1
+            # Pass 1: Keep valid unique 4-digit numbers. Fix prefix if wrong (e.g. ANO-5010 -> A.H-5010).
+            for item in parsed_items:
+                num = item["num"]
+                prefix = item["prefix"]
+                orig_code = item["orig_code"]
+                
+                if num and num >= 1000 and num not in assigned_numbers:
+                    assigned_numbers.add(num)
+                    orig_prefix = orig_code.rsplit("-", 1)[0].upper() if "-" in orig_code else ""
+                    if orig_prefix != prefix.upper():
+                        new_code = f"{prefix}-{num}"
                         updates.append((new_code, item["id"]))
-                    else:
-                        all_codes_seen.add(current_code)
+                else:
+                    # Low number (<1000), duplicate number, or missing code
+                    items_to_reassign.append(item)
 
-            print(f"Total artworks requiring unique 5009+ sequence update: {len(updates)}")
+            # Pass 2: For items needing reassign, assign unique numbers starting from 5009 upwards
+            next_seq = 5009
+            for item in items_to_reassign:
+                prefix = item["prefix"]
+                while next_seq in assigned_numbers:
+                    next_seq += 1
+                
+                new_code = f"{prefix}-{next_seq}"
+                assigned_numbers.add(next_seq)
+                updates.append((new_code, item["id"]))
+                next_seq += 1
+
+            print(f"Total artworks requiring code/prefix update: {len(updates)}")
             
-            # 3. Apply updates to database
+            # Apply updates
             updated_count = 0
             for new_code, row_id in updates:
+                print(f"Updating artwork {row_id} -> {new_code}")
                 cursor.execute("UPDATE art_collections SET document_name = %s WHERE id = %s;", (new_code, row_id))
                 cursor.execute("""
                     INSERT INTO art_collections_cstm (id_c, code_c) 
@@ -130,7 +124,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks with sequential 5009+ codes!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks with clean sequential codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")
