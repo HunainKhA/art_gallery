@@ -35,6 +35,7 @@ export default function ArtistsSection({
       return 'ALL';
     }
   });
+  const [artistStatusFilter, setArtistStatusFilter] = useState('all');
   const [showBioModal, setShowBioModal] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const alphabets = ['ALL', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
@@ -463,74 +464,128 @@ export default function ArtistsSection({
             </div>
           </div>
 
-          <h2 style={{ fontSize: '14px', marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>  {selectedArtist.name}</h2>
-          {selectedArtist.artworks && selectedArtist.artworks.length > 0 ? (
-            <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-              {Array.from(new Map((selectedArtist.artworks || []).map(a => [a.id, a])).values())
-                .sort((a, b) => {
-                  const aSold = isSoldStatus(a.status) ? 1 : 0;
-                  const bSold = isSoldStatus(b.status) ? 1 : 0;
-                  return aSold - bSold;
-                })
-                .map((art) => (
-                <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id, selectedArtist.artworks)}>
-                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '260px', width: '100%', backgroundColor: 'transparent' }}>
-                    <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
-                    <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
-                      <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>View Details <ArrowRight size={14} /></span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ fontSize: '14px', margin: 0, color: 'var(--accent-gold)' }}>{selectedArtist.name}</h2>
+            
+            {/* Status Filter Buttons: All, Available, Sold */}
+            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.02)', padding: '0.25rem', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'available', label: 'Available' },
+                { key: 'sold', label: 'Sold' }
+              ].map(tab => {
+                const isActive = artistStatusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setArtistStatusFilter(tab.key)}
+                    style={{
+                      padding: '0.4rem 1.25rem',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: isActive ? 500 : 300,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      border: isActive ? '1px solid var(--accent-gold)' : '1px solid transparent',
+                      background: isActive ? 'var(--accent-gold)' : 'transparent',
+                      color: isActive ? '#000000' : 'var(--text-secondary)',
+                      boxShadow: isActive ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {(() => {
+            const rawUnique = Array.from(new Map((selectedArtist.artworks || []).map(a => [a.id, a])).values());
+            const filteredArtworks = rawUnique.filter(art => {
+              if (artistStatusFilter === 'available') {
+                return !isSoldStatus(art.status) && !isArchiveStatus(art.status);
+              }
+              if (artistStatusFilter === 'sold') {
+                return isSoldStatus(art.status);
+              }
+              return true; // 'all'
+            });
+
+            if (filteredArtworks.length === 0) {
+              return (
+                <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', border: '1px dashed var(--border-color)', borderRadius: '12px' }}>
+                  No {artistStatusFilter === 'available' ? 'available' : artistStatusFilter === 'sold' ? 'sold' : ''} artworks found for {selectedArtist.name}.
+                </div>
+              );
+            }
+
+            return (
+              <div className="artworks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
+                {filteredArtworks
+                  .sort((a, b) => {
+                    const aSold = isSoldStatus(a.status) ? 1 : 0;
+                    const bSold = isSoldStatus(b.status) ? 1 : 0;
+                    return aSold - bSold;
+                  })
+                  .map((art) => (
+                  <div key={art.id} className="glass-card artwork-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'var(--transition-smooth)' }} onClick={() => viewArtworkDetail(art.id, selectedArtist.artworks)}>
+                    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px', height: '260px', width: '100%', backgroundColor: 'transparent' }}>
+                      <img src={art.id ? getArtworkImageUrl(art.id) : (art.image || '')} alt={art.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }} className="art-grid-image" />
+                      <div className="art-hover-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'var(--transition-smooth)' }}>
+                        <span style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '0.5rem 1.25rem', borderRadius: '20px', fontSize: '12px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>View Details <ArrowRight size={14} /></span>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '1.25rem' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>{art.medium_name || 'Oil on Canvas'}</p>
+                      {(() => {
+                        const dims = renderDimensions(art.width, art.length);
+                        return (
+                          <>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>
+                              {dims.cmStr}
+                            </p>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0' }}>
+                              {dims.inStr}
+                            </p>
+                          </>
+                        );
+                      })()}
+                      <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
+                      {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                          {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
+                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                              Sold
+                            </span>
+                          ) : (
+                            <>
+                              <span 
+                                className="status-inquiry" 
+                                style={{ 
+                                  fontSize: '12px', 
+                                  fontWeight: 400, 
+                                  color: 'var(--text-primary)', 
+                                  fontFamily: 'Montserrat, sans-serif'
+                                }}
+                              >
+                                {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
+                                  ? formatPrice(art.price, currency, exchangeRates)
+                                  : 'Inquiry'}
+                              </span>
+                              <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                                Available
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div style={{ marginTop: '1.25rem' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>{art.medium_name || 'Oil on Canvas'}</p>
-                    {(() => {
-                      const dims = renderDimensions(art.width, art.length);
-                      return (
-                        <>
-                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.25rem 0' }}>
-                            {dims.cmStr}
-                          </p>
-                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0' }}>
-                            {dims.inStr}
-                          </p>
-                        </>
-                      );
-                    })()}
-                    <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
-                    {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                        {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 400, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                            Sold
-                          </span>
-                        ) : (
-                          <>
-                            <span 
-                              className="status-inquiry" 
-                              style={{ 
-                                fontSize: '12px', 
-                                fontWeight: 400, 
-                                color: 'var(--text-primary)', 
-                                fontFamily: 'Montserrat, sans-serif'
-                              }}
-                            >
-                              {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
-                                ? formatPrice(art.price, currency, exchangeRates)
-                                : 'Inquiry'}
-                            </span>
-                            <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                              Available
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-muted)' }}>No artworks registered for this artist.</p>
-          )}
+                ))}
+              </div>
+            );
+          })()}
+        </div>
         </div>
       ) : (
         /* Artists Directory View */
