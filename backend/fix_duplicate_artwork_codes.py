@@ -93,6 +93,10 @@ def fix_all_duplicate_codes():
                         "num": num
                     })
 
+            # Sort 6000s/recent items strictly by their original numeric code (e.g. 6136, 6137, 6138...)
+            # so that 6136 gets 5007, 6137 gets 5008, 6138 gets 5009, etc., right after 5006!
+            items_to_reindex.sort(key=lambda x: x["num"] if x["num"] is not None else 999999)
+
             # Re-index all recent/6000s items strictly sequentially starting at 5007
             next_seq = 5007
             print(f"Reassigning {len(items_to_reindex)} recent artworks sequentially starting at {next_seq}...")
