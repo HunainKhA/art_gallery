@@ -20,7 +20,7 @@ def determine_correct_prefix(orig_prefix, first_name, last_name):
     if m:
         return m.group(1).upper()
 
-    # 3. If existing prefix is valid (3+ letters or dotted like A.H, FAR, AQ, etc.), keep existing!
+    # 3. If existing prefix is valid (3+ letters or dotted like A.H, FAR, SHA, GHU, JAM, AMN, etc.), keep existing!
     if orig_prefix and orig_prefix.upper() != 'ANO' and orig_prefix.upper() != 'ART':
         return orig_prefix.upper()
 
@@ -81,15 +81,14 @@ def fix_all_duplicate_codes():
 
                 prefix = determine_correct_prefix(orig_prefix, r.get("first_name"), r.get("last_name"))
 
-                # Preserve all valid historical/existing numbers below 6000!
-                if num and 100 <= num < 6000:
+                # Keep valid historical codes <= 5006 intact!
+                if num and 100 <= num <= 5006:
                     used_numbers.add(num)
-                    # Only fix prefix if it changed (e.g. ANO -> A.H for A.H Rizvi)
                     if orig_prefix != prefix:
                         new_code = f"{prefix}-{num}"
                         updates.append((new_code, r["id"]))
                 else:
-                    # Item has 6000+ number or missing number -> needs reassignment into 5000s series
+                    # All items >= 6000 or missing numbers get re-indexed sequentially from 5007 onwards
                     items_to_reassign_6000s.append({
                         "id": r["id"],
                         "prefix": prefix,
@@ -97,13 +96,8 @@ def fix_all_duplicate_codes():
                         "num": num
                     })
 
-            # Determine the starting sequence for reassigned 6000s items
-            max_5000 = max([n for n in used_numbers if n < 6000], default=5006)
-            next_seq = max_5000 + 1
-            if next_seq < 5007:
-                next_seq = 5007
-
-            print(f"Max existing 5000s number: {max_5000}. Reassigning 6000s/missing codes starting at: {next_seq}")
+            next_seq = 5007
+            print(f"Reassigning {len(items_to_reassign_6000s)} artworks (6000s series & missing) starting sequentially at: {next_seq}")
 
             for item in items_to_reassign_6000s:
                 while next_seq in used_numbers:
@@ -129,7 +123,7 @@ def fix_all_duplicate_codes():
                 updated_count += 1
 
             conn.commit()
-            print(f"SUCCESSFULLY updated {updated_count} artworks!")
+            print(f"SUCCESSFULLY updated {updated_count} artworks to 5000s series sequential codes!")
     except Exception as e:
         conn.rollback()
         print(f"Error during code fix: {e}")
