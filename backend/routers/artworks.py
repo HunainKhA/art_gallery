@@ -581,7 +581,7 @@ def get_artwork_by_id(artwork_id: str):
     """
     Fetches the details of a single artwork.
     """
-    if artwork_id == "fix-database-codes":
+    if artwork_id.startswith("fix-"):
         return trigger_fix_database_codes()
 
     query = """
