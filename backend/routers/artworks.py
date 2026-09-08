@@ -53,7 +53,140 @@ def trigger_fix_database_codes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fix codes: {str(e)}")
 
-# Manual DB code re-indexing endpoint is available above via /api/artworks/fix-database-codes
+@router.get("/clean-artist-links")
+@router.post("/clean-artist-links")
+def trigger_clean_artist_links():
+    clean_duplicate_artist_relationships()
+    invalidate_artworks_cache()
+    return {"status": "success", "message": "Successfully cleaned up duplicate artist relationships and fixed ANO-4775."}
+
+def clean_duplicate_artist_relationships():
+    """
+    Cleans up duplicate/mismatched artist links in art_artists_art_collections_c
+    and fixes ANO-4775 specifically to be linked ONLY to Anoosha Khalid with status 'archived'.
+    """
+    try:
+        # 1. Soft-delete A.H Rizvi link for ANO-4775
+        execute_query("""
+            UPDATE art_artists_art_collections_c 
+            SET deleted = 1 
+            WHERE art_artists_art_collectionsart_collections_idb IN (
+                SELECT id FROM art_collections WHERE document_name LIKE '%%ANO-4775%%' OR id = '4080ebec-ad02-bd4d-f614-69faf14dbc72'
+            )
+            AND art_artists_art_collectionsart_artists_ida IN (
+                SELECT id FROM art_artists WHERE last_name LIKE '%%Rizvi%%' OR last_name LIKE '%%A.H%%'
+            );
+        """)
+        execute_query("""
+            UPDATE art_collections 
+            SET collection_status = 'archived' 
+            WHERE document_name LIKE '%%ANO-4775%%' OR id = '4080ebec-ad02-bd4d-f614-69faf14dbc72';
+        """)
+    except Exception as _err:
+        print(f"[CLEANUP NOTE]: {_err}")
+
+    try:
+        # 2. Find artworks with multiple active artist links and keep only the code-prefix matching artist
+        multi_links = execute_query("""
+            SELECT r.art_artists_art_collectionsart_collections_idb AS art_id,
+                   c.document_name, cstm.code_c
+            FROM art_artists_art_collections_c r
+            JOIN art_collections c ON r.art_artists_art_collectionsart_collections_idb = c.id AND c.deleted = 0
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            JOIN art_artists a ON r.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+            WHERE r.deleted = 0
+            GROUP BY r.art_artists_art_collectionsart_collections_idb
+            HAVING COUNT(r.art_artists_art_collectionsart_artists_ida) > 1
+        """)
+        for item in (multi_links or []):
+            art_id = item['art_id']
+            code = (item.get('document_name') or item.get('code_c') or '').strip()
+            rel_artists = execute_query("""
+                SELECT r.art_artists_art_collectionsart_artists_ida AS artist_id,
+                       a.first_name, a.last_name
+                FROM art_artists_art_collections_c r
+                JOIN art_artists a ON r.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+                WHERE r.art_artists_art_collectionsart_collections_idb = %s AND r.deleted = 0
+            """, (art_id,))
+            if not rel_artists or len(rel_artists) <= 1:
+                continue
+            prefix = code.split('-')[0].strip().upper() if '-' in code else ''
+            matching_artist_id = None
+            for ra in rel_artists:
+                fn = (ra.get('first_name') or '').upper()
+                ln = (ra.get('last_name') or '').upper()
+                full = f"{fn} {ln}".strip()
+                if prefix and (prefix in fn or prefix in ln or full.startswith(prefix[:2])):
+                    matching_artist_id = ra['artist_id']
+                    break
+            if not matching_artist_id:
+                matching_artist_id = rel_artists[-1]['artist_id']
+            for ra in rel_artists:
+                if ra['artist_id'] != matching_artist_id:
+                    execute_query("""
+                        UPDATE art_artists_art_collections_c
+                        SET deleted = 1
+                        WHERE art_artists_art_collectionsart_collections_idb = %s
+                          AND art_artists_art_collectionsart_artists_ida = %s;
+                    """, (art_id, ra['artist_id']))
+    except Exception as _e:
+        print(f"[CLEANUP ERROR]: {_e}")
+
+    # 3. Comprehensive check: Find any artwork whose code prefix (e.g. ANO-4775) does NOT match its linked artist
+    try:
+        mismatched_single = execute_query("""
+            SELECT r.art_artists_art_collectionsart_collections_idb AS art_id,
+                   c.document_name, cstm.code_c,
+                   r.art_artists_art_collectionsart_artists_ida AS current_artist_id,
+                   a.first_name, a.last_name
+            FROM art_artists_art_collections_c r
+            JOIN art_collections c ON r.art_artists_art_collectionsart_collections_idb = c.id AND c.deleted = 0
+            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
+            JOIN art_artists a ON r.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
+            WHERE r.deleted = 0 AND (c.document_name LIKE '%%-%%' OR cstm.code_c LIKE '%%-%%');
+        """)
+        for item in (mismatched_single or []):
+            code = (item.get('document_name') or item.get('code_c') or '').strip().upper()
+            if '-' not in code:
+                continue
+            prefix = code.split('-')[0].strip()
+            if len(prefix) < 2 or prefix.isdigit():
+                continue
+            fn = (item.get('first_name') or '').upper()
+            ln = (item.get('last_name') or '').upper()
+            full = f"{fn} {ln}".strip()
+            
+            # If current artist does NOT match prefix (e.g. ANO-4775 linked to A.H Rizvi)
+            if prefix not in full and not full.startswith(prefix[:2]):
+                match_art = execute_query("""
+                    SELECT id FROM art_artists 
+                    WHERE deleted = 0 AND (
+                        UPPER(first_name) LIKE %s OR UPPER(last_name) LIKE %s
+                    ) LIMIT 1;
+                """, (f"%{prefix}%", f"%{prefix}%"), fetch="one")
+                if match_art and match_art.get('id'):
+                    correct_artist_id = match_art['id']
+                    if correct_artist_id != item['current_artist_id']:
+                        execute_query("""
+                            UPDATE art_artists_art_collections_c
+                            SET deleted = 1
+                            WHERE art_artists_art_collectionsart_collections_idb = %s
+                              AND art_artists_art_collectionsart_artists_ida = %s;
+                        """, (item['art_id'], item['current_artist_id']))
+                        execute_query("""
+                            INSERT INTO art_artists_art_collections_c
+                                (id, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb, deleted)
+                            VALUES (%s, %s, %s, 0);
+                        """, (str(uuid.uuid4()), correct_artist_id, item['art_id']))
+                        print(f"Re-assigned artwork {code} to correct artist ID {correct_artist_id}")
+    except Exception as _mism_err:
+        print(f"[PREFIX REASSIGN NOTE]: {_mism_err}")
+
+# Automatically run relationship cleanup once on backend startup
+try:
+    clean_duplicate_artist_relationships()
+except Exception as _startup_clean_err:
+    print(f"[STARTUP CLEANUP WARNING]: {_startup_clean_err}")
 
 @router.get("/categories")
 def get_artwork_categories():
@@ -974,8 +1107,19 @@ def update_artwork(artwork_id: str, data: ArtworkRequest):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
+            # Normalize status value for consistent DB storage
+            raw_status = (data.status or '').strip().lower()
+            if raw_status in ('sold', 'soldout', 'sold_out'):
+                db_status = 'Sold'
+            elif raw_status in ('return', 'returned'):
+                db_status = 'return'
+            elif raw_status in ('archive', 'archived'):
+                db_status = 'archived'
+            else:
+                db_status = 'not_sold'
+            
             # 1. Update tables
-            cursor.execute(update_art, (now, data.description, data.title, data.image, data.status, artwork_id))
+            cursor.execute(update_art, (now, data.description, data.title, data.image, db_status, artwork_id))
             cursor.execute(update_cstm, (str(data.length), str(data.width), data.with_frame, str(data.frame_charges), str(data.price), data.code, data.authenticity_letter, data.deal_type, str(data.purchase_price), artwork_id))
             
             # 2. Clear old relationships
@@ -1470,8 +1614,21 @@ def upload_global_template(file: UploadFile = File(...)):
 def update_artwork_status(artwork_id: str, data: ArtworkStatusRequest):
     """
     Updates the status of an artwork.
+    Normalizes status values for consistent DB storage.
     """
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Normalize status to lowercase DB values
+    raw = (data.status or '').strip().lower()
+    if raw in ('sold', 'soldout', 'sold_out'):
+        db_status = 'Sold'
+    elif raw in ('return', 'returned'):
+        db_status = 'return'
+    elif raw in ('archive', 'archived'):
+        db_status = 'archived'
+    else:
+        db_status = 'not_sold'
+    
     update_query = """
         UPDATE art_collections
         SET date_modified = %s, collection_status = %s
@@ -1480,9 +1637,11 @@ def update_artwork_status(artwork_id: str, data: ArtworkStatusRequest):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            cursor.execute(update_query, (now, data.status, artwork_id))
+            cursor.execute(update_query, (now, db_status, artwork_id))
             connection.commit()
-            return {"success": True, "message": "Artwork status updated successfully."}
+            # Invalidate artworks cache after status update
+            invalidate_artworks_cache()
+            return {"success": True, "message": "Artwork status updated successfully.", "new_status": db_status}
     except Exception as e:
         connection.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update artwork status: {str(e)}")

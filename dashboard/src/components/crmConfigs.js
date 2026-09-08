@@ -29,7 +29,7 @@ export const CONFIGS = {
       { name: 'category_id', label: 'Category / Collection Type *', type: 'lookup', lookupType: 'collection-types', required: true },
       { name: 'medium_id', label: 'Medium *', type: 'lookup', lookupType: 'mediums', required: true },
       { name: 'description', label: 'Description', type: 'textarea' },
-      { name: 'status', label: 'Status *', type: 'select', options: [{value: 'Available', label: 'Available'}, {value: 'Sold', label: 'Soldout'}, {value: 'Return', label: 'Return'}], defaultValue: 'Available', required: true },
+      { name: 'status', label: 'Status *', type: 'select', options: [{value: 'Available', label: 'Available'}, {value: 'Sold', label: 'Soldout'}, {value: 'Return', label: 'Return'}, {value: 'Archived', label: 'Archived'}], defaultValue: 'Available', required: true },
       { name: 'deal_type', label: 'Deal Type *', type: 'select', options: [{value: 'Sale_Basis', label: 'Sale Basis'}, {value: 'Purchase_Basis', label: 'Gallery Purchase'}], defaultValue: 'Sale_Basis', required: true },
       { name: 'purchase_price', label: 'Purchase Price (PKR)', type: 'number', placeholder: 'Purchase Price from Artist' },
       { name: 'price', label: 'Retail Price (PKR)', type: 'number' },

@@ -866,17 +866,24 @@ export default function CRMListView({ module }) {
                       ) : (col.key === 'status' && module === 'collections') ? (
                         (() => {
                           const raw = String(row[col.key] || '').trim().toLowerCase();
-                          const currentStatus = (raw === 'sold' || raw === 'soldout' || raw === 'sold_out') ? 'Sold' : (raw === 'return' || raw === 'returned') ? 'Return' : 'Available';
+                          const currentStatus = (raw === 'sold' || raw === 'soldout' || raw === 'sold_out')
+                            ? 'Sold'
+                            : (raw === 'return' || raw === 'returned')
+                            ? 'Return'
+                            : (raw === 'archive' || raw === 'archived')
+                            ? 'Archived'
+                            : 'Available';
                           const isSold = currentStatus === 'Sold';
                           const isReturn = currentStatus === 'Return';
+                          const isArchived = currentStatus === 'Archived';
                           return (
                             <select
                               value={currentStatus}
                               onChange={(e) => handleStatusChange(row.id, e.target.value)}
                               style={{
-                                background: isSold ? 'rgba(239, 68, 68, 0.18)' : isReturn ? 'rgba(245, 158, 11, 0.18)' : 'rgba(34, 197, 94, 0.12)',
-                                color: isSold ? '#ef4444' : isReturn ? '#f59e0b' : '#22c55e',
-                                border: isSold ? '1px solid rgba(239, 68, 68, 0.4)' : isReturn ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(34, 197, 94, 0.3)',
+                                background: isSold ? 'rgba(239, 68, 68, 0.18)' : isReturn ? 'rgba(245, 158, 11, 0.18)' : isArchived ? 'rgba(156, 163, 175, 0.18)' : 'rgba(34, 197, 94, 0.12)',
+                                color: isSold ? '#ef4444' : isReturn ? '#f59e0b' : isArchived ? '#9ca3af' : '#22c55e',
+                                border: isSold ? '1px solid rgba(239, 68, 68, 0.4)' : isReturn ? '1px solid rgba(245, 158, 11, 0.4)' : isArchived ? '1px solid rgba(156, 163, 175, 0.4)' : '1px solid rgba(34, 197, 94, 0.3)',
                                 borderRadius: '6px',
                                 padding: '0.25rem 0.5rem',
                                 fontSize: '0.78rem',
@@ -888,6 +895,7 @@ export default function CRMListView({ module }) {
                               <option value="Available" style={{ background: '#121418', color: '#22c55e' }}>Available</option>
                               <option value="Sold" style={{ background: '#121418', color: '#ef4444' }}>Soldout</option>
                               <option value="Return" style={{ background: '#121418', color: '#f59e0b' }}>Return</option>
+                              <option value="Archived" style={{ background: '#121418', color: '#9ca3af' }}>Archived</option>
                             </select>
                           );
                         })()

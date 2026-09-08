@@ -376,6 +376,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
               <option value="Available">Available</option>
               <option value="Sold">Soldout</option>
               <option value="Return">Return</option>
+              <option value="Archived">Archived</option>
             </select>
           </div>
 

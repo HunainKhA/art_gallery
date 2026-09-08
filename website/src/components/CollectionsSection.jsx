@@ -271,7 +271,7 @@ export default function CollectionsSection({
                         </span>
                       ) : isArchiveStatus(art.status) ? (
                         <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                          {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archive'}
+                          {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archived'}
                         </span>
                       ) : (
                         <>
@@ -629,7 +629,7 @@ export default function CollectionsSection({
                       </span>
                     ) : isArchiveStatus(art.status) ? (
                       <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                        {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archive'}
+                        {String(art.status || '').toLowerCase().includes('return') ? 'Returned' : 'Archived'}
                       </span>
                     ) : (
                       <>

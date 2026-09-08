@@ -411,34 +411,40 @@ export default function CataloguesSection({
                       {art.title}
                     </p>
 
-                    {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return) */}
-                    {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: (art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out')) ? 'flex-end' : 'space-between',
-                        alignItems: 'center',
-                        marginTop: 'auto',
-                        borderTop: '1px solid var(--border-color)',
-                        paddingTop: '0.85rem'
-                      }}>
-                        {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
-                            Sold
+                    {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, Archived in grey) */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: (art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived' || art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'returned')) ? 'flex-end' : 'space-between',
+                      alignItems: 'center',
+                      marginTop: 'auto',
+                      borderTop: '1px solid var(--border-color)',
+                      paddingTop: '0.85rem'
+                    }}>
+                      {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
+                        <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
+                          Sold
+                        </span>
+                      ) : art.status && (art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
+                        <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                          Archived
+                        </span>
+                      ) : art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'returned') ? (
+                        <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                          Returned
+                        </span>
+                      ) : (
+                        <>
+                          <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                            {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
+                              ? formatPrice(art.price, currency, exchangeRates)
+                              : 'Inquiry'}
                           </span>
-                        ) : (
-                          <>
-                            <span className="status-inquiry" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                              {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
-                                ? formatPrice(art.price, currency, exchangeRates)
-                                : 'Inquiry'}
-                            </span>
-                            <span className="status-available" style={{ fontSize: '12px', fontWeight: 500, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
-                              Available
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          <span className="status-available" style={{ fontSize: '12px', fontWeight: 500, color: '#10b981', fontFamily: 'Montserrat, sans-serif' }}>
+                            Available
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
