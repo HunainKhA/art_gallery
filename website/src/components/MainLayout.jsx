@@ -44,12 +44,17 @@ export default function MainLayout({ children, state }) {
   // Navbar is visible if locked open by click, hovered at top, or mobile menu open
   const isHeaderVisible = isPinnedOpen || isHovered || isMenuOpen;
 
-  // Reset navbar to hidden on tab/view changes
+  // Reset navbar to hidden on tab/view changes and always scroll to top
   useEffect(() => {
     setIsPinnedOpen(false);
     setIsHovered(false);
     setIsMenuOpen(false);
     lastScrollYRef.current = 0;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [activeTab]);
 
   // Auto-hide hover navbar when scrolling down (unless pinned open by click)

@@ -223,6 +223,7 @@ export default function useGalleryState() {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '') || 'home';
       setActiveTab(hash);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -282,6 +283,7 @@ export default function useGalleryState() {
   };
 
   const viewArtworkDetail = (id, customArtworksList = null) => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setPreviousTab(activeTab);
     sessionStorage.setItem('previousTab', activeTab);
     setSelectedArtworkId(id);
@@ -301,6 +303,7 @@ export default function useGalleryState() {
 
   const handleViewArtistDetail = (artistId) => {
     setLoadingArtistDetail(true);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     fetchArtistDetail(artistId)
       .then(data => {
         if (data && Array.isArray(data.artworks)) {

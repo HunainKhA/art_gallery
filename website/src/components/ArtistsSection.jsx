@@ -60,6 +60,22 @@ export default function ArtistsSection({
       return cleanName.startsWith(selectedLetter);
     });
 
+  // Always keep page at the top when opening ArtistsSection, selecting artist, or changing letter/filters
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [selectedArtist, selectedLetter, artistStatusFilter]);
+
+  // When artist detail finishes loading, ensure top scroll position is preserved
+  React.useEffect(() => {
+    if (!loadingArtistDetail) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [loadingArtistDetail]);
+
   React.useEffect(() => {
     let interval;
     if (showBioModal && selectedArtist && selectedArtist.artworks && selectedArtist.artworks.length > 0) {
