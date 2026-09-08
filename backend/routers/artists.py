@@ -165,14 +165,19 @@ def get_artist_by_id(artist_id: str):
                 cstm.sale_gallery_price_c,
                 '0'
             ) AS price,
-            c.collection_status AS status,
+            CASE 
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                ELSE 'Available'
+            END AS status,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
             m.name AS medium_name
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel 
-            ON c.id = rel.art_artists_art_collectionsart_collections_idb
+        JOIN art_artists_art_collections_c rel 
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
         LEFT JOIN art_medium_art_collections_c med_rel 
             ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m 

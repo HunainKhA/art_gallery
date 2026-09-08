@@ -551,34 +551,36 @@ export default function ArtistsSection({
                         );
                       })()}
                       <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
-                      {!(art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived')) && (
-                        <div style={{ display: 'flex', justifyContent: (art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out')) ? 'flex-end' : 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', width: '100%' }}>
-                          {art.status && (art.status.toLowerCase() === 'sold' || art.status.toLowerCase() === 'soldout' || art.status.toLowerCase() === 'sold_out') ? (
-                            <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
-                              Sold
+                      <div style={{ display: 'flex', justifyContent: (isSoldStatus(art.status) || isArchiveStatus(art.status)) ? 'flex-end' : 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', width: '100%' }}>
+                        {isSoldStatus(art.status) ? (
+                          <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
+                            Sold
+                          </span>
+                        ) : isArchiveStatus(art.status) ? (
+                          <span className="status-archived" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
+                            Archived
+                          </span>
+                        ) : (
+                          <>
+                            <span 
+                              className="status-inquiry" 
+                              style={{ 
+                                fontSize: '12px', 
+                                fontWeight: 400, 
+                                color: 'var(--text-primary)', 
+                                fontFamily: 'Montserrat, sans-serif'
+                              }}
+                            >
+                              {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
+                                ? formatPrice(art.price, currency, exchangeRates)
+                                : 'Inquiry'}
                             </span>
-                          ) : (
-                            <>
-                              <span 
-                                className="status-inquiry" 
-                                style={{ 
-                                  fontSize: '12px', 
-                                  fontWeight: 400, 
-                                  color: 'var(--text-primary)', 
-                                  fontFamily: 'Montserrat, sans-serif'
-                                }}
-                              >
-                                {(!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date()))
-                                  ? formatPrice(art.price, currency, exchangeRates)
-                                  : 'Inquiry'}
-                              </span>
-                              <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
-                                Available
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      )}
+                            <span className="status-available" style={{ fontSize: '12px', color: '#10b981', fontWeight: 400, fontFamily: 'Montserrat, sans-serif' }}>
+                              Available
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

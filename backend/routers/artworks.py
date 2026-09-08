@@ -139,6 +139,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 CASE 
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
                     ELSE 'Available'
                 END AS status,
                 cstm.*,
@@ -308,6 +309,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     CASE 
                         WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
                         WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
                         ELSE 'Available'
                     END AS status,
                     cstm.*,
