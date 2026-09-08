@@ -339,6 +339,90 @@ export default function ArtistsSection({
           border: 1px solid var(--border-color);
         }
         
+        /* Artist Status Filter Tabs (Dark & Light Theme Adaptive) */
+        .artist-status-filter-container {
+          display: flex;
+          gap: 0.35rem;
+          background: rgba(255, 255, 255, 0.04);
+          padding: 0.3rem;
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        body.light-theme .artist-status-filter-container {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .artist-status-filter-btn {
+          padding: 0.45rem 1.35rem;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 400;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          border: 1px solid transparent;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.65);
+          outline: none;
+        }
+
+        .artist-status-filter-btn:hover {
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .artist-status-filter-btn.active {
+          background: var(--accent-gold);
+          color: #000000 !important;
+          font-weight: 500;
+          border-color: var(--accent-gold);
+          box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Light Theme Overrides */
+        body.light-theme .artist-status-filter-btn {
+          color: #64748b !important;
+        }
+
+        body.light-theme .artist-status-filter-btn:hover {
+          color: #0f172a !important;
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-theme .artist-status-filter-btn.active {
+          background: #111111 !important;
+          color: #ffffff !important;
+          border-color: #111111 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .artist-bio-btn {
+          padding: 0.5rem 1.25rem;
+          font-size: 12px;
+          color: var(--accent-gold);
+          border: 1px solid rgba(212, 175, 55, 0.4);
+          background: rgba(212, 175, 55, 0.03);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .artist-bio-btn:hover {
+          background: rgba(212, 175, 55, 0.1);
+          border-color: var(--accent-gold);
+        }
+        body.light-theme .artist-bio-btn {
+          color: #111111 !important;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        body.light-theme .artist-bio-btn:hover {
+          background: #f8fafc;
+          border-color: #94a3b8;
+        }
+
         .bio-slideshow-title {
           font-size: 12px;
           color: var(--bio-highlight);
@@ -446,14 +530,7 @@ export default function ArtistsSection({
                 <div style={{ marginTop: '0.75rem' }}>
                   <button
                     onClick={() => setShowBioModal(true)}
-                    className="btn-secondary"
-                    style={{
-                      padding: '0.5rem 1.25rem',
-                      fontSize: '12px',
-                      color: 'var(--accent-gold)',
-                      borderColor: 'rgba(212, 175, 55, 0.4)',
-                      background: 'rgba(212, 175, 55, 0.03)'
-                    }}
+                    className="artist-bio-btn"
                   >
                     Read Biography
                   </button>
@@ -468,7 +545,7 @@ export default function ArtistsSection({
             <h2 style={{ fontSize: '14px', margin: 0, color: 'var(--accent-gold)' }}>{selectedArtist.name}</h2>
             
             {/* Status Filter Buttons: All, Available, Sold */}
-            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.02)', padding: '0.25rem', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+            <div className="artist-status-filter-container">
               {[
                 { key: 'all', label: 'All' },
                 { key: 'available', label: 'Available' },
@@ -479,18 +556,7 @@ export default function ArtistsSection({
                   <button
                     key={tab.key}
                     onClick={() => setArtistStatusFilter(tab.key)}
-                    style={{
-                      padding: '0.4rem 1.25rem',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: isActive ? 500 : 300,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: isActive ? '1px solid var(--accent-gold)' : '1px solid transparent',
-                      background: isActive ? 'var(--accent-gold)' : 'transparent',
-                      color: isActive ? '#000000' : 'var(--text-secondary)',
-                      boxShadow: isActive ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
-                    }}
+                    className={`artist-status-filter-btn ${isActive ? 'active' : ''}`}
                   >
                     {tab.label}
                   </button>
