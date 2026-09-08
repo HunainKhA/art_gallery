@@ -53,12 +53,7 @@ def trigger_fix_database_codes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fix codes: {str(e)}")
 
-# Automatically run database code re-indexing on backend startup
-try:
-    from fix_duplicate_artwork_codes import fix_all_duplicate_codes
-    fix_all_duplicate_codes()
-except Exception as _startup_fix_err:
-    print(f"[STARTUP DB FIX WARNING]: {_startup_fix_err}")
+# Manual DB code re-indexing endpoint is available above via /api/artworks/fix-database-codes
 
 @router.get("/categories")
 def get_artwork_categories():
@@ -85,12 +80,24 @@ def get_artwork_categories():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+_ARTWORKS_CACHE = {}
+_CACHE_TTL = 30  # 30 seconds cache
+
+def invalidate_artworks_cache():
+    global _ARTWORKS_CACHE
+    _ARTWORKS_CACHE.clear()
+
 @router.get("")
 def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str = None, status: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 10000):
     """
     Fetches artworks from the database with pagination, filtering by category, artist, code, or search term.
     """
     cache_key = f"{category}_{artist_id}_{medium_id}_{status}_{code}_{search}_{limit}_{page}"
+    now = time.time()
+    if cache_key in _ARTWORKS_CACHE:
+        cached_time, cached_data = _ARTWORKS_CACHE[cache_key]
+        if now - cached_time < _CACHE_TTL:
+            return cached_data
     
     def run_query():
         where_clauses = ["c.deleted = 0"]
