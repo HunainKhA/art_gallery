@@ -605,8 +605,9 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
           {/* Price / Inquiry / Status */}
           {(() => {
             const statusLower = (artwork.status || '').toLowerCase();
+            const descLower = (artwork.description || '').toLowerCase();
             const isSold = statusLower === 'sold' || statusLower === 'soldout' || statusLower === 'sold_out';
-            const isArchived = statusLower === 'return' || statusLower === 'returned' || statusLower === 'archive' || statusLower === 'archived';
+            const isArchived = !isSold && (statusLower === 'return' || statusLower === 'returned' || statusLower === 'archive' || statusLower === 'archived' || descLower.includes('return'));
 
             return (
               <div>
@@ -644,8 +645,10 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
           {/* Actions Row (Add to Bag / WhatsApp / Email) - Hidden for Sold & Archived paintings */}
           {(() => {
             const statusLower = (artwork.status || '').toLowerCase();
-            const isSoldOrArchived = statusLower === 'sold' || statusLower === 'soldout' || statusLower === 'sold_out' || statusLower === 'return' || statusLower === 'archive' || statusLower === 'archived';
-            if (isSoldOrArchived) return null;
+            const descLower = (artwork.description || '').toLowerCase();
+            const isSold = statusLower === 'sold' || statusLower === 'soldout' || statusLower === 'sold_out';
+            const isArchived = !isSold && (statusLower === 'return' || statusLower === 'returned' || statusLower === 'archive' || statusLower === 'archived' || descLower.includes('return'));
+            if (isSold || isArchived) return null;
 
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
@@ -771,7 +774,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
       </div>
 
       {/* Inquiry Form Section */}
-      {showInquiryForm && (
+      {showInquiryForm && !((artwork.status && ['sold', 'soldout', 'sold_out', 'return', 'returned', 'archive', 'archived'].includes(artwork.status.toLowerCase())) || (artwork.description && artwork.description.toLowerCase().includes('return'))) && (
         <div
           ref={inquiryFormRef}
           style={{

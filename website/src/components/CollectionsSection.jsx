@@ -20,10 +20,11 @@ export default function CollectionsSection({
   guestSession,
   setIsGuestModalOpen
 }) {
-  const isArchiveStatus = (s) => {
-    if (!s) return false;
-    const str = String(s).trim().toLowerCase();
-    return str === 'return' || str === 'archive' || str === 'archived';
+  const isArchiveStatus = (s, desc = '') => {
+    if (!s && !desc) return false;
+    const str = String(s || '').trim().toLowerCase();
+    const dStr = String(desc || '').trim().toLowerCase();
+    return str === 'return' || str === 'returned' || str === 'archive' || str === 'archived' || (str !== 'sold' && str !== 'soldout' && str !== 'sold_out' && dStr.includes('return'));
   };
 
   const isSoldStatus = (s) => {
@@ -32,9 +33,9 @@ export default function CollectionsSection({
     return str === 'sold' || str === 'soldout' || str === 'sold_out';
   };
 
-  const isAvailableStatus = (s) => {
-    if (!s) return true;
-    if (isArchiveStatus(s) || isSoldStatus(s)) return false;
+  const isAvailableStatus = (s, desc = '') => {
+    if (!s && !desc) return true;
+    if (isArchiveStatus(s, desc) || isSoldStatus(s)) return false;
     return true;
   };
 
@@ -258,7 +259,7 @@ export default function CollectionsSection({
                     {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
                     <div style={{
                       display: 'flex',
-                      justifyContent: isSoldStatus(art.status) ? 'flex-end' : 'space-between',
+                      justifyContent: (isSoldStatus(art.status) || isArchiveStatus(art.status, art.description)) ? 'flex-end' : 'space-between',
                       alignItems: 'center',
                       marginTop: 'auto',
                       borderTop: '1px solid var(--border-color)',
@@ -269,8 +270,8 @@ export default function CollectionsSection({
                         <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                           Sold
                         </span>
-                      ) : isArchiveStatus(art.status) ? (
-                        <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                      ) : isArchiveStatus(art.status, art.description) ? (
+                        <span className="status-archived" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                           Archived
                         </span>
                       ) : (
@@ -616,7 +617,7 @@ export default function CollectionsSection({
                   {/* Footer Row (Inquiry on left in black, Available on right in green, Sold in red, or Hidden for Return/Archived) */}
                   <div style={{
                     display: 'flex',
-                    justifyContent: isSoldStatus(art.status) ? 'flex-end' : 'space-between',
+                    justifyContent: (isSoldStatus(art.status) || isArchiveStatus(art.status, art.description)) ? 'flex-end' : 'space-between',
                     alignItems: 'center',
                     marginTop: 'auto',
                     borderTop: '1px solid var(--border-color)',
@@ -627,8 +628,8 @@ export default function CollectionsSection({
                       <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                         Sold
                       </span>
-                    ) : isArchiveStatus(art.status) ? (
-                      <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
+                    ) : isArchiveStatus(art.status, art.description) ? (
+                      <span className="status-archived" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                         Archived
                       </span>
                     ) : (

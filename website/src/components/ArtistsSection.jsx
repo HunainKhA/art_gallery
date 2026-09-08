@@ -16,10 +16,11 @@ export default function ArtistsSection({
   guestSession,
   setIsGuestModalOpen
 }) {
-  const isArchiveStatus = (s) => {
-    if (!s) return false;
-    const str = String(s).trim().toLowerCase();
-    return str === 'return' || str === 'returned' || str === 'archive' || str === 'archived';
+  const isArchiveStatus = (s, desc = '') => {
+    if (!s && !desc) return false;
+    const str = String(s || '').trim().toLowerCase();
+    const dStr = String(desc || '').trim().toLowerCase();
+    return str === 'return' || str === 'returned' || str === 'archive' || str === 'archived' || (str !== 'sold' && str !== 'soldout' && str !== 'sold_out' && dStr.includes('return'));
   };
 
   const isSoldStatus = (s) => {
@@ -590,7 +591,7 @@ export default function ArtistsSection({
             const rawUnique = Array.from(new Map((selectedArtist.artworks || []).map(a => [a.id, a])).values());
             const filteredArtworks = rawUnique.filter(art => {
               if (artistStatusFilter === 'available') {
-                return !isSoldStatus(art.status) && !isArchiveStatus(art.status);
+                return !isSoldStatus(art.status) && !isArchiveStatus(art.status, art.description);
               }
               if (artistStatusFilter === 'sold') {
                 return isSoldStatus(art.status);
@@ -638,12 +639,12 @@ export default function ArtistsSection({
                         );
                       })()}
                       <h3 style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '0 0 0.25rem 0' }}>{art.title}</h3>
-                      <div style={{ display: 'flex', justifyContent: (isSoldStatus(art.status) || isArchiveStatus(art.status)) ? 'flex-end' : 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: (isSoldStatus(art.status) || isArchiveStatus(art.status, art.description)) ? 'flex-end' : 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', width: '100%' }}>
                         {isSoldStatus(art.status) ? (
                           <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                             Sold
                           </span>
-                        ) : isArchiveStatus(art.status) ? (
+                        ) : isArchiveStatus(art.status, art.description) ? (
                           <span className="status-archived" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                             Archived
                           </span>
