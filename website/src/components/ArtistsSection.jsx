@@ -350,9 +350,9 @@ export default function ArtistsSection({
         }
         
         body.light-theme .artist-status-filter-container {
-          background: #f1f5f9;
-          border: 1px solid #e2e8f0;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+          background: #ffffff !important;
+          border: 1px solid rgba(0, 0, 0, 0.18) !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .artist-status-filter-btn {
@@ -381,21 +381,26 @@ export default function ArtistsSection({
           box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
         }
 
-        /* Light Theme Overrides */
+        /* Light Theme Overrides: White background & Black font */
         body.light-theme .artist-status-filter-btn {
-          color: #64748b !important;
+          color: #555555 !important;
+          background: #ffffff !important;
+          border: 1px solid transparent !important;
+          box-shadow: none !important;
         }
 
         body.light-theme .artist-status-filter-btn:hover {
-          color: #0f172a !important;
-          background: rgba(0, 0, 0, 0.05);
+          color: #000000 !important;
+          background: #f8fafc !important;
         }
 
         body.light-theme .artist-status-filter-btn.active {
-          background: #111111 !important;
-          color: #ffffff !important;
-          border-color: #111111 !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          background: #ffffff !important;
+          color: #000000 !important;
+          -webkit-text-fill-color: #000000 !important;
+          border: 1.5px solid #000000 !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
         }
 
         .artist-bio-btn {
