@@ -207,10 +207,10 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             st_lower = status.strip().lower()
             if st_lower in ['sold', 'soldout', 'sold_out']:
                 where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('sold', 'soldout', 'sold_out')")
-            elif st_lower in ['return', 'returned']:
-                where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('return', 'returned')")
+            elif st_lower in ['return', 'returned', 'archive', 'archived']:
+                where_clauses.append("(LOWER(TRIM(c.collection_status)) IN ('return', 'returned', 'archive', 'archived') OR (LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out') AND LOWER(COALESCE(c.description, '')) LIKE '%%return%%'))")
             else:
-                where_clauses.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned'))")
+                where_clauses.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned', 'archive', 'archived') AND LOWER(COALESCE(c.description, '')) NOT LIKE '%%return%%')")
             
         if code:
             where_clauses.append("cstm.code_c = %s")
@@ -232,8 +232,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 c.description AS description,
                 CASE 
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Archived'
-                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned', 'archive', 'archived') THEN 'Archived'
+                    WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Archived'
                     ELSE 'Available'
                 END AS status,
                 cstm.*,
@@ -380,10 +380,10 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 st_lower = status.strip().lower()
                 if st_lower in ['sold', 'soldout', 'sold_out']:
                     where_clauses_fb.append("LOWER(TRIM(c.collection_status)) IN ('sold', 'soldout', 'sold_out')")
-                elif st_lower in ['return', 'returned']:
-                    where_clauses_fb.append("LOWER(TRIM(c.collection_status)) IN ('return', 'returned')")
+                elif st_lower in ['return', 'returned', 'archive', 'archived']:
+                    where_clauses_fb.append("(LOWER(TRIM(c.collection_status)) IN ('return', 'returned', 'archive', 'archived') OR (LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out') AND LOWER(COALESCE(c.description, '')) LIKE '%%return%%'))")
                 else:
-                    where_clauses_fb.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned'))")
+                    where_clauses_fb.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned', 'archive', 'archived') AND LOWER(COALESCE(c.description, '')) NOT LIKE '%%return%%')")
             if code:
                 where_clauses_fb.append("cstm.code_c = %s")
                 params_fb.append(code)
@@ -402,8 +402,8 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     c.description AS description,
                     CASE 
                         WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Archived'
-                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned', 'archive', 'archived') THEN 'Archived'
+                        WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Archived'
                         ELSE 'Available'
                     END AS status,
                     cstm.*,

@@ -167,8 +167,8 @@ def get_artist_by_id(artist_id: str):
             ) AS price,
             CASE 
                 WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('return', 'returned') THEN 'Archived'
-                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('archive', 'archived') THEN 'Archived'
+                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('return', 'returned', 'archive', 'archived') THEN 'Archived'
+                WHEN LOWER(TRIM(COALESCE(MAX(c.description), ''))) LIKE '%%return%%' THEN 'Archived'
                 ELSE 'Available'
             END AS status,
             MAX(cstm.collection_size_length_c) AS length,
