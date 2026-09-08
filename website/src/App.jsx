@@ -19,14 +19,6 @@ import GuestAuthModal from './components/GuestAuthModal';
 export default function App() {
   const state = useGalleryState();
 
-  if (state.loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--accent-gold)', fontSize: '1.25rem', fontWeight: 600 }}>
-        Loading Mainframe Art Gallery...
-      </div>
-    );
-  }
-
   if (state.error) {
     return (
       <div style={{ maxWidth: '600px', margin: '10rem auto', padding: '2rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }} className="glass-card">

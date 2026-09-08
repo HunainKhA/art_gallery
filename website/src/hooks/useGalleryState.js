@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   fetchCategories, 
   fetchArtists, 
@@ -19,8 +19,18 @@ export default function useGalleryState() {
   const [exhibitionFilter, setExhibitionFilter] = useState('previous');
   const [framerHeavenTab, setFramerHeavenTab] = useState('Product');
   const [artworks, setArtworks] = useState([]);
-  const [artists, setArtists] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [artists, setArtists] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('cached_artists');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('cached_categories');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [cartItems, setCartItems] = useState([]);
   const [selectedArtworkId, setSelectedArtworkId] = useState(() => {
     const saved = sessionStorage.getItem('selectedArtworkId');
@@ -59,7 +69,12 @@ export default function useGalleryState() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [preSearchTab, setPreSearchTab] = useState(null);
-  const [flashImages, setFlashImages] = useState([]);
+  const [flashImages, setFlashImages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('cached_flashImages');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
   });
@@ -67,9 +82,11 @@ export default function useGalleryState() {
     return localStorage.getItem('currency') || 'PKR';
   });
   const [exchangeRates, setExchangeRates] = useState(FALLBACK_RATES);
-  const [websiteSettings, setWebsiteSettings] = useState({
-    hide_prices: false,
-    hide_add_to_cart: false
+  const [websiteSettings, setWebsiteSettings] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('cached_websiteSettings');
+      return saved ? JSON.parse(saved) : { hide_prices: false, hide_add_to_cart: false };
+    } catch { return { hide_prices: false, hide_add_to_cart: false }; }
   });
   
   const [guestSession, setGuestSession] = useState(() => {
@@ -82,12 +99,12 @@ export default function useGalleryState() {
   });
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [loadingArtworks, setLoadingArtworks] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingArtworks, setLoadingArtworks] = useState(false);
   const [loadingArtistDetail, setLoadingArtistDetail] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Initial mount: Fetch dynamic categories list, artists list, flash images, and exchange rates
+  // 1. Initial mount: Background fetch dynamic categories, artists, flash images, exchange rates
   useEffect(() => {
     Promise.all([
       fetchCategories().catch(err => { console.error("Categories fetch failed:", err); return []; }),
@@ -100,16 +117,27 @@ export default function useGalleryState() {
       })
     ])
       .then(([catData, artistData, flashData, ratesData, settingsData]) => {
-        setCategories(catData || []);
-        setArtists(artistData || []);
-        setFlashImages(flashData || []);
-        setExchangeRates(ratesData);
-        setWebsiteSettings(settingsData);
+        if (catData?.length) {
+          setCategories(catData);
+          try { sessionStorage.setItem('cached_categories', JSON.stringify(catData)); } catch {}
+        }
+        if (artistData?.length) {
+          setArtists(artistData);
+          try { sessionStorage.setItem('cached_artists', JSON.stringify(artistData)); } catch {}
+        }
+        if (flashData?.length) {
+          setFlashImages(flashData);
+          try { sessionStorage.setItem('cached_flashImages', JSON.stringify(flashData)); } catch {}
+        }
+        if (ratesData) setExchangeRates(ratesData);
+        if (settingsData) {
+          setWebsiteSettings(settingsData);
+          try { sessionStorage.setItem('cached_websiteSettings', JSON.stringify(settingsData)); } catch {}
+        }
         setLoading(false);
       })
       .catch(err => {
         console.error("API Fetch Error on mount:", err);
-        // Fallback gracefully on mount if some elements fail
         setLoading(false);
       });
   }, []);
@@ -190,32 +218,27 @@ export default function useGalleryState() {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Fetch artworks dynamically based on selectedCategory, searchQuery, or activeTab
+  // 2. Fetch artworks dynamically based on selectedCategory or searchQuery
+  const hasLoadedArtworksRef = useRef(false);
   useEffect(() => {
+    // If artworks are already in memory and no filter/search active, do not re-fetch
+    if (hasLoadedArtworksRef.current && !searchQuery && !selectedCategory && artworks.length > 0) {
+      return;
+    }
+
     setLoadingArtworks(true);
     fetchArtworks({ search: searchQuery, category: selectedCategory })
       .then(data => {
         setArtworks(data || []);
         setLoadingArtworks(false);
+        if (!searchQuery && !selectedCategory) {
+          hasLoadedArtworksRef.current = true;
+        }
       })
       .catch(err => {
         console.error("Error fetching artworks:", err);
-        setError("Could not load artworks. Please check database connection.");
         setLoadingArtworks(false);
       });
-  }, [selectedCategory, searchQuery, activeTab]);
-
-  // Real-time window focus sync
-  useEffect(() => {
-    const handleWindowFocus = () => {
-      fetchArtworks({ search: searchQuery, category: selectedCategory })
-        .then(data => {
-          if (data) setArtworks(data);
-        })
-        .catch(() => {});
-    };
-    window.addEventListener('focus', handleWindowFocus);
-    return () => window.removeEventListener('focus', handleWindowFocus);
   }, [selectedCategory, searchQuery]);
 
   // 3. Hash router listener

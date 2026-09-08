@@ -15,21 +15,40 @@ export const FALLBACK_RATES = {
  */
 export const fetchExchangeRates = async () => {
   try {
-    const res = await fetch(EXCHANGE_API_URL);
+    const cached = localStorage.getItem('mainframe_exchange_rates');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed?.rates && parsed?.timestamp && (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000)) {
+        return parsed.rates;
+      }
+    }
+  } catch {}
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    const res = await fetch(EXCHANGE_API_URL, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) throw new Error("Exchange API response error");
     const data = await res.json();
     if (data && data.rates) {
-      return {
+      const rates = {
         PKR: 1,
         USD: data.rates.USD || FALLBACK_RATES.USD,
         EUR: data.rates.EUR || FALLBACK_RATES.EUR,
         GBP: data.rates.GBP || FALLBACK_RATES.GBP,
         AED: data.rates.AED || FALLBACK_RATES.AED
       };
+      try {
+        localStorage.setItem('mainframe_exchange_rates', JSON.stringify({ rates, timestamp: Date.now() }));
+      } catch {}
+      return rates;
     }
     return FALLBACK_RATES;
   } catch (error) {
-    console.warn("Could not fetch real-time exchange rates. Using static fallback rates.", error);
+    clearTimeout(timeoutId);
+    console.warn("Using fallback exchange rates:", error?.message || error);
     return FALLBACK_RATES;
   }
 };

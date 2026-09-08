@@ -168,7 +168,7 @@ def get_artwork_categories():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 _ARTWORKS_CACHE = {}
-_CACHE_TTL = 30  # 30 seconds cache
+_CACHE_TTL = 300  # 5 minutes cache
 
 def invalidate_artworks_cache():
     global _ARTWORKS_CACHE
@@ -236,7 +236,17 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Archived'
                     ELSE 'Available'
                 END AS status,
-                cstm.*,
+                cstm.code_c,
+                cstm.price_c,
+                cstm.sale_gallery_price_c,
+                cstm.purchase_gallery_price_c,
+                cstm.gallery_price_c,
+                cstm.sale_price_c,
+                cstm.retail_price_c,
+                cstm.selling_price_c,
+                cstm.purchase_price_c,
+                cstm.artist_price_c,
+                cstm.purchase_artist_price_c,
                 cstm.collection_size_length_c AS length,
                 cstm.collection_size_width_c AS width,
                 cstm.with_frame_c AS with_frame,
@@ -359,7 +369,9 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
         return dedup_artworks
 
     try:
-        return run_query()
+        res = run_query()
+        _ARTWORKS_CACHE[cache_key] = (now, res)
+        return res
     except Exception as e:
         import traceback
         print(f"[ERROR in get_all_artworks primary query]: {str(e)}\n{traceback.format_exc()}")
@@ -472,6 +484,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 if art_id not in seen_ids:
                     seen_ids.add(art_id)
                     dedup_artworks.append(art)
+            _ARTWORKS_CACHE[cache_key] = (now, dedup_artworks)
             return dedup_artworks
         except Exception as e2:
             print(f"[ERROR in get_all_artworks fallback query]: {str(e2)}\n{traceback.format_exc()}")

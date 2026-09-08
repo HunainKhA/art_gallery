@@ -1,6 +1,7 @@
 import uuid
 import os
 import shutil
+import time
 from datetime import datetime
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, UploadFile, File
@@ -8,6 +9,14 @@ from database import execute_query, get_db_connection
 from config import Config
 
 router = APIRouter(prefix="/api/artists", tags=["Artists"])
+
+_ARTISTS_CACHE = None
+_ARTISTS_CACHE_TIME = 0
+_ARTISTS_CACHE_TTL = 300  # 5 minutes cache
+
+def invalidate_artists_cache():
+    global _ARTISTS_CACHE
+    _ARTISTS_CACHE = None
 
 class ArtistRequest(BaseModel):
     first_name: str
@@ -41,6 +50,11 @@ def get_all_artists():
     """
     Fetches all active artists from the SugarCRM database.
     """
+    global _ARTISTS_CACHE, _ARTISTS_CACHE_TIME
+    now = time.time()
+    if _ARTISTS_CACHE is not None and (now - _ARTISTS_CACHE_TIME < _ARTISTS_CACHE_TTL):
+        return _ARTISTS_CACHE
+
     query = """
         SELECT 
             a.id,
@@ -104,6 +118,8 @@ def get_all_artists():
         
         # Robust Alphabetical sorting (A-Z) by display name
         artists.sort(key=lambda x: (x['name'] or '').strip().upper())
+        _ARTISTS_CACHE = artists
+        _ARTISTS_CACHE_TIME = now
         return artists
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

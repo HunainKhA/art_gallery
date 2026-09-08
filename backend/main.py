@@ -15,6 +15,8 @@ app = FastAPI(
 
 # Configure CORS (Cross-Origin Resource Sharing)
 # Allows our React frontend to request data from the Python API
+from fastapi.middleware.gzip import GZipMiddleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=Config.ALLOWED_ORIGINS,
@@ -22,6 +24,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 from fastapi import Request
 
@@ -29,9 +32,11 @@ from fastapi import Request
 async def add_no_cache_header(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/api/"):
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
+        if "/image/" in request.url.path or request.url.path.endswith("/logo"):
+            # Allow browser to cache image assets for 1 day
+            response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+        else:
+            response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
     return response
 
 # Include all the page-specific routers we created
