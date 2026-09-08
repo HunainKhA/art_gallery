@@ -158,22 +158,22 @@ def get_artist_by_id(artist_id: str):
             c.document_name AS title,
             c.filename AS image,
             COALESCE(
-                NULLIF(cstm.purchase_gallery_price_c, '0'),
-                NULLIF(cstm.sale_gallery_price_c, '0'),
-                NULLIF(cstm.purchase_price_c, '0'),
-                cstm.purchase_gallery_price_c,
-                cstm.sale_gallery_price_c,
+                NULLIF(MAX(cstm.purchase_gallery_price_c), '0'),
+                NULLIF(MAX(cstm.sale_gallery_price_c), '0'),
+                NULLIF(MAX(cstm.purchase_price_c), '0'),
+                MAX(cstm.purchase_gallery_price_c),
+                MAX(cstm.sale_gallery_price_c),
                 '0'
             ) AS price,
             CASE 
-                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Archived'
-                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
+                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('return', 'returned') THEN 'Archived'
+                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('archive', 'archived') THEN 'Archived'
                 ELSE 'Available'
             END AS status,
-            cstm.collection_size_length_c AS length,
-            cstm.collection_size_width_c AS width,
-            m.name AS medium_name
+            MAX(cstm.collection_size_length_c) AS length,
+            MAX(cstm.collection_size_width_c) AS width,
+            MAX(m.name) AS medium_name
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
         JOIN art_artists_art_collections_c rel 
@@ -183,13 +183,13 @@ def get_artist_by_id(artist_id: str):
         LEFT JOIN art_medium m 
             ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0
-        GROUP BY c.id
+        GROUP BY c.id, c.document_name, c.filename
         ORDER BY 
             CASE 
-                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 
+                WHEN LOWER(TRIM(COALESCE(MAX(c.collection_status), ''))) IN ('sold', 'soldout', 'sold_out') THEN 1 
                 ELSE 0 
             END ASC,
-            c.date_entered DESC;
+            MAX(c.date_entered) DESC;
     """
     try:
         artist = execute_query(artist_query, (artist_id,), fetch="one")
