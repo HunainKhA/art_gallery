@@ -132,55 +132,9 @@ def clean_duplicate_artist_relationships():
     except Exception as _e:
         print(f"[CLEANUP ERROR]: {_e}")
 
-    # 3. Comprehensive check: Find any artwork whose code prefix (e.g. ANO-4775) does NOT match its linked artist
-    try:
-        mismatched_single = execute_query("""
-            SELECT r.art_artists_art_collectionsart_collections_idb AS art_id,
-                   c.document_name, cstm.code_c,
-                   r.art_artists_art_collectionsart_artists_ida AS current_artist_id,
-                   a.first_name, a.last_name
-            FROM art_artists_art_collections_c r
-            JOIN art_collections c ON r.art_artists_art_collectionsart_collections_idb = c.id AND c.deleted = 0
-            LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-            JOIN art_artists a ON r.art_artists_art_collectionsart_artists_ida = a.id AND a.deleted = 0
-            WHERE r.deleted = 0 AND (c.document_name LIKE '%%-%%' OR cstm.code_c LIKE '%%-%%');
-        """)
-        for item in (mismatched_single or []):
-            code = (item.get('document_name') or item.get('code_c') or '').strip().upper()
-            if '-' not in code:
-                continue
-            prefix = code.split('-')[0].strip()
-            if len(prefix) < 2 or prefix.isdigit():
-                continue
-            fn = (item.get('first_name') or '').upper()
-            ln = (item.get('last_name') or '').upper()
-            full = f"{fn} {ln}".strip()
-            
-            # If current artist does NOT match prefix (e.g. ANO-4775 linked to A.H Rizvi)
-            if prefix not in full and not full.startswith(prefix[:2]):
-                match_art = execute_query("""
-                    SELECT id FROM art_artists 
-                    WHERE deleted = 0 AND (
-                        UPPER(first_name) LIKE %s OR UPPER(last_name) LIKE %s
-                    ) LIMIT 1;
-                """, (f"%{prefix}%", f"%{prefix}%"), fetch="one")
-                if match_art and match_art.get('id'):
-                    correct_artist_id = match_art['id']
-                    if correct_artist_id != item['current_artist_id']:
-                        execute_query("""
-                            UPDATE art_artists_art_collections_c
-                            SET deleted = 1
-                            WHERE art_artists_art_collectionsart_collections_idb = %s
-                              AND art_artists_art_collectionsart_artists_ida = %s;
-                        """, (item['art_id'], item['current_artist_id']))
-                        execute_query("""
-                            INSERT INTO art_artists_art_collections_c
-                                (id, art_artists_art_collectionsart_artists_ida, art_artists_art_collectionsart_collections_idb, deleted)
-                            VALUES (%s, %s, %s, 0);
-                        """, (str(uuid.uuid4()), correct_artist_id, item['art_id']))
-                        print(f"Re-assigned artwork {code} to correct artist ID {correct_artist_id}")
-    except Exception as _mism_err:
-        print(f"[PREFIX REASSIGN NOTE]: {_mism_err}")
+    # NOTE: Step 3 (auto prefix-reassign) was REMOVED because it was
+    # incorrectly re-assigning artworks to wrong artists on every startup.
+    # Manual corrections should be done via the dashboard UI only.
 
 # Automatically run relationship cleanup once on backend startup
 try:
@@ -278,7 +232,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 c.description AS description,
                 CASE 
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Archived'
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
                     ELSE 'Available'
                 END AS status,
@@ -448,7 +402,7 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                     c.description AS description,
                     CASE 
                         WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                        WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Archived'
                         WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
                         ELSE 'Available'
                     END AS status,

@@ -617,7 +617,7 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
                     </span>
                   ) : isArchived ? (
                     <span className="status-archived" style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
-                      {statusLower.includes('return') ? 'Returned' : 'Archive'}
+                      Archived
                     </span>
                   ) : (!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) ? (
                     <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>

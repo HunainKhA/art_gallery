@@ -1283,13 +1283,9 @@ export default function ExhibitionsSection({
                           <span className="status-sold" style={{ fontSize: '12px', fontWeight: 500, color: '#ef4444', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto', textAlign: 'right' }}>
                             Sold
                           </span>
-                        ) : art.status && (art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived') ? (
+                        ) : art.status && (art.status.toLowerCase() === 'archive' || art.status.toLowerCase() === 'archived' || art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'returned') ? (
                           <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
                             Archived
-                          </span>
-                        ) : art.status && (art.status.toLowerCase() === 'return' || art.status.toLowerCase() === 'returned') ? (
-                          <span className="status-archived" style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)', fontFamily: 'Montserrat, sans-serif', marginLeft: 'auto' }}>
-                            Returned
                           </span>
                         ) : (
                           <>
