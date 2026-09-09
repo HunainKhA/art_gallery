@@ -34,6 +34,10 @@ class ArtworkImportList(BaseModel):
 class ArtworkStatusRequest(BaseModel):
     status: str
 
+class BulkStatusRequest(BaseModel):
+    ids: list[str]
+    status: str
+
 
 @router.get("/fix-database-codes")
 @router.post("/fix-database-codes")
@@ -174,6 +178,14 @@ def invalidate_artworks_cache():
     global _ARTWORKS_CACHE
     _ARTWORKS_CACHE.clear()
 
+def invalidate_all_caches():
+    invalidate_artworks_cache()
+    try:
+        from routers.artists import invalidate_artists_cache
+        invalidate_artists_cache()
+    except Exception:
+        pass
+
 @router.get("")
 def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str = None, status: str = None, code: str = None, search: str = None, page: int = 1, limit: int = 10000):
     """
@@ -207,14 +219,16 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
             st_lower = status.strip().lower()
             if st_lower in ['sold', 'soldout', 'sold_out']:
                 where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('sold', 'soldout', 'sold_out')")
-            elif st_lower in ['return', 'returned', 'archive', 'archived']:
-                where_clauses.append("(LOWER(TRIM(c.collection_status)) IN ('return', 'returned', 'archive', 'archived') OR (LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out') AND LOWER(COALESCE(c.description, '')) LIKE '%%return%%'))")
+            elif st_lower in ['return', 'returned']:
+                where_clauses.append("(LOWER(TRIM(c.collection_status)) IN ('return', 'returned') OR LOWER(TRIM(c.description)) LIKE '%return%')")
+            elif st_lower in ['archive', 'archived']:
+                where_clauses.append("LOWER(TRIM(c.collection_status)) IN ('archive', 'archived')")
             else:
-                where_clauses.append("(LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned', 'archive', 'archived') AND LOWER(COALESCE(c.description, '')) NOT LIKE '%%return%%')")
+                where_clauses.append("LOWER(TRIM(COALESCE(c.collection_status, ''))) NOT IN ('sold', 'soldout', 'sold_out', 'return', 'returned', 'archive', 'archived') AND LOWER(TRIM(COALESCE(c.description, ''))) NOT LIKE '%return%'")
             
         if code:
-            where_clauses.append("cstm.code_c = %s")
-            params.append(code)
+            where_clauses.append("(cstm.code_c = %s OR c.document_name = %s)")
+            params.extend([code, code])
             
         if search:
             where_clauses.append("(c.document_name LIKE %s OR cstm.code_c LIKE %s OR rel_artist.artist_name LIKE %s)")
@@ -232,10 +246,12 @@ def get_all_artworks(category: str = None, artist_id: str = None, medium_id: str
                 c.description AS description,
                 CASE 
                     WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
-                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned', 'archive', 'archived') THEN 'Archived'
-                    WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Archived'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                    WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                    WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Return'
                     ELSE 'Available'
                 END AS status,
+                c.collection_status AS collection_status,
                 cstm.code_c,
                 cstm.price_c,
                 cstm.sale_gallery_price_c,
@@ -755,7 +771,14 @@ def get_artwork_by_id(artwork_id: str):
             c.document_name AS title,
             c.filename AS image,
             c.description AS description,
-            c.collection_status AS status,
+            CASE 
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('sold', 'soldout', 'sold_out') THEN 'Sold'
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('return', 'returned') THEN 'Return'
+                WHEN LOWER(TRIM(COALESCE(c.collection_status, ''))) IN ('archive', 'archived') THEN 'Archived'
+                WHEN LOWER(TRIM(COALESCE(c.description, ''))) LIKE '%%return%%' THEN 'Return'
+                ELSE 'Available'
+            END AS status,
+            c.collection_status AS collection_status,
             COALESCE(NULLIF(cstm.sale_gallery_price_c, ''), NULLIF(cstm.purchase_price_c, ''), 0) AS price,
             cstm.collection_size_length_c AS length,
             cstm.collection_size_width_c AS width,
@@ -1001,6 +1024,17 @@ def create_artwork(data: ArtworkRequest):
 
     title_val = code_val
     
+    # Normalize status for consistent DB storage
+    raw_status = (data.status or '').strip().lower()
+    if raw_status in ('sold', 'soldout', 'sold_out'):
+        db_status = 'Sold'
+    elif raw_status in ('return', 'returned'):
+        db_status = 'return'
+    elif raw_status in ('archive', 'archived'):
+        db_status = 'archived'
+    else:
+        db_status = 'not_sold'
+
     insert_art = """
         INSERT INTO art_collections (
             id, date_entered, date_modified, modified_user_id, created_by, 
@@ -1019,7 +1053,7 @@ def create_artwork(data: ArtworkRequest):
     try:
         with connection.cursor() as cursor:
             # 1. Main table
-            cursor.execute(insert_art, (artwork_id, now, now, data.description, title_val, data.image or f"{code_val}.jpg", data.status))
+            cursor.execute(insert_art, (artwork_id, now, now, data.description, title_val, data.image or f"{code_val}.jpg", db_status))
             # 2. Custom fields table
             cursor.execute(insert_cstm, (
                 artwork_id, str(data.length), str(data.width), data.with_frame,
@@ -1046,10 +1080,48 @@ def create_artwork(data: ArtworkRequest):
                 """, (str(uuid.uuid4()), now, data.medium_id, artwork_id))
                 
             connection.commit()
+            invalidate_all_caches()
             return {"success": True, "id": artwork_id, "message": "Artwork successfully created."}
     except Exception as e:
         connection.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create artwork: {str(e)}")
+    finally:
+        connection.close()
+
+@router.put("/bulk-status")
+def update_bulk_artwork_status(data: BulkStatusRequest):
+    """
+    Updates the status of multiple artworks in bulk.
+    """
+    if not data.ids:
+        return {"success": True, "message": "No artworks selected."}
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    raw = (data.status or '').strip().lower()
+    if raw in ('sold', 'soldout', 'sold_out'):
+        db_status = 'Sold'
+    elif raw in ('return', 'returned'):
+        db_status = 'return'
+    elif raw in ('archive', 'archived'):
+        db_status = 'archived'
+    else:
+        db_status = 'not_sold'
+
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            placeholders = ', '.join(['%s'] * len(data.ids))
+            query = f"""
+                UPDATE art_collections
+                SET date_modified = %s, collection_status = %s
+                WHERE id IN ({placeholders}) AND deleted = 0;
+            """
+            cursor.execute(query, [now, db_status] + data.ids)
+            connection.commit()
+            invalidate_all_caches()
+            return {"success": True, "message": f"Successfully updated status for {cursor.rowcount} artworks.", "new_status": db_status}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update bulk status: {str(e)}")
     finally:
         connection.close()
 
@@ -1112,6 +1184,7 @@ def update_artwork(artwork_id: str, data: ArtworkRequest):
                 """, (str(uuid.uuid4()), now, data.medium_id, artwork_id))
                 
             connection.commit()
+            invalidate_all_caches()
             return {"success": True, "message": "Artwork successfully updated."}
     except Exception as e:
         connection.rollback()
@@ -1131,6 +1204,7 @@ def delete_artwork(artwork_id: str):
         with connection.cursor() as cursor:
             cursor.execute(query, (now, artwork_id))
             connection.commit()
+            invalidate_all_caches()
             return {"success": True, "message": "Artwork deleted successfully."}
     except Exception as e:
         connection.rollback()
@@ -1606,8 +1680,8 @@ def update_artwork_status(artwork_id: str, data: ArtworkStatusRequest):
         with connection.cursor() as cursor:
             cursor.execute(update_query, (now, db_status, artwork_id))
             connection.commit()
-            # Invalidate artworks cache after status update
-            invalidate_artworks_cache()
+            # Invalidate all caches after status update
+            invalidate_all_caches()
             return {"success": True, "message": "Artwork status updated successfully.", "new_status": db_status}
     except Exception as e:
         connection.rollback()

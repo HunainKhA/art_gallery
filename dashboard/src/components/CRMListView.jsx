@@ -43,6 +43,18 @@ export default function CRMListView({ module }) {
   };
 
   const handleStatusChange = (id, newStatus) => {
+    // Optimistically update local data state immediately so the dropdown reflects right away
+    setData(prevData => (Array.isArray(prevData) ? prevData : []).map(item => {
+      if (item.id === id) {
+        return { 
+          ...item, 
+          status: newStatus, 
+          collection_status: newStatus === 'Return' ? 'return' : newStatus === 'Sold' ? 'Sold' : newStatus === 'Archived' ? 'archived' : 'not_sold' 
+        };
+      }
+      return item;
+    }));
+
     fetch(getApiUrl(`/api/artworks/${id}/status`), {
       method: 'PUT',
       headers: {
@@ -52,13 +64,52 @@ export default function CRMListView({ module }) {
     })
       .then(res => res.json())
       .then(result => {
-        if (result.success) {
+        if (!result.success) {
+          alert("Failed to update status: " + (result.detail || result.message || "Unknown error"));
           fetchRecords();
-        } else {
-          alert("Failed to update status.");
         }
       })
-      .catch(err => alert("Error updating status: " + err.message));
+      .catch(err => {
+        alert("Error updating status: " + err.message);
+        fetchRecords();
+      });
+  };
+
+  const handleBulkStatusChange = (newStatus) => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to mark ${selectedIds.length} selected artworks as "${newStatus}"?`)) return;
+
+    // Optimistically update
+    setData(prevData => (Array.isArray(prevData) ? prevData : []).map(item => {
+      if (selectedIds.includes(item.id)) {
+        return { 
+          ...item, 
+          status: newStatus, 
+          collection_status: newStatus === 'Return' ? 'return' : newStatus === 'Sold' ? 'Sold' : newStatus === 'Archived' ? 'archived' : 'not_sold' 
+        };
+      }
+      return item;
+    }));
+
+    fetch(getApiUrl('/api/artworks/bulk-status'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, status: newStatus })
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          setSelectedIds([]);
+          fetchRecords();
+        } else {
+          alert("Failed to update bulk status: " + (result.detail || result.message || "Unknown error"));
+          fetchRecords();
+        }
+      })
+      .catch(err => {
+        alert("Error updating bulk status: " + err.message);
+        fetchRecords();
+      });
   };
 
 
@@ -541,6 +592,45 @@ export default function CRMListView({ module }) {
               {module === 'collections' && (
                 <>
                   <button
+                    onClick={() => handleBulkStatusChange('Return')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.8rem',
+                      color: '#f59e0b',
+                      borderColor: 'rgba(245, 158, 11, 0.4)',
+                      fontWeight: 600
+                    }}
+                  >
+                    Mark Return
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange('Available')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.8rem',
+                      color: '#22c55e',
+                      borderColor: 'rgba(34, 197, 94, 0.4)',
+                      fontWeight: 600
+                    }}
+                  >
+                    Mark Available
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange('Sold')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.8rem',
+                      color: '#ef4444',
+                      borderColor: 'rgba(239, 68, 68, 0.4)',
+                      fontWeight: 600
+                    }}
+                  >
+                    Mark Soldout
+                  </button>
+                  <button
                     onClick={() => handleBulkToggleLetter(true)}
                     className="btn-secondary"
                     style={{
@@ -865,10 +955,11 @@ export default function CRMListView({ module }) {
                         </div>
                       ) : (col.key === 'status' && module === 'collections') ? (
                         (() => {
-                          const raw = String(row[col.key] || '').trim().toLowerCase();
+                          const raw = String(row[col.key] || row['collection_status'] || '').trim().toLowerCase();
+                          const desc = String(row.description || '').trim().toLowerCase();
                           const currentStatus = (raw === 'sold' || raw === 'soldout' || raw === 'sold_out')
                             ? 'Sold'
-                            : (raw === 'return' || raw === 'returned')
+                            : (raw === 'return' || raw === 'returned' || desc.includes('return'))
                             ? 'Return'
                             : (raw === 'archive' || raw === 'archived')
                             ? 'Archived'

@@ -86,6 +86,16 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         realCode = editRecord.code || editRecord.document_name || editRecord.title || editRecord.code_c || '';
       }
 
+      const rawStatus = String(editRecord.collection_status || editRecord.status || '').trim().toLowerCase();
+      const descText = String(editRecord.description || '').trim().toLowerCase();
+      const mappedStatus = (rawStatus === 'sold' || rawStatus === 'soldout' || rawStatus === 'sold_out')
+        ? 'Sold'
+        : (rawStatus === 'return' || rawStatus === 'returned' || descText.includes('return'))
+        ? 'Return'
+        : (rawStatus === 'archive' || rawStatus === 'archived')
+        ? 'Archived'
+        : 'Available';
+
       setFormData({
         id: editRecord.id,
         title: realCode || editRecord.document_name || editRecord.title || '',
@@ -95,7 +105,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
         length: editRecord.collection_size_length_c || editRecord.length || '',
         width: editRecord.collection_size_width_c || editRecord.width || '',
         deal_type: editRecord.sale_c || editRecord.deal_type || 'Sale_Basis',
-        status: editRecord.collection_status || editRecord.status || 'Available',
+        status: mappedStatus,
         purchase_price: pPrice,
         price: rPrice,
         commission_pct: comm,
