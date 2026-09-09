@@ -1275,7 +1275,12 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {currentSection.endsWith('_create') && (
             <CRMCreateForm 
               module={currentSection.replace('_create', '')}
-              onSuccess={fetchInventoryAndCustomers}
+              onSuccess={() => {
+                fetchInventoryAndCustomers();
+                if (currentSection === 'collections_create') {
+                  setCurrentSection('collections_view');
+                }
+              }}
             />
           )}
 
