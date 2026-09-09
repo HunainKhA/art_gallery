@@ -591,8 +591,8 @@ def get_artist_portfolio_report(artist_id: str):
             ) AS invoice_number
         FROM art_collections c
         LEFT JOIN art_collections_cstm cstm ON c.id = cstm.id_c
-        LEFT JOIN art_artists_art_collections_c rel 
-            ON c.id = rel.art_artists_art_collectionsart_collections_idb
+        JOIN art_artists_art_collections_c rel 
+            ON c.id = rel.art_artists_art_collectionsart_collections_idb AND rel.deleted = 0
         LEFT JOIN art_medium_art_collections_c med_rel ON c.id = med_rel.art_medium_art_collectionsart_collections_idb AND med_rel.deleted = 0
         LEFT JOIN art_medium m ON med_rel.art_medium_art_collectionsart_medium_ida = m.id AND m.deleted = 0
         WHERE rel.art_artists_art_collectionsart_artists_ida = %s AND c.deleted = 0

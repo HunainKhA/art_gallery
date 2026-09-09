@@ -64,6 +64,12 @@ def on_startup():
     except Exception as e:
         print("Error running guest tables startup check:", e)
 
+    try:
+        from routers.artworks import clean_duplicate_artist_relationships
+        clean_duplicate_artist_relationships()
+    except Exception as e:
+        print("Error running clean duplicate artist relationships check:", e)
+
 @app.get("/")
 def home():
     """

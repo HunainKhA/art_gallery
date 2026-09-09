@@ -77,14 +77,12 @@ def clean_duplicate_artist_relationships():
             WHERE art_artists_art_collectionsart_collections_idb IN (
                 SELECT id FROM art_collections WHERE document_name LIKE '%%ANO-4775%%' OR id = '4080ebec-ad02-bd4d-f614-69faf14dbc72'
             )
-            AND art_artists_art_collectionsart_artists_ida IN (
-                SELECT id FROM art_artists WHERE last_name LIKE '%%Rizvi%%' OR last_name LIKE '%%A.H%%'
+            AND (
+                art_artists_art_collectionsart_artists_ida = '755a3d98-7db8-98ea-4c86-5e2bf9c6ddea'
+                OR art_artists_art_collectionsart_artists_ida IN (
+                    SELECT id FROM art_artists WHERE last_name LIKE '%%Rizvi%%' OR last_name LIKE '%%A.H%%'
+                )
             );
-        """)
-        execute_query("""
-            UPDATE art_collections 
-            SET collection_status = 'archived' 
-            WHERE document_name LIKE '%%ANO-4775%%' OR id = '4080ebec-ad02-bd4d-f614-69faf14dbc72';
         """)
     except Exception as _err:
         print(f"[CLEANUP NOTE]: {_err}")
