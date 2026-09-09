@@ -678,6 +678,7 @@ def get_artist_portfolio_report(artist_id: str):
                 "price": price_str,
                 "price_num": price_num,
                 "invoice": inv_display,
+                "client": "",
                 "status": norm_status
             })
             
@@ -759,8 +760,9 @@ def get_artist_portfolio_report(artist_id: str):
                 .col-medium {{ width: 135px; color: #334155; }}
                 .col-size {{ width: 95px; font-weight: 500; color: #334155; white-space: nowrap; }}
                 .col-price {{ width: 110px; text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap; }}
-                .col-invoice {{ width: 80px; text-align: center; font-weight: 600; color: #475569; }}
-                .col-status {{ width: 90px; text-align: center; }}
+                .col-invoice {{ width: 75px; text-align: center; font-weight: 600; color: #475569; }}
+                .col-client {{ width: 80px; text-align: center; font-weight: 500; color: #475569; }}
+                .col-status {{ width: 85px; text-align: center; }}
                 
                 .status-text {{ font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; background: transparent !important; border: none !important; display: inline-block; }}
                 .status-available {{ color: #16a34a !important; }}
@@ -871,6 +873,7 @@ def get_artist_portfolio_report(artist_id: str):
                                     <td class="col-size">${{art.size}}</td>
                                     <td class="col-price">${{art.price}} PKR</td>
                                     <td class="col-invoice">${{art.invoice}}</td>
+                                    <td class="col-client">${{art.client || ''}}</td>
                                     <td class="col-status"><span class="status-text ${{statusClass}}">${{art.status}}</span></td>
                                 </tr>`;
                         }});
@@ -890,7 +893,7 @@ def get_artist_portfolio_report(artist_id: str):
                             </div>` : `
                             <div class="page-header compact-header"><div style="font-size: 13px; font-weight: 700;">${{artistName}} &bull; <span style="font-weight: 500; color: #64748b;">Portfolio</span></div><div class="page-number-indicator">Page ${{pageNum}} of ${{totalPages}}</div></div>`;
 
-                        container.innerHTML += `<div class="report-page">${{headerHtml}}<table class="report-table"><thead><tr><th class="col-select no-print">#</th><th class="col-sno">S#</th><th class="col-code">Code</th><th class="col-photo">Painting</th><th class="col-medium">Medium</th><th class="col-size">Size</th><th class="col-price">Price</th><th class="col-invoice">Invoice</th><th class="col-status">Status</th></tr></thead><tbody>${{rowsHtml}}</tbody></table><div class="page-footer"><div>MainFrame The Gallery &bull; Karachi</div><div>${{new Date().toLocaleDateString()}}</div></div></div>`;
+                        container.innerHTML += `<div class="report-page">${{headerHtml}}<table class="report-table"><thead><tr><th class="col-select no-print">#</th><th class="col-sno">S#</th><th class="col-code">Code</th><th class="col-photo">Painting</th><th class="col-medium">Medium</th><th class="col-size">Size</th><th class="col-price">Price</th><th class="col-invoice">Invoice</th><th class="col-client">Client</th><th class="col-status">Status</th></tr></thead><tbody>${{rowsHtml}}</tbody></table><div class="page-footer"><div>MainFrame The Gallery &bull; Karachi</div><div>${{new Date().toLocaleDateString()}}</div></div></div>`;
                     }}
                 }}
 
