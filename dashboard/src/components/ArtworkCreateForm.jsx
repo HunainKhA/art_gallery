@@ -494,7 +494,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Charges
+                Total:
               </label>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(212, 175, 55, 0.05)', border: '1px dashed rgba(212, 175, 55, 0.4)', borderRadius: '8px', color: 'var(--accent-gold)', fontSize: '0.95rem', fontWeight: 700 }}>
                 {galleryShare.toLocaleString()}
@@ -503,7 +503,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
-                Payable to Artist
+                Net Amount
               </label>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#10b981', fontSize: '0.95rem', fontWeight: 700 }}>
                 {netPayableToArtist.toLocaleString()}
