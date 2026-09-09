@@ -35,6 +35,11 @@ async def add_no_cache_header(request: Request, call_next):
         if "/image/" in request.url.path or request.url.path.endswith("/logo"):
             # Allow browser to cache image assets for 1 day
             response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+        elif request.method == "GET" and any(request.url.path.startswith(p) for p in [
+            "/api/artworks", "/api/artists", "/api/collection-types", "/api/mediums", "/api/crm/flashimages", "/api/settings"
+        ]):
+            # Allow fast caching for public read queries: 2 minutes browser cache, 10 minutes stale-while-revalidate
+            response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
         else:
             response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
     return response

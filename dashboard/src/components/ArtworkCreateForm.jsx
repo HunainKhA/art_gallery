@@ -91,10 +91,10 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
       const mappedStatus = (rawStatus === 'sold' || rawStatus === 'soldout' || rawStatus === 'sold_out')
         ? 'Sold'
         : (rawStatus === 'return' || rawStatus === 'returned' || descText.includes('return'))
-        ? 'Return'
-        : (rawStatus === 'archive' || rawStatus === 'archived')
-        ? 'Archived'
-        : 'Available';
+          ? 'Return'
+          : (rawStatus === 'archive' || rawStatus === 'archived')
+            ? 'Archived'
+            : 'Available';
 
       setFormData({
         id: editRecord.id,
@@ -148,8 +148,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
       }
     }
 
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       artist_id: artistId,
       code: '',
       title: ''
@@ -289,7 +289,7 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
       </h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-        
+
         {/* ROW 1: Artist | Length (inches) | Width (inches) */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem' }}>
           <div>

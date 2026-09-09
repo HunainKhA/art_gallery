@@ -1,22 +1,48 @@
+import { getCachedData, setCachedData } from './cache';
+
 const API_BASE = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 export const getApiUrl = (path) => {
   return `${API_BASE}${path}`;
 };
 
-export const fetchCategories = async () => {
+export const fetchCategories = async (forceFresh = false) => {
+  if (!forceFresh) {
+    const cached = await getCachedData('categories_all', 15 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/artworks/categories`);
   if (!res.ok) throw new Error("Could not load categories database records.");
-  return res.json();
+  const data = await res.json();
+  setCachedData('categories_all', data);
+  return data;
 };
 
-export const fetchArtists = async () => {
+export const fetchArtists = async (forceFresh = false) => {
+  if (!forceFresh) {
+    const cached = await getCachedData('artists_all', 10 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/artists`);
   if (!res.ok) throw new Error("Could not load artists profiles.");
-  return res.json();
+  const data = await res.json();
+  setCachedData('artists_all', data);
+  return data;
 };
 
-export const fetchArtworks = async (params = {}) => {
+export const fetchArtworks = async (params = {}, forceFresh = false) => {
+  const isDefaultAll = !params.search && !params.category;
+  const cacheKey = isDefaultAll 
+    ? 'artworks_all' 
+    : `artworks_${params.search || ''}_${params.category || ''}`;
+
+  if (!forceFresh) {
+    const cached = await getCachedData(cacheKey, 10 * 60 * 1000);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+  }
+
   let url = `${API_BASE}/api/artworks?limit=10000`;
   if (params.search) {
     url += `&search=${encodeURIComponent(params.search)}`;
@@ -26,13 +52,25 @@ export const fetchArtworks = async (params = {}) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Could not fetch artworks inventory list.");
   const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  const result = Array.isArray(data) ? data : [];
+  if (result.length > 0) {
+    setCachedData(cacheKey, result);
+  }
+  return result;
 };
 
-export const fetchArtistDetail = async (artistId) => {
+export const fetchArtistDetail = async (artistId, forceFresh = false) => {
+  if (!forceFresh && artistId) {
+    const cached = await getCachedData(`artist_detail_${artistId}`, 10 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/artists/${artistId}`);
   if (!res.ok) throw new Error("Could not fetch artist portfolio detail.");
-  return res.json();
+  const data = await res.json();
+  if (data) {
+    setCachedData(`artist_detail_${artistId}`, data);
+  }
+  return data;
 };
 
 export const getArtworkImageUrl = (id) => {
@@ -62,22 +100,40 @@ export const getLogoUrl = () => {
   return `${API_BASE}/api/artworks/logo`;
 };
 
-export const fetchFlashImages = async () => {
+export const fetchFlashImages = async (forceFresh = false) => {
+  if (!forceFresh) {
+    const cached = await getCachedData('flash_images', 15 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/crm/flashimages`);
   if (!res.ok) throw new Error("Could not load homepage flash images.");
-  return res.json();
+  const data = await res.json();
+  setCachedData('flash_images', data);
+  return data;
 };
 
-export const fetchCollectionTypes = async () => {
+export const fetchCollectionTypes = async (forceFresh = false) => {
+  if (!forceFresh) {
+    const cached = await getCachedData('collection_types', 30 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/collection-types`);
   if (!res.ok) throw new Error("Could not load categories list.");
-  return res.json();
+  const data = await res.json();
+  setCachedData('collection_types', data);
+  return data;
 };
 
-export const fetchMediums = async () => {
+export const fetchMediums = async (forceFresh = false) => {
+  if (!forceFresh) {
+    const cached = await getCachedData('mediums', 30 * 60 * 1000);
+    if (cached) return cached;
+  }
   const res = await fetch(`${API_BASE}/api/mediums`);
   if (!res.ok) throw new Error("Could not load mediums list.");
-  return res.json();
+  const data = await res.json();
+  setCachedData('mediums', data);
+  return data;
 };
 
 export const fetchBannerConfig = async () => {
