@@ -609,16 +609,14 @@ export default function ArtworkDetail({ artworkId, onBack, onAddToCart, cartItem
             const isSold = statusLower === 'sold' || statusLower === 'soldout' || statusLower === 'sold_out';
             const isArchived = !isSold && (statusLower === 'return' || statusLower === 'returned' || statusLower === 'archive' || statusLower === 'archived' || descLower.includes('return'));
 
+            if (isArchived) return null;
+
             return (
               <div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 100, margin: 0, color: 'var(--text-primary)' }}>
                   {isSold ? (
                     <span className="status-sold" style={{ color: '#ef4444', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
                       Sold
-                    </span>
-                  ) : isArchived ? (
-                    <span className="status-archived" style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
-                      Archived
                     </span>
                   ) : (!websiteSettings?.hide_prices && guestSession && (!guestSession.expiry || new Date(guestSession.expiry) > new Date())) ? (
                     <span className="status-inquiry" style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 100, fontFamily: 'Montserrat, sans-serif' }}>
