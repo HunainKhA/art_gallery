@@ -434,7 +434,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           </div>
         </div>
 
-        {/* Dashboard Overview */}
+        {/* 1. Dashboard Overview */}
         <button 
           onClick={() => setCurrentSection('overview')} 
           className={`nav-btn ${currentSection === 'overview' ? 'active' : ''}`}
@@ -454,89 +454,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && <span>Dashboard Overview</span>}
         </button>
 
-        {/* POS Billing */}
-        <button 
-          onClick={() => setCurrentSection('billing')} 
-          className={`nav-btn ${currentSection === 'billing' ? 'active' : ''}`}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-            gap: isSidebarCollapsed ? '0' : '0.75rem', 
-            width: '100%', 
-            textAlign: 'left', 
-            padding: '0.75rem 1rem', 
-            borderRadius: '8px' 
-          }}
-          title={isSidebarCollapsed ? "POS Invoice Billing" : ""}
-        >
-          <ShoppingCart size={18} color={currentSection === 'billing' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>POS Invoice Billing</span>}
-        </button>
-
-        {/* Glass Sheets Inventory */}
-        <button 
-          onClick={() => setCurrentSection('inventory_sheets')} 
-          className={`nav-btn ${currentSection === 'inventory_sheets' ? 'active' : ''}`}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-            gap: isSidebarCollapsed ? '0' : '0.75rem', 
-            width: '100%', 
-            textAlign: 'left', 
-            padding: '0.75rem 1rem', 
-            borderRadius: '8px' 
-          }}
-          title={isSidebarCollapsed ? "Glass Sheets Inventory" : ""}
-        >
-          <Package size={18} color={currentSection === 'inventory_sheets' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>Glass Sheets Inventory</span>}
-        </button>
-
-        {/* Glass Sheet Sizer */}
-        <button 
-          onClick={() => setCurrentSection('calculator')} 
-          className={`nav-btn ${currentSection === 'calculator' ? 'active' : ''}`}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-            gap: isSidebarCollapsed ? '0' : '0.75rem', 
-            width: '100%', 
-            textAlign: 'left', 
-            padding: '0.75rem 1rem', 
-            borderRadius: '8px' 
-          }}
-          title={isSidebarCollapsed ? "Glass Sheet Sizer" : ""}
-        >
-          <Calculator size={18} color={currentSection === 'calculator' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>Glass Sheet Sizer</span>}
-        </button>
-
-        {/* Sales Reports */}
-        <button 
-          onClick={() => setCurrentSection('reports')} 
-          className={`nav-btn ${currentSection === 'reports' ? 'active' : ''}`}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-            gap: isSidebarCollapsed ? '0' : '0.75rem', 
-            width: '100%', 
-            textAlign: 'left', 
-            padding: '0.75rem 1rem', 
-            borderRadius: '8px' 
-          }}
-          title={isSidebarCollapsed ? "Sales Reports" : ""}
-        >
-          <BarChart3 size={18} color={currentSection === 'reports' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>Sales Reports</span>}
-        </button>
-
-        <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)', margin: '0.5rem 0' }} />
-
-        {/* CRM MODULES: Artists */}
+        {/* 2. Artists */}
         <div>
           <button 
             onClick={() => handleCategoryClick('artists')} 
@@ -566,7 +484,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           )}
         </div>
 
-        {/* CRM MODULES: Collections (Artworks) */}
+        {/* 3. Collections */}
         <div>
           <button 
             onClick={() => handleCategoryClick('collections')} 
@@ -596,7 +514,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           )}
         </div>
 
-        {/* CRM MODULES: Collections Type (Categories) */}
+        {/* 4. Collections Type */}
         <div>
           <button 
             onClick={() => handleCategoryClick('collection_types')} 
@@ -625,7 +543,7 @@ export default function StaffPortal({ theme, toggleTheme }) {
           )}
         </div>
 
-        {/* CRM MODULES: Medium */}
+        {/* 5. Medium */}
         <div>
           <button 
             onClick={() => handleCategoryClick('medium')} 
@@ -653,6 +571,250 @@ export default function StaffPortal({ theme, toggleTheme }) {
             </div>
           )}
         </div>
+
+        {/* 6. Exhibitions */}
+        <div>
+          <button 
+            onClick={() => handleCategoryClick('exhibitions')} 
+            className="nav-btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              width: '100%', 
+              padding: '0.75rem 1rem' 
+            }}
+            title={isSidebarCollapsed ? "Exhibitions" : ""}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
+              <Layers size={18} /> 
+              {!isSidebarCollapsed && <span>Exhibitions</span>}
+            </span>
+            {!isSidebarCollapsed && (collapsedMenus.exhibitions ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
+          </button>
+          {!isSidebarCollapsed && !collapsedMenus.exhibitions && (
+            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <button onClick={() => setCurrentSection('exhibitions_create')} className={`submenu-btn ${currentSection === 'exhibitions_create' ? 'active' : ''}`}>• Create Exhibition</button>
+              <button onClick={() => setCurrentSection('exhibitions_view')} className={`submenu-btn ${currentSection === 'exhibitions_view' ? 'active' : ''}`}>• View Exhibitions</button>
+              <button onClick={() => setCurrentSection('exhibitions_banner')} className={`submenu-btn ${currentSection === 'exhibitions_banner' ? 'active' : ''}`}>• Exhibitions Banner</button>
+              <button onClick={() => setCurrentSection('exhibitions_import')} className={`submenu-btn ${currentSection === 'exhibitions_import' ? 'active' : ''}`}>• Import</button>
+            </div>
+          )}
+        </div>
+
+        {/* 7. About Us */}
+        <button 
+          onClick={() => setCurrentSection('about_settings')} 
+          className={`nav-btn ${currentSection === 'about_settings' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "About Us Editor" : ""}
+        >
+          <FileText size={18} color={currentSection === 'about_settings' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>About Us</span>}
+        </button>
+
+        {/* 8. Framer's Heaven */}
+        <div>
+          <button 
+            onClick={() => handleCategoryClick('framerheaven')} 
+            className="nav-btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              width: '100%', 
+              padding: '0.75rem 1rem' 
+            }}
+            title={isSidebarCollapsed ? "Framer's Heaven" : ""}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
+              <Package size={18} /> 
+              {!isSidebarCollapsed && <span>Framer's Heaven</span>}
+            </span>
+            {!isSidebarCollapsed && (collapsedMenus.framerheaven ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
+          </button>
+          {!isSidebarCollapsed && !collapsedMenus.framerheaven && (
+            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <button onClick={() => setCurrentSection('framerheaven_create')} className={`submenu-btn ${currentSection === 'framerheaven_create' ? 'active' : ''}`}>• Create Framer's</button>
+              <button onClick={() => setCurrentSection('framerheaven_view')} className={`submenu-btn ${currentSection === 'framerheaven_view' ? 'active' : ''}`}>• View Framer's</button>
+            </div>
+          )}
+        </div>
+
+        {/* 9. Catalogues */}
+        <div>
+          <button 
+            onClick={() => handleCategoryClick('catalogues')} 
+            className="nav-btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              width: '100%', 
+              padding: '0.75rem 1rem' 
+            }}
+            title={isSidebarCollapsed ? "Catalogues" : ""}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
+              <FileText size={18} /> 
+              {!isSidebarCollapsed && <span>Catalogues</span>}
+            </span>
+            {!isSidebarCollapsed && (collapsedMenus.catalogues ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
+          </button>
+          {!isSidebarCollapsed && !collapsedMenus.catalogues && (
+            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <button onClick={() => setCurrentSection('catalogues_create')} className={`submenu-btn ${currentSection === 'catalogues_create' ? 'active' : ''}`}>• Create Catalogues</button>
+              <button onClick={() => setCurrentSection('catalogues_view')} className={`submenu-btn ${currentSection === 'catalogues_view' ? 'active' : ''}`}>• View Catalogues</button>
+              <button onClick={() => setCurrentSection('catalogues_import')} className={`submenu-btn ${currentSection === 'catalogues_import' ? 'active' : ''}`}>• Import</button>
+            </div>
+          )}
+        </div>
+
+        {/* 10. Flash Images */}
+        <div>
+          <button 
+            onClick={() => handleCategoryClick('flashimages')} 
+            className="nav-btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              width: '100%', 
+              padding: '0.75rem 1rem' 
+            }}
+            title={isSidebarCollapsed ? "Flash Images" : ""}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
+              <Image size={18} /> 
+              {!isSidebarCollapsed && <span>Flash Images</span>}
+            </span>
+            {!isSidebarCollapsed && (collapsedMenus.flashimages ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
+          </button>
+          {!isSidebarCollapsed && !collapsedMenus.flashimages && (
+            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <button onClick={() => setCurrentSection('flashimages_create')} className={`submenu-btn ${currentSection === 'flashimages_create' ? 'active' : ''}`}>• Create Flash</button>
+              <button onClick={() => setCurrentSection('flashimages_view')} className={`submenu-btn ${currentSection === 'flashimages_view' ? 'active' : ''}`}>• View Flash</button>
+            </div>
+          )}
+        </div>
+
+        {/* 11. Videos */}
+        <div>
+          <button 
+            onClick={() => handleCategoryClick('videos')} 
+            className="nav-btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              width: '100%', 
+              padding: '0.75rem 1rem' 
+            }}
+            title={isSidebarCollapsed ? "Videos" : ""}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
+              <FileText size={18} /> 
+              {!isSidebarCollapsed && <span>Videos</span>}
+            </span>
+             {!isSidebarCollapsed && (collapsedMenus.videos ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
+          </button>
+          {!isSidebarCollapsed && !collapsedMenus.videos && (
+            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <button onClick={() => setCurrentSection('videos_create')} className={`submenu-btn ${currentSection === 'videos_create' ? 'active' : ''}`}>• Create Videos</button>
+              <button onClick={() => setCurrentSection('videos_view')} className={`submenu-btn ${currentSection === 'videos_view' ? 'active' : ''}`}>• View Videos</button>
+              <button onClick={() => setCurrentSection('videos_import')} className={`submenu-btn ${currentSection === 'videos_import' ? 'active' : ''}`}>• Import</button>
+            </div>
+          )}
+        </div>
+
+        {/* 12. Glass Sheets Inventory */}
+        <button 
+          onClick={() => setCurrentSection('inventory_sheets')} 
+          className={`nav-btn ${currentSection === 'inventory_sheets' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Glass Sheets Inventory" : ""}
+        >
+          <Package size={18} color={currentSection === 'inventory_sheets' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Glass Sheets Inventory</span>}
+        </button>
+
+        {/* 13. Glass Sheet Sizer */}
+        <button 
+          onClick={() => setCurrentSection('calculator')} 
+          className={`nav-btn ${currentSection === 'calculator' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Glass Sheet Sizer" : ""}
+        >
+          <Calculator size={18} color={currentSection === 'calculator' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Glass Sheet Sizer</span>}
+        </button>
+
+        {/* 14. POS Invoice Billing */}
+        <button 
+          onClick={() => setCurrentSection('billing')} 
+          className={`nav-btn ${currentSection === 'billing' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "POS Invoice Billing" : ""}
+        >
+          <ShoppingCart size={18} color={currentSection === 'billing' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>POS Invoice Billing</span>}
+        </button>
+
+        {/* 15. Sales Reports */}
+        <button 
+          onClick={() => setCurrentSection('reports')} 
+          className={`nav-btn ${currentSection === 'reports' ? 'active' : ''}`}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+            gap: isSidebarCollapsed ? '0' : '0.75rem', 
+            width: '100%', 
+            textAlign: 'left', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px' 
+          }}
+          title={isSidebarCollapsed ? "Sales Reports" : ""}
+        >
+          <BarChart3 size={18} color={currentSection === 'reports' ? 'var(--accent-gold)' : 'inherit'} /> 
+          {!isSidebarCollapsed && <span>Sales Reports</span>}
+        </button>
 
         {/* CRM MODULES: Customers */}
         <div>
@@ -736,170 +898,6 @@ export default function StaffPortal({ theme, toggleTheme }) {
           {!isSidebarCollapsed && !collapsedMenus.invoices && (
             <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
               <button onClick={() => setCurrentSection('invoices_view')} className={`submenu-btn ${currentSection === 'invoices_view' ? 'active' : ''}`}>• View Invoices</button>
-            </div>
-          )}
-        </div>
-
-        {/* CRM MODULES: Exhibitions */}
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('exhibitions')} 
-            className="nav-btn" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem' 
-            }}
-            title={isSidebarCollapsed ? "Exhibitions" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <Layers size={18} /> 
-              {!isSidebarCollapsed && <span>Exhibitions</span>}
-            </span>
-            {!isSidebarCollapsed && (collapsedMenus.exhibitions ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.exhibitions && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('exhibitions_create')} className={`submenu-btn ${currentSection === 'exhibitions_create' ? 'active' : ''}`}>• Create Exhibition</button>
-              <button onClick={() => setCurrentSection('exhibitions_view')} className={`submenu-btn ${currentSection === 'exhibitions_view' ? 'active' : ''}`}>• View Exhibitions</button>
-              <button onClick={() => setCurrentSection('exhibitions_banner')} className={`submenu-btn ${currentSection === 'exhibitions_banner' ? 'active' : ''}`}>• Exhibitions Banner</button>
-              <button onClick={() => setCurrentSection('exhibitions_import')} className={`submenu-btn ${currentSection === 'exhibitions_import' ? 'active' : ''}`}>• Import</button>
-            </div>
-          )}
-        </div>
-
-        {/* About Us Settings */}
-        <button 
-          onClick={() => setCurrentSection('about_settings')} 
-          className={`nav-btn ${currentSection === 'about_settings' ? 'active' : ''}`}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-            gap: isSidebarCollapsed ? '0' : '0.75rem', 
-            width: '100%', 
-            textAlign: 'left', 
-            padding: '0.75rem 1rem', 
-            borderRadius: '8px' 
-          }}
-          title={isSidebarCollapsed ? "About Us Editor" : ""}
-        >
-          <FileText size={18} color={currentSection === 'about_settings' ? 'var(--accent-gold)' : 'inherit'} /> 
-          {!isSidebarCollapsed && <span>About Us</span>}
-        </button>
-
-        {/* CRM MODULES: Framer's Heaven */}
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('framerheaven')} 
-            className="nav-btn" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem' 
-            }}
-            title={isSidebarCollapsed ? "Framer's Heaven" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <Package size={18} /> 
-              {!isSidebarCollapsed && <span>Framer's Heaven</span>}
-            </span>
-            {!isSidebarCollapsed && (collapsedMenus.framerheaven ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.framerheaven && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('framerheaven_create')} className={`submenu-btn ${currentSection === 'framerheaven_create' ? 'active' : ''}`}>• Create Framer's</button>
-              <button onClick={() => setCurrentSection('framerheaven_view')} className={`submenu-btn ${currentSection === 'framerheaven_view' ? 'active' : ''}`}>• View Framer's</button>
-            </div>
-          )}
-        </div>
-
-        {/* CRM MODULES: Catalogues */}
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('catalogues')} 
-            className="nav-btn" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem' 
-            }}
-            title={isSidebarCollapsed ? "Catalogues" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <FileText size={18} /> 
-              {!isSidebarCollapsed && <span>Catalogues</span>}
-            </span>
-            {!isSidebarCollapsed && (collapsedMenus.catalogues ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.catalogues && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('catalogues_create')} className={`submenu-btn ${currentSection === 'catalogues_create' ? 'active' : ''}`}>• Create Catalogues</button>
-              <button onClick={() => setCurrentSection('catalogues_view')} className={`submenu-btn ${currentSection === 'catalogues_view' ? 'active' : ''}`}>• View Catalogues</button>
-              <button onClick={() => setCurrentSection('catalogues_import')} className={`submenu-btn ${currentSection === 'catalogues_import' ? 'active' : ''}`}>• Import</button>
-            </div>
-          )}
-        </div>
-
-        {/* CRM MODULES: Flash Images */}
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('flashimages')} 
-            className="nav-btn" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem' 
-            }}
-            title={isSidebarCollapsed ? "Flash Images" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <Image size={18} /> 
-              {!isSidebarCollapsed && <span>Flash Images</span>}
-            </span>
-            {!isSidebarCollapsed && (collapsedMenus.flashimages ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.flashimages && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('flashimages_create')} className={`submenu-btn ${currentSection === 'flashimages_create' ? 'active' : ''}`}>• Create Flash</button>
-              <button onClick={() => setCurrentSection('flashimages_view')} className={`submenu-btn ${currentSection === 'flashimages_view' ? 'active' : ''}`}>• View Flash</button>
-            </div>
-          )}
-        </div>
-
-        {/* CRM MODULES: Videos */}
-        <div>
-          <button 
-            onClick={() => handleCategoryClick('videos')} 
-            className="nav-btn" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              width: '100%', 
-              padding: '0.75rem 1rem' 
-            }}
-            title={isSidebarCollapsed ? "Videos" : ""}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: isSidebarCollapsed ? '0' : '0.75rem' }}>
-              <FileText size={18} /> 
-              {!isSidebarCollapsed && <span>Videos</span>}
-            </span>
-             {!isSidebarCollapsed && (collapsedMenus.videos ? <ChevronRight size={14} /> : <ChevronDown size={14} />)}
-          </button>
-          {!isSidebarCollapsed && !collapsedMenus.videos && (
-            <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-              <button onClick={() => setCurrentSection('videos_create')} className={`submenu-btn ${currentSection === 'videos_create' ? 'active' : ''}`}>• Create Videos</button>
-              <button onClick={() => setCurrentSection('videos_view')} className={`submenu-btn ${currentSection === 'videos_view' ? 'active' : ''}`}>• View Videos</button>
-              <button onClick={() => setCurrentSection('videos_import')} className={`submenu-btn ${currentSection === 'videos_import' ? 'active' : ''}`}>• Import</button>
             </div>
           )}
         </div>
