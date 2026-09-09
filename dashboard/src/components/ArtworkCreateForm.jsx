@@ -191,7 +191,8 @@ export default function ArtworkCreateForm({ onSuccess, onCancel, editRecord = nu
   // Pricing Logic (Completely independent Gallery Price & Artist Commission Calculation)
   const recalcArtistPayable = (artistPriceVal, commPctVal, withFrameVal, frameChargesVal) => {
     const artistAmt = parseFloat(artistPriceVal) || 0;
-    const commPct = parseFloat(commPctVal) || 40;
+    const parsedComm = parseFloat(commPctVal);
+    const commPct = (!isNaN(parsedComm) && commPctVal !== '' && commPctVal !== null) ? parsedComm : 0;
     const isFramed = withFrameVal === '1';
     const frameCh = isFramed ? (parseFloat(frameChargesVal) || 0) : 0;
 
