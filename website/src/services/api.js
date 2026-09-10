@@ -228,10 +228,21 @@ export const verifyGuestOtp = async (otp) => {
     body: JSON.stringify({ otp })
   });
   if (!res.ok) {
-    const errorData = await res.json();
+    const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || "Invalid OTP code.");
   }
   return res.json();
 };
 
-
+export const sendContactMessage = async ({ name, email, message, phone }) => {
+  const res = await fetch(getApiUrl('/api/contact'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, message, phone })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Failed to send message. Please try again.');
+  }
+  return res.json();
+};

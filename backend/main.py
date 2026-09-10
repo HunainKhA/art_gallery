@@ -5,7 +5,7 @@ from config import Config
 
 # Touch to reload server after clean routers update
 # Import separate route modules
-from routers import artworks, artists, calculator, payments, customers, sales, frames, fittings, collection_types, mediums, crm_documents, invoices, settings, guest_auth, subscribers
+from routers import artworks, artists, calculator, payments, customers, sales, frames, fittings, collection_types, mediums, crm_documents, invoices, settings, guest_auth, subscribers, contact
 
 app = FastAPI(
     title="Mainframe Art Gallery API",
@@ -60,6 +60,7 @@ app.include_router(invoices.router)
 app.include_router(settings.router)
 app.include_router(guest_auth.router)
 app.include_router(subscribers.router)
+app.include_router(contact.router)
 
 @app.on_event("startup")
 def on_startup():

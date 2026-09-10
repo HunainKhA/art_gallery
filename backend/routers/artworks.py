@@ -2985,11 +2985,8 @@ def submit_artwork_inquiry(data: InquiryCreate):
         connection.close()
 
     # 5. Send SMTP email notification
-    from email.mime.multipart import MIMEMultipart
-    from config import Config
+    from email_service import send_gallery_email
 
-    to_email = Config.INQUIRY_RECIPIENT_EMAIL or "mainframethegallery@gmail.com"
-    from_email = Config.SMTP_FROM_EMAIL or Config.SMTP_USER or "mainframethegallery@gmail.com"
     subject = f"Website Inquiry: {artwork['title']} (Code: {artwork['code'] or 'N/A'}) - {data.name}"
 
     email_body_text = f"""New Inquiry Received from Gallery Website:
@@ -3054,48 +3051,17 @@ Customer Message:
     </div>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = from_email
-    msg['To'] = to_email
-    if data.email:
-        msg['Reply-To'] = data.email
-
-    msg.attach(MIMEText(email_body_text, 'plain', 'utf-8'))
-    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-
-    email_sent = False
-
-    # 1. Try Authenticated SMTP (Gmail / Hostinger Titan / Custom SMTP) if configured
-    if Config.SMTP_USER and Config.SMTP_PASSWORD:
-        try:
-            if Config.SMTP_PORT == 465:
-                server = smtplib.SMTP_SSL(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10)
-            else:
-                server = smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10)
-                if Config.SMTP_USE_TLS:
-                    server.starttls()
-            server.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
-            server.sendmail(from_email, [to_email], msg.as_string())
-            server.quit()
-            email_sent = True
-            print(f"Inquiry email successfully sent to {to_email} via SMTP ({Config.SMTP_HOST})")
-        except Exception as e:
-            print(f"Authenticated SMTP send error ({Config.SMTP_HOST}): {str(e)}")
-
-    # 2. Fallback to local SMTP relay (localhost:25) if authenticated SMTP is not set or failed
-    if not email_sent:
-        try:
-            with smtplib.SMTP('localhost', 25, timeout=5) as server:
-                server.sendmail(from_email, [to_email], msg.as_string())
-                email_sent = True
-                print(f"Inquiry email sent to {to_email} via localhost:25 relay")
-        except Exception as e:
-            print(f"Localhost SMTP relay failed: {str(e)}")
+    res = send_gallery_email(
+        subject=subject,
+        text_body=email_body_text,
+        html_body=html_body,
+        reply_to=data.email
+    )
 
     return {
         "success": True, 
         "inquiry_id": inquiry_id, 
-        "email_sent": email_sent,
+        "email_sent": res.get("success", False),
+        "email_error": res.get("error"),
         "message": "Inquiry submitted successfully and recorded in CRM."
     }

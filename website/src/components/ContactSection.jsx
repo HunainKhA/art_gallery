@@ -1,7 +1,41 @@
-import React from 'react';
-import { MapPin, Phone, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Phone, Clock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { sendContactMessage } from '../services/api';
 
 export default function ContactSection() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState({ type: null, message: '' });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) return;
+
+    setSubmitting(true);
+    setStatus({ type: null, message: '' });
+
+    try {
+      const res = await sendContactMessage(formData);
+      setStatus({
+        type: 'success',
+        message: res.message || 'Thank you! Your message has been sent to our gallery team.'
+      });
+      setFormData({ name: '', email: '', message: '' });
+    } catch (err) {
+      console.error('Contact submit error:', err);
+      setStatus({
+        type: 'error',
+        message: err.message || 'Failed to send message. Please try again or contact us directly.'
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="page-content contact-section-wrapper" style={{ animation: 'fadeIn 0.5s ease' }}>
       {/* Google Map Section */}
@@ -105,15 +139,51 @@ export default function ContactSection() {
             Send Us a Message
           </h2>
           <form
-            onSubmit={(e) => { e.preventDefault(); alert("Message sent successfully! Our curator will contact you."); }}
+            onSubmit={handleSubmit}
             style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
           >
+            {status.type === 'success' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                color: '#4ade80',
+                fontSize: '13px'
+              }}>
+                <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+                <span>{status.message}</span>
+              </div>
+            )}
+
+            {status.type === 'error' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                fontSize: '13px'
+              }}>
+                <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <span>{status.message}</span>
+              </div>
+            )}
+
             <div>
               <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-primary)', marginBottom: '0.35rem', fontWeight: 400 }}>
                 Your Name
               </label>
               <input
                 type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -126,6 +196,7 @@ export default function ContactSection() {
                   boxSizing: 'border-box'
                 }}
                 required
+                disabled={submitting}
               />
             </div>
             <div>
@@ -134,6 +205,8 @@ export default function ContactSection() {
               </label>
               <input
                 type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -146,6 +219,7 @@ export default function ContactSection() {
                   boxSizing: 'border-box'
                 }}
                 required
+                disabled={submitting}
               />
             </div>
             <div>
@@ -154,6 +228,8 @@ export default function ContactSection() {
               </label>
               <textarea
                 rows="3"
+                value={formData.message}
+                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '0.6rem 0.85rem',
@@ -167,22 +243,30 @@ export default function ContactSection() {
                   boxSizing: 'border-box'
                 }}
                 required
-              // placeholder="Enter details about calligraphic paintings or frame services..."
+                disabled={submitting}
               />
             </div>
             <button
               type="submit"
+              disabled={submitting}
               className="btn-primary"
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
                 padding: '0.65rem 1.25rem',
                 fontSize: '12px',
                 fontWeight: 300,
                 marginTop: '0.25rem',
                 border: 'none',
-                fontFamily: 'Montserrat, sans-serif'
+                fontFamily: 'Montserrat, sans-serif',
+                opacity: submitting ? 0.7 : 1,
+                cursor: submitting ? 'not-allowed' : 'pointer'
               }}
             >
-              Send Inquiry Message
+              {submitting && <Loader2 size={14} className="animate-spin" />}
+              {submitting ? 'Sending Message...' : 'Send Inquiry Message'}
             </button>
           </form>
         </div>
